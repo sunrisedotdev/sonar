@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+.pnp.*
+
+# Output
+dist/
+coverage/
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env
+.env
+.env.*
