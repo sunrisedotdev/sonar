@@ -1,6 +1,6 @@
 {
     "name": "@echoxyz/sonar-react",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "type": "module",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
@@ -33,5 +33,11 @@
     },
     "publishConfig": {
         "access": "public"
-    }
+    },
+    "files": [
+        "dist",
+        "CHANGELOG.md",
+        "README.md",
+        "package.json"
+    ]
 }
