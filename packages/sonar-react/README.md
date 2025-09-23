@@ -78,15 +78,16 @@ export default function OAuthCallback() {
 }
 ```
 
-4. Call APIs using the client-bound sale helpers:
+4. Call APIs using the low-level client:
 
 ```tsx
 import { useEffect } from "react";
-import { useSonarAuth, useSonarSale } from "@echoxyz/sonar-react";
+import { useSonarAuth, useSonarClient } from "@echoxyz/sonar-react";
+import { EntityType } from "@echoxyz/sonar-core";
 
 export function Example() {
     const { authenticated } = useSonarAuth();
-    const { listAvailableEntities, prePurchaseCheck, generatePurchasePermit, fetchAllocation } = useSonarSale();
+    const client = useSonarClient();
 
     useEffect(() => {
         if (!authenticated()) {
@@ -94,29 +95,34 @@ export function Example() {
         }
 
         (async () => {
-            const entities = await listAvailableEntities();
-            if (entities.length === 0) return;
+            const { Entities } = await client.listAvailableEntities({ saleUUID: "<your-sale-uuid>" });
+            if (Entities.length === 0) return;
 
-            const entity = entities[0];
-            const pre = await prePurchaseCheck({
+            const entity = Entities[0];
+            const pre = await client.prePurchaseCheck({
+                saleUUID: "<your-sale-uuid>",
                 entityUUID: entity.EntityUUID,
-                entityType: "user",
+                entityType: EntityType.USER,
                 walletAddress: "0x1234...abcd" as `0x${string}`,
             });
 
             if (pre.ReadyToPurchase) {
-                const permit = await generatePurchasePermit({
+                const permit = await client.generatePurchasePermit({
+                    saleUUID: "<your-sale-uuid>",
                     entityUUID: entity.EntityUUID,
-                    entityType: "user",
+                    entityType: EntityType.USER,
                     walletAddress: "0x1234...abcd" as `0x${string}`,
                 });
                 console.log(permit.Signature, permit.Permit);
             }
 
-            const alloc = await fetchAllocation({ walletAddress: "0x1234...abcd" as `0x${string}` });
+            const alloc = await client.fetchAllocation({
+                saleUUID: "<your-sale-uuid>",
+                walletAddress: "0x1234...abcd" as `0x${string}`,
+            });
             console.log(alloc);
         })();
-    }, [authenticated, listAvailableEntities, prePurchaseCheck, generatePurchasePermit, fetchAllocation]);
+    }, [authenticated, client]);
 
     return null;
 }
@@ -132,16 +138,9 @@ export function Example() {
         - `apiURL?: string` (default: `https://api.echo.xyz`) – API base URL.
         - `tokenStorageKey?: string` (default: `sonar:auth-token`) – Browser storage key for the access token.
 
-- `useSonarAuth()` → `{ authenticated, token?, login(), completeOAuth(searchParams?), logout() }`
-    - Router-agnostic: `completeOAuth(searchParams?)` accepts an optional `URLSearchParams`. If omitted, it uses `window.location.search`.
+- `useSonarAuth()` → `{ authenticated, token?, login(), completeOAuth({ code, state }), logout() }`
 
 - `useSonarClient()` → low-level `SonarClient` instance.
-
-- `useSonarSale()` → sale-scoped helpers:
-    - `listAvailableEntities()`
-    - `prePurchaseCheck({ entityUUID, entityType, walletAddress })`
-    - `generatePurchasePermit({ entityUUID, entityType, walletAddress })`
-    - `fetchAllocation({ walletAddress })`
 
 ## Notes
 

@@ -1,29 +1,28 @@
 const DEFAULT_FRONTEND_URL = "https://app.echo.xyz";
 
-function buildAuthorizationUrl(args: {
+export type BuildAuthorizationUrlArgs = {
     saleUUID: string;
     clientUUID: string;
-    frontendURL: string;
     redirectURI: string;
     state: string;
     codeChallenge: string;
-}): URL {
-    const url = new URL("/oauth/authorize", args.frontendURL);
-    url.searchParams.set("client_id", args.clientUUID);
-    url.searchParams.set("redirect_uri", args.redirectURI);
-    url.searchParams.set("response_type", "code");
-    url.searchParams.set("state", args.state);
-    url.searchParams.set("code_challenge", args.codeChallenge);
-    url.searchParams.set("saleUUID", args.saleUUID);
-    return url;
-}
+    frontendURL?: string;
+};
 
-export function buildDefaultAuthorizationUrl(args: {
-    saleUUID: string;
-    clientUUID: string;
-    redirectURI: string;
-    state: string;
-    codeChallenge: string;
-}): URL {
-    return buildAuthorizationUrl({ ...args, frontendURL: DEFAULT_FRONTEND_URL });
+export function buildAuthorizationUrl({
+    saleUUID,
+    clientUUID,
+    redirectURI,
+    state,
+    codeChallenge,
+    frontendURL = DEFAULT_FRONTEND_URL,
+}: BuildAuthorizationUrlArgs): URL {
+    const url = new URL("/oauth/authorize", frontendURL);
+    url.searchParams.set("client_id", clientUUID);
+    url.searchParams.set("redirect_uri", redirectURI);
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("state", state);
+    url.searchParams.set("code_challenge", codeChallenge);
+    url.searchParams.set("saleUUID", saleUUID);
+    return url;
 }

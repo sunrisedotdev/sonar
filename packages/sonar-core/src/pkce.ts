@@ -1,21 +1,20 @@
 function base64UrlEncode(bytes: Uint8Array): string {
+    // PKCE spec (RFC 7636) requires base64url encoding *without* padding.
     let binary = "";
     for (let i = 0; i < bytes.byteLength; i++) {
         binary += String.fromCharCode(bytes[i]);
     }
-    return btoa(binary).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    // Remove padding (=) as required by PKCE
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 function generateCodeVerifier(): string {
     // 32 bytes entropy -> 43 char URL-safe base64, within PKCE spec range (43-128)
     const bytes = new Uint8Array(32);
-    if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
-        crypto.getRandomValues(bytes);
-    } else {
-        for (let i = 0; i < bytes.length; i++) {
-            bytes[i] = Math.floor(Math.random() * 256);
-        }
+    if (typeof crypto === "undefined" || typeof crypto.getRandomValues !== "function") {
+        throw new Error("crypto.getRandomValues is not available");
     }
+    crypto.getRandomValues(bytes);
     return base64UrlEncode(bytes);
 }
 

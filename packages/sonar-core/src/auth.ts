@@ -1,13 +1,20 @@
 import type { StorageLike } from "./storage";
 
 function safeDecodeExp(token: string): number | undefined {
+    if (typeof token !== "string") {
+        return undefined;
+    }
+    const parts = token.split(".");
+    if (parts.length !== 3) {
+        return undefined;
+    }
     try {
-        // Minimal, dependency-free JWT payload decode
-        const parts = token.split(".");
-        if (parts.length < 2) return undefined;
-        const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-        if (typeof payload.exp === "number") {
-            return payload.exp * 1000;
+        // Decode base64url (RFC 7515) to base64
+        let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const payload = JSON.parse(atob(base64));
+        const exp = payload?.exp;
+        if (typeof exp === "number" && isFinite(exp)) {
+            return exp * 1000;
         }
         return undefined;
     } catch {

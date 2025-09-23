@@ -1,43 +1,42 @@
 import { AuthSession } from "./auth";
-import { SonarClient } from "./client";
-import { createJsonFetcher, FetchLike } from "./fetcher";
+import { SonarClient, type FetchLike } from "./client";
 import { createWebStorage } from "./storage";
 
-export * from "./types";
-export * from "./pkce";
-export * from "./oauth";
 export * from "./client";
+export * from "./oauth";
+export * from "./pkce";
+export * from "./storage";
+export * from "./types";
 
 const DEFAULT_API_URL = "https://api.echo.xyz";
 
-export function createClient(args: {
-    apiURL: string;
+export type CreateClientOptions = {
     saleUUID: string;
+    apiURL?: string;
     auth?: AuthSession;
     fetch?: FetchLike;
-}): SonarClient {
+    tokenKey?: string;
+    onExpire?: () => void;
+    onTokenChange?: (token?: string) => void;
+};
+
+export function createClient(options: CreateClientOptions): SonarClient {
+    const { saleUUID, apiURL = DEFAULT_API_URL, auth, fetch, tokenKey, onExpire, onTokenChange } = options;
+
+    const authSession =
+        auth ??
+        new AuthSession({
+            storage: createWebStorage(),
+            tokenKey,
+            onExpire,
+        });
+
+    if (onTokenChange) {
+        authSession.onTokenChange(onTokenChange);
+    }
+
     return new SonarClient({
-        apiURL: args.apiURL,
-        saleUUID: args.saleUUID,
-        opts: { auth: args.auth, fetch: args.fetch },
-    });
-}
-
-export function createDefaultClient(args: { saleUUID: string }): SonarClient {
-    const storage = createWebStorage();
-    const authSession = new AuthSession({ storage });
-    authSession.onTokenChange((token) => {
-        if (token) {
-            localStorage.setItem("sonar:auth-token", token);
-            return;
-        }
-        localStorage.removeItem("sonar:auth-token");
-    });
-
-    return createClient({
-        apiURL: DEFAULT_API_URL,
-        saleUUID: args.saleUUID,
-        auth: authSession,
-        fetch: createJsonFetcher(),
+        apiURL,
+        opts: { auth: authSession, fetch, onUnauthorized: () => authSession.clear() },
     });
 }

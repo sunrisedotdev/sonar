@@ -13,14 +13,14 @@ pnpm add @echoxyz/sonar-core
 The default client targets Echo’s hosted API and reads the auth token from `localStorage` under the `sonar:auth-token` key.
 
 ```ts
-import { createDefaultClient, buildDefaultAuthorizationUrl, generatePKCEParams } from "@echoxyz/sonar-core";
+import { createClient, buildAuthorizationUrl, generatePKCEParams, EntityType } from "@echoxyz/sonar-core";
 
 // Configure once at app startup
 const saleUUID = "<your-sale-uuid>";
 const clientUUID = "<your-oauth-client-id>";
 const redirectURI = window.location.origin + "/oauth/callback";
 
-const client = createDefaultClient({ saleUUID });
+const client = createClient({ saleUUID });
 
 // Start OAuth login (e.g. on a button click)
 export async function login() {
@@ -29,7 +29,7 @@ export async function login() {
     sessionStorage.setItem("sonar:oauth:state", state);
     sessionStorage.setItem("sonar:oauth:verifier", codeVerifier);
 
-    const url = buildDefaultAuthorizationUrl({
+    const url = buildAuthorizationUrl({
         saleUUID,
         clientUUID,
         redirectURI,
@@ -72,39 +72,64 @@ export async function completeOAuthFromCallback() {
 // Call APIs (after token is set)
 export async function exampleCalls() {
     // List entities available to this user for the configured sale
-    const entities = await client.listAvailableEntities();
+    const { Entities } = await client.listAvailableEntities({ saleUUID });
 
     // Run a pre-purchase check
     const pre = await client.prePurchaseCheck({
-        entityUUID: entities[0].EntityUUID,
-        entityType: "user", // or "organization"
+        saleUUID,
+        entityUUID: Entities[0].EntityUUID,
+        entityType: EntityType.USER, // or EntityType.ORGANIZATION
         walletAddress: "0x1234...abcd" as `0x${string}`,
     });
 
     if (pre.ReadyToPurchase) {
         // Generate a purchase permit
         const permit = await client.generatePurchasePermit({
-            entityUUID: entities[0].EntityUUID,
-            entityType: "user",
+            saleUUID,
+            entityUUID: Entities[0].EntityUUID,
+            entityType: EntityType.USER,
             walletAddress: "0x1234...abcd" as `0x${string}`,
         });
         console.log(permit.Signature, permit.Permit);
     }
-    ...
+
+    // Fetch allocation
+    const alloc = await client.fetchAllocation({ saleUUID, walletAddress: "0x1234...abcd" as `0x${string}` });
+    console.log(alloc);
 }
 ```
 
 ## Customizing the client
 
-If you need to point to a different API base URL or customize token retrieval, use `createClient`:
+`createClient` accepts options so you can swap out pieces as needed:
 
 ```ts
-import { createClient } from "@echoxyz/sonar-core";
+import { AuthSession, buildAuthorizationUrl, createClient, createMemoryStorage } from "@echoxyz/sonar-core";
 
 const client = createClient({
-    apiURL: "https://api.echo.xyz",
     saleUUID: "<sale-uuid>",
-    getAuthToken: () => localStorage.getItem("sonar:auth-token") ?? undefined,
+    apiURL: "https://api.echo.xyz",
+    fetch: customFetchImplementation,
+    auth: new AuthSession({
+        storage: createMemoryStorage(),
+        tokenKey: "custom-token-key",
+    }),
+});
+
+// or let the factory create the session but tweak defaults
+const clientWithCallbacks = createClient({
+    saleUUID: "<sale-uuid>",
+    onTokenChange: (token) => console.log("token updated", token),
+    onExpire: () => console.log("session expired"),
+});
+
+const oauthURL = buildAuthorizationUrl({
+    saleUUID: "<sale-uuid>",
+    clientUUID: "<client-id>",
+    redirectURI: "https://example.com/oauth/callback",
+    state: "opaque-state",
+    codeChallenge: "pkce-challenge",
+    frontendURL: "https://custom.echo.xyz", // optional override
 });
 ```
 

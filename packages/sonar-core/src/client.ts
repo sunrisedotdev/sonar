@@ -1,8 +1,8 @@
 import { AuthSession } from "./auth";
-import type { FetchLike } from "./fetcher";
-import { createJsonFetcher } from "./fetcher";
 import { createWebStorage } from "./storage";
-import type { AllocationPermit, BasicPermit, EntityDetails, EntityType, PurchasePermitType } from "./types";
+import type { AllocationPermit, BasicPermit, EntityDetails, EntityType } from "./types";
+
+export type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export type PrePurchaseCheckResponse = {
     ReadyToPurchase: boolean;
@@ -22,33 +22,120 @@ export type AllocationResponse = {
     MaxAmountUSD: string;
 };
 
+export type ListAvailableEntitiesResponse = {
+    Entities: EntityDetails[];
+};
+
 export type ClientOptions = {
     auth?: AuthSession;
     fetch?: FetchLike;
+    onUnauthorized?: () => void;
 };
 
 export class SonarClient {
     private readonly apiURL: string;
-    private readonly saleUUID: string;
-    private readonly fetcher: FetchLike;
     private readonly auth: AuthSession;
+    private readonly fetchFn: FetchLike;
+    private readonly onUnauthorized?: () => void;
 
-    constructor(args: { apiURL: string; saleUUID: string; opts?: ClientOptions }) {
+    constructor(args: { apiURL: string; opts?: ClientOptions }) {
         this.apiURL = args.apiURL;
-        this.saleUUID = args.saleUUID;
         this.auth = args.opts?.auth ?? new AuthSession({ storage: createWebStorage() });
-        this.fetcher = args.opts?.fetch ?? createJsonFetcher();
+        const fetchImpl = args.opts?.fetch ?? globalThis.fetch;
+        if (!fetchImpl) {
+            throw new Error("A fetch implementation must be provided");
+        }
+        this.fetchFn = fetchImpl;
+        this.onUnauthorized = args.opts?.onUnauthorized;
     }
 
-    private headers(): Record<string, string> {
+    // Expose token management methods from the underlying AuthSession for convenience
+    setToken(token: string): void {
+        this.auth.setToken(token);
+    }
+
+    getToken(): string | undefined {
+        return this.auth.getToken();
+    }
+
+    clear(): void {
+        this.auth.clear();
+    }
+
+    private headers({ includeAuth = true }: { includeAuth?: boolean } = {}): Record<string, string> {
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
         };
-        const token = this.auth.getToken();
-        if (token) {
-            headers["authorization"] = `api:Bearer ${token}`;
+        if (includeAuth) {
+            const token = this.auth.getToken();
+            if (token) {
+                headers["authorization"] = `api:Bearer ${token}`;
+            }
         }
         return headers;
+    }
+
+    private async postJSON<T>(
+        path: string,
+        body: unknown,
+        { includeAuth = true }: { includeAuth?: boolean } = {},
+    ): Promise<T> {
+        const resp = await this.fetchFn(new URL(path, this.apiURL), {
+            method: "POST",
+            headers: this.headers({ includeAuth }),
+            body: JSON.stringify(body),
+        });
+        return this.parseJsonResponse<T>(resp);
+    }
+
+    private async parseJsonResponse<T>(resp: Response): Promise<T> {
+        const bodyText = await resp.text();
+
+        if (resp.status === 401 && this.onUnauthorized) {
+            try {
+                this.onUnauthorized();
+            } catch {}
+        }
+
+        if (!resp.ok) {
+            let message = `Request failed with status ${resp.status}`;
+            let code: string | undefined;
+            let details: unknown = bodyText || undefined;
+
+            if (bodyText) {
+                try {
+                    const parsed = JSON.parse(bodyText);
+                    details = parsed;
+                    if (typeof parsed === "object" && parsed !== null) {
+                        const parsedRecord = parsed as Record<string, unknown>;
+                        const parsedMessage =
+                            parsedRecord.message ?? parsedRecord.Message ?? parsedRecord.error ?? parsedRecord.Error;
+                        if (typeof parsedMessage === "string" && parsedMessage.trim()) {
+                            message = parsedMessage;
+                        }
+                        const parsedCode = parsedRecord.code ?? parsedRecord.Code;
+                        if (typeof parsedCode === "string" && parsedCode.trim()) {
+                            code = parsedCode;
+                        }
+                    }
+                } catch {
+                    // keep text version in details
+                }
+            }
+
+            throw new APIError(resp.status, message, code, details);
+        }
+
+        try {
+            return JSON.parse(bodyText) as T;
+        } catch {
+            throw new APIError(
+                resp.status,
+                `Failed to parse JSON response (status ${resp.status})`,
+                undefined,
+                bodyText || undefined,
+            );
+        }
     }
 
     async exchangeAuthorizationCode(args: {
@@ -56,73 +143,71 @@ export class SonarClient {
         codeVerifier: string;
         redirectURI: string;
     }): Promise<{ token: string }> {
-        const resp = await this.fetcher(new URL("/oauth.ExchangeAuthorizationCode", this.apiURL), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+        return this.postJSON<{ token: string }>(
+            "/oauth.ExchangeAuthorizationCode",
+            {
                 Code: args.code,
                 CodeVerifier: args.codeVerifier,
                 RedirectURI: args.redirectURI,
-            }),
-        });
-        return (await resp.json()) as { token: string };
+            },
+            { includeAuth: false },
+        );
     }
 
     async prePurchaseCheck(args: {
+        saleUUID: string;
         entityUUID: string;
         entityType: EntityType;
         walletAddress: string;
     }): Promise<PrePurchaseCheckResponse> {
-        const resp = await this.fetcher(new URL("/externalapi.PrePurchaseCheck", this.apiURL), {
-            method: "POST",
-            headers: this.headers(),
-            body: JSON.stringify({
-                SaleUUID: this.saleUUID,
-                EntityUUID: args.entityUUID,
-                EntityType: args.entityType,
-                PurchasingWalletAddress: args.walletAddress,
-            }),
+        return this.postJSON<PrePurchaseCheckResponse>("/externalapi.PrePurchaseCheck", {
+            SaleUUID: args.saleUUID,
+            EntityUUID: args.entityUUID,
+            EntityType: args.entityType,
+            PurchasingWalletAddress: args.walletAddress,
         });
-        return (await resp.json()) as PrePurchaseCheckResponse;
     }
 
-    async generatePurchasePermit<T extends PurchasePermitType>(args: {
+    async generatePurchasePermit(args: {
+        saleUUID: string;
         entityUUID: string;
         entityType: EntityType;
         walletAddress: string;
     }): Promise<GeneratePurchasePermitResponse> {
-        const resp = await this.fetcher(new URL("/externalapi.GenerateSalePurchasePermit", this.apiURL), {
-            method: "POST",
-            headers: this.headers(),
-            body: JSON.stringify({
-                SaleUUID: this.saleUUID,
-                EntityUUID: args.entityUUID,
-                EntityType: args.entityType,
-                PurchasingWalletAddress: args.walletAddress,
-            }),
+        return this.postJSON<GeneratePurchasePermitResponse>("/externalapi.GenerateSalePurchasePermit", {
+            SaleUUID: args.saleUUID,
+            EntityUUID: args.entityUUID,
+            EntityType: args.entityType,
+            PurchasingWalletAddress: args.walletAddress,
         });
-        return (await resp.json()) as GeneratePurchasePermitResponse;
     }
 
-    async fetchAllocation(args: { walletAddress: string }): Promise<AllocationResponse> {
-        const resp = await this.fetcher(new URL("/externalapi.Allocation", this.apiURL), {
-            method: "POST",
-            headers: this.headers(),
-            body: JSON.stringify({
-                SaleUUID: this.saleUUID,
-                WalletAddress: args.walletAddress,
-            }),
+    async fetchAllocation(args: { saleUUID: string; walletAddress: string }): Promise<AllocationResponse> {
+        return this.postJSON<AllocationResponse>("/externalapi.Allocation", {
+            SaleUUID: args.saleUUID,
+            WalletAddress: args.walletAddress,
         });
-        return (await resp.json()) as AllocationResponse;
     }
 
-    async listAvailableEntities(): Promise<EntityDetails[]> {
-        const resp = await this.fetcher(new URL("/externalapi.ListAvailableEntities", this.apiURL), {
-            method: "POST",
-            headers: this.headers(),
-            body: JSON.stringify({ SaleUUID: this.saleUUID }),
+    async listAvailableEntities(args: { saleUUID: string }): Promise<ListAvailableEntitiesResponse> {
+        const data = await this.postJSON<ListAvailableEntitiesResponse>("/externalapi.ListAvailableEntities", {
+            SaleUUID: args.saleUUID,
         });
-        const data = (await resp.json()) as { Entities: EntityDetails[] };
-        return data.Entities;
+        return data;
+    }
+}
+
+export class APIError extends Error {
+    public readonly status: number;
+    public readonly code?: string;
+    public readonly details?: unknown;
+
+    constructor(status: number, message: string, code?: string, details?: unknown) {
+        super(message);
+        Object.setPrototypeOf(this, new.target.prototype);
+        this.name = "APIError";
+        this.status = status;
+        this.code = code;
+        this.details = details;
     }
 }

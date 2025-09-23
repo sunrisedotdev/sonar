@@ -1,13 +1,5 @@
-import {
-    buildDefaultAuthorizationUrl,
-    createDefaultClient,
-    generatePKCEParams,
-    type EntityType,
-    type SonarClient,
-} from "@echoxyz/sonar-core";
+import { buildAuthorizationUrl, createClient, generatePKCEParams, type SonarClient } from "@echoxyz/sonar-core";
 import React, { createContext, useCallback, useContext, useMemo } from "react";
-
-type Hex = `0x${string}`;
 
 type SonarProviderProps = {
     children: React.ReactNode;
@@ -16,6 +8,7 @@ type SonarProviderProps = {
         clientUUID: string;
         redirectURI: string;
         apiURL?: string;
+        frontendURL?: string;
         tokenStorageKey?: string; // default: "sonar:auth-token"
     };
 };
@@ -37,10 +30,12 @@ const ClientContext = createContext<ClientContextValue | undefined>(undefined);
 
 export function SonarProvider({ children, config }: SonarProviderProps) {
     const client = useMemo(() => {
-        return createDefaultClient({
+        return createClient({
             saleUUID: config.saleUUID,
+            apiURL: config.apiURL,
+            tokenKey: config.tokenStorageKey,
         });
-    }, [config.saleUUID]);
+    }, [config.apiURL, config.saleUUID, config.tokenStorageKey]);
 
     const login = useCallback(async () => {
         const { codeVerifier, codeChallenge, state } = await generatePKCEParams();
@@ -50,15 +45,16 @@ export function SonarProvider({ children, config }: SonarProviderProps) {
         window.sessionStorage.setItem("sonar:oauth:state", state);
         window.sessionStorage.setItem("sonar:oauth:verifier", codeVerifier);
 
-        const url = buildDefaultAuthorizationUrl({
+        const url = buildAuthorizationUrl({
             saleUUID: config.saleUUID,
             clientUUID: config.clientUUID,
             redirectURI: config.redirectURI,
             state,
             codeChallenge,
+            frontendURL: config.frontendURL,
         });
         window.location.href = url.toString();
-    }, [config.saleUUID, config.clientUUID, config.redirectURI]);
+    }, [config.saleUUID, config.clientUUID, config.redirectURI, config.frontendURL]);
 
     const completeOAuth = useCallback(
         async ({ code, state }: { code: string; state: string }) => {
@@ -88,7 +84,7 @@ export function SonarProvider({ children, config }: SonarProviderProps) {
         client.clear();
     }, []);
 
-    const authValue = useMemo<AuthContextValue>(
+    const authValue = useMemo(
         () => ({
             login,
             logout,
@@ -122,20 +118,4 @@ export function useSonarClient(): SonarClient {
         throw new Error("useSonarClient must be used within a SonarProvider");
     }
     return ctx.client;
-}
-
-export function useSonarSale() {
-    const client = useSonarClient();
-
-    return useMemo(
-        () => ({
-            prePurchaseCheck: (args: { entityUUID: string; entityType: EntityType; walletAddress: Hex }) =>
-                client.prePurchaseCheck(args),
-            generatePurchasePermit: (args: { entityUUID: string; entityType: EntityType; walletAddress: Hex }) =>
-                client.generatePurchasePermit(args),
-            fetchAllocation: (args: { walletAddress: Hex }) => client.fetchAllocation(args),
-            listAvailableEntities: () => client.listAvailableEntities(),
-        }),
-        [client],
-    );
 }
