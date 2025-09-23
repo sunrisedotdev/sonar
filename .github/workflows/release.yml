@@ -42,11 +42,16 @@ jobs:
           git commit -m "version packages" || echo "No changes to commit"
           git push origin HEAD:main
 
-      # 3. Publish to npm
+      # 3. Build packages
+      - name: Build packages
+        run: pnpm build
+
+      # 4. Publish to npm
       - name: Publish packages
         run: pnpm changeset publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
 
       # 4. Tag the release (optional but recommended)
       - name: Push tag
