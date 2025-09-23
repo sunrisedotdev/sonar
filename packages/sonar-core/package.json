@@ -33,8 +33,5 @@
         "CHANGELOG.md",
         "README.md",
         "package.json"
-    ],
-    "dependencies": {
-        "jose": "^6.1.0"
-    }
+    ]
 }
