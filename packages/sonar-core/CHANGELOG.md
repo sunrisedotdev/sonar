@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.1.3
+
+### Patch Changes
+
+- f04cb72: Add globalThis fetch, export type
+
 ## 0.1.2
 
 ### Patch Changes

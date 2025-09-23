@@ -1,5 +1,13 @@
 # @echoxyz/sonar-react
 
+## 0.1.3
+
+### Patch Changes
+
+- f04cb72: Add globalThis fetch, export type
+- Updated dependencies [f04cb72]
+    - @echoxyz/sonar-core@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes
