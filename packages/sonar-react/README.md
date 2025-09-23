@@ -45,8 +45,8 @@ export function AppRoot({ children }: { children: React.ReactNode }) {
 import { useSonarAuth } from "@echoxyz/sonar-react";
 
 export function LoginButton() {
-    const { login, authenticated } = useSonarAuth();
-    if (authenticated()) {
+    const { login, authenticated, ready } = useSonarAuth();
+    if (!ready || authenticated) {
         return null;
     }
     return <button onClick={() => login()}>Sign in with Echo</button>;
@@ -86,11 +86,11 @@ import { useSonarAuth, useSonarClient } from "@echoxyz/sonar-react";
 import { EntityType } from "@echoxyz/sonar-core";
 
 export function Example() {
-    const { authenticated } = useSonarAuth();
+    const { authenticated, ready } = useSonarAuth();
     const client = useSonarClient();
 
     useEffect(() => {
-        if (!authenticated()) {
+        if (!ready || !authenticated) {
             return;
         }
 
@@ -122,7 +122,7 @@ export function Example() {
             });
             console.log(alloc);
         })();
-    }, [authenticated, client]);
+    }, [authenticated, client, ready]);
 
     return null;
 }
@@ -138,7 +138,7 @@ export function Example() {
         - `apiURL?: string` (default: `https://api.echo.xyz`) – API base URL.
         - `tokenStorageKey?: string` (default: `sonar:auth-token`) – Browser storage key for the access token.
 
-- `useSonarAuth()` → `{ authenticated, token?, login(), completeOAuth({ code, state }), logout() }`
+- `useSonarAuth()` → `{ authenticated, ready, token?, login(), completeOAuth({ code, state }), logout() }`
 
 - `useSonarClient()` → low-level `SonarClient` instance.
 

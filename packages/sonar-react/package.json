@@ -24,9 +24,14 @@
         "test": "vitest run"
     },
     "devDependencies": {
+        "@testing-library/react": "^16.0.0",
+        "@types/react": "^18",
+        "@types/react-dom": "^18",
+        "jsdom": "^27.0.0",
+        "react": "^18",
+        "react-dom": "^18",
         "tsup": "^8.0.0",
-        "vitest": "^2.0.0",
-        "@types/react": "^18"
+        "vitest": "^2.0.0"
     },
     "repository": {
         "type": "git",

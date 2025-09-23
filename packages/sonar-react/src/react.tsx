@@ -1,5 +1,5 @@
 import { buildAuthorizationUrl, createClient, generatePKCEParams, type SonarClient } from "@echoxyz/sonar-core";
-import React, { createContext, useCallback, useContext, useMemo } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 type SonarProviderProps = {
     children: React.ReactNode;
@@ -16,7 +16,8 @@ export type SonarProviderConfig = {
 };
 
 type AuthContextValue = {
-    authenticated: () => boolean;
+    authenticated: boolean;
+    ready: boolean;
     token?: string;
     login: () => Promise<void>;
     completeOAuth: (args: { code: string; state: string }) => Promise<void>;
@@ -31,13 +32,22 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const ClientContext = createContext<ClientContextValue | undefined>(undefined);
 
 export function SonarProvider({ children, config }: SonarProviderProps) {
+    const [authState, setAuthState] = useState<{ token?: string; ready: boolean }>({ token: undefined, ready: false });
+
     const client = useMemo(() => {
         return createClient({
             saleUUID: config.saleUUID,
             apiURL: config.apiURL,
             tokenKey: config.tokenStorageKey,
+            onTokenChange: (nextToken?: string) => {
+                setAuthState({ token: nextToken ?? undefined, ready: true });
+            },
         });
     }, [config.apiURL, config.saleUUID, config.tokenStorageKey]);
+
+    useEffect(() => {
+        setAuthState({ token: client.getToken() ?? undefined, ready: true });
+    }, [client]);
 
     const login = useCallback(async () => {
         const { codeVerifier, codeChallenge, state } = await generatePKCEParams();
@@ -84,17 +94,18 @@ export function SonarProvider({ children, config }: SonarProviderProps) {
 
     const logout = useCallback(() => {
         client.clear();
-    }, []);
+    }, [client]);
 
     const authValue = useMemo(
         () => ({
             login,
             logout,
-            authenticated: () => Boolean(client.getToken()),
-            token: client.getToken() ?? undefined,
+            authenticated: Boolean(authState.token),
+            ready: authState.ready,
+            token: authState.token,
             completeOAuth,
         }),
-        [client, login, completeOAuth, logout],
+        [authState, login, completeOAuth, logout],
     );
 
     const clientValue = useMemo<ClientContextValue>(() => ({ client }), [client]);
