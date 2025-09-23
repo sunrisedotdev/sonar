@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.1.4
+
+### Patch Changes
+
+- d04d616: Use bound global fetch
+
 ## 0.1.3
 
 ### Patch Changes

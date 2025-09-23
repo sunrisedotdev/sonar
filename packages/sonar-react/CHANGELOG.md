@@ -1,5 +1,13 @@
 # @echoxyz/sonar-react
 
+## 0.1.4
+
+### Patch Changes
+
+- d04d616: Use bound global fetch
+- Updated dependencies [d04d616]
+    - @echoxyz/sonar-core@0.1.4
+
 ## 0.1.3
 
 ### Patch Changes
