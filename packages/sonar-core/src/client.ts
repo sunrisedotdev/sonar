@@ -41,19 +41,19 @@ export class SonarClient {
     constructor(args: { apiURL: string; opts?: ClientOptions }) {
         this.apiURL = args.apiURL;
         this.auth = args.opts?.auth ?? new AuthSession({ storage: createWebStorage() });
-        // Determine the fetch implementation to use:
-        // 1. Use the fetch function provided in options, if available.
+        // Choose the fetch implementation in order of preference:
+        // 1. Use the fetch function provided in options, if present.
         // 2. Otherwise, use the global fetch if it exists.
-        // 3. If neither is available, fetchImpl will be undefined (handled below).
-        const fetchImpl: FetchLike =
-            args.opts?.fetch ??
-            globalThis.fetch ??
-            (() => {
-                throw new Error("No fetch available");
-            });
-        if (!fetchImpl) {
-            throw new Error("A fetch implementation must be provided");
-        }
+        // 3. If neither is available, throw an error.
+        const fetchImpl: FetchLike = (() => {
+            if (args.opts?.fetch) {
+                return args.opts.fetch;
+            }
+            if (typeof globalThis.fetch === "function") {
+                return globalThis.fetch.bind(globalThis);
+            }
+            throw new Error("No fetch implementation available");
+        })();
         this.fetchFn = fetchImpl;
         this.onUnauthorized = args.opts?.onUnauthorized;
     }
