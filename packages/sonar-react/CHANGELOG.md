@@ -1,5 +1,13 @@
 # @echoxyz/sonar-react
 
+## 0.1.1
+
+### Patch Changes
+
+- 95d0235: Include dist in build output for publishing
+- Updated dependencies [95d0235]
+    - @echoxyz/sonar-core@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
