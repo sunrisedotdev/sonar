@@ -3,14 +3,16 @@ import React, { createContext, useCallback, useContext, useMemo } from "react";
 
 type SonarProviderProps = {
     children: React.ReactNode;
-    config: {
-        saleUUID: string;
-        clientUUID: string;
-        redirectURI: string;
-        apiURL?: string;
-        frontendURL?: string;
-        tokenStorageKey?: string; // default: "sonar:auth-token"
-    };
+    config: SonarProviderConfig;
+};
+
+export type SonarProviderConfig = {
+    saleUUID: string;
+    clientUUID: string;
+    redirectURI: string;
+    apiURL?: string;
+    frontendURL?: string;
+    tokenStorageKey?: string; // default: "sonar:auth-token"
 };
 
 type AuthContextValue = {
