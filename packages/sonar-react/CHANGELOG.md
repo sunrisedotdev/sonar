@@ -1,5 +1,13 @@
 # @echoxyz/sonar-react
 
+## 0.1.2
+
+### Patch Changes
+
+- 4907b74: Remove unused dependency
+- Updated dependencies [4907b74]
+    - @echoxyz/sonar-core@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes
