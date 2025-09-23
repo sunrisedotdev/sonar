@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.1.5
+
+### Patch Changes
+
+- 77db07a: Added tests
+
 ## 0.1.4
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @echoxyz/sonar-react
 
+## 0.2.0
+
+### Minor Changes
+
+- 77db07a: Change authenticated to bool, add ready state
+
+### Patch Changes
+
+- Updated dependencies [77db07a]
+    - @echoxyz/sonar-core@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes
