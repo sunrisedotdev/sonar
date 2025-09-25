@@ -88,6 +88,7 @@ import { EntityType } from "@echoxyz/sonar-core";
 export function Example() {
     const { authenticated, ready } = useSonarAuth();
     const client = useSonarClient();
+    const { walletAddress } = useWallet();
 
     useEffect(() => {
         if (!ready || !authenticated) {
@@ -95,10 +96,8 @@ export function Example() {
         }
 
         (async () => {
-            const { Entities } = await client.listAvailableEntities({ saleUUID: "<your-sale-uuid>" });
-            if (Entities.length === 0) return;
+            const { Entity: entity } = await client.readEntity({ saleUUID: "<your-sale-uuid>", walletAddress });
 
-            const entity = Entities[0];
             const pre = await client.prePurchaseCheck({
                 saleUUID: "<your-sale-uuid>",
                 entityUUID: entity.EntityUUID,
@@ -118,7 +117,7 @@ export function Example() {
 
             const alloc = await client.fetchAllocation({
                 saleUUID: "<your-sale-uuid>",
-                walletAddress: "0x1234...abcd" as `0x${string}`,
+                walletAddress,
             });
             console.log(alloc);
         })();

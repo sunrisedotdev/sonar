@@ -34,7 +34,7 @@ describe("SonarClient", () => {
     it("uses provided fetch before global", async () => {
         const localFetch = vi.fn(async () => mockResponse({ status: 200, json: { ok: true } }));
         const client = new SonarClient({ apiURL, opts: { fetch: localFetch, auth } });
-        await client.listAvailableEntities({ saleUUID: "s" });
+        await client.readEntity({ saleUUID: "s", walletAddress: "w" });
         expect(localFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -43,7 +43,7 @@ describe("SonarClient", () => {
         (globalThis as any).fetch = undefined;
         try {
             expect(() =>
-                new SonarClient({ apiURL, opts: { auth } }).listAvailableEntities({ saleUUID: "s" }),
+                new SonarClient({ apiURL, opts: { auth } }).readEntity({ saleUUID: "s", walletAddress: "w" }),
             ).toThrowError(/No fetch implementation/);
         } finally {
             (globalThis as any).fetch = original;
@@ -55,7 +55,7 @@ describe("SonarClient", () => {
         auth.setToken(makeJwt({ exp: Math.floor(expMs / 1000) }));
         const fetchSpy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
             const req = input as URL;
-            expect(req.toString()).toBe(`${apiURL}/externalapi.ListAvailableEntities`);
+            expect(req.toString()).toBe(`${apiURL}/externalapi.ReadEntity`);
             expect(init?.headers).toMatchObject({
                 "Content-Type": "application/json",
                 authorization: expect.stringContaining("api:Bearer"),
@@ -63,7 +63,7 @@ describe("SonarClient", () => {
             return mockResponse({ status: 200, json: { Entities: [] } });
         });
         const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
-        await client.listAvailableEntities({ saleUUID: "s" });
+        await client.readEntity({ saleUUID: "s", walletAddress: "w" });
         expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 
@@ -73,14 +73,14 @@ describe("SonarClient", () => {
             return mockResponse({ status: 200, json: { Entities: [] } });
         });
         const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
-        await client.listAvailableEntities({ saleUUID: "s" });
+        await client.readEntity({ saleUUID: "s", walletAddress: "w" });
     });
 
     it("parses successful JSON responses", async () => {
-        const fetchSpy = vi.fn(async () => mockResponse({ status: 200, json: { Entities: [{ id: 1 }] } }));
+        const fetchSpy = vi.fn(async () => mockResponse({ status: 200, json: { Entity: { id: 1 } } }));
         const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
-        const res = await client.listAvailableEntities({ saleUUID: "s" });
-        expect(res.Entities).toHaveLength(1);
+        const res = await client.readEntity({ saleUUID: "s", walletAddress: "w" });
+        expect(res.Entity).not.toBeUndefined();
     });
 
     it("throws APIError with parsed message/code/details on failure", async () => {
@@ -88,18 +88,18 @@ describe("SonarClient", () => {
             mockResponse({ status: 400, json: { message: "bad", code: "BadRequest", extra: 1 } }),
         );
         const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
-        await expect(client.listAvailableEntities({ saleUUID: "s" })).rejects.toMatchObject({
+        await expect(client.readEntity({ saleUUID: "s", walletAddress: "w" })).rejects.toMatchObject({
             status: 400,
             message: "bad",
             code: "BadRequest",
         });
-        await expect(client.listAvailableEntities({ saleUUID: "s" })).rejects.toHaveProperty("details");
+        await expect(client.readEntity({ saleUUID: "s", walletAddress: "w" })).rejects.toHaveProperty("details");
     });
 
     it("falls back to text details when invalid JSON on error", async () => {
         const fetchSpy = vi.fn(async () => mockResponse({ status: 500, text: "oops" }));
         const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
-        await expect(client.listAvailableEntities({ saleUUID: "s" })).rejects.toMatchObject({
+        await expect(client.readEntity({ saleUUID: "s", walletAddress: "w" })).rejects.toMatchObject({
             status: 500,
             message: expect.stringContaining("Request failed"),
             details: "oops",
@@ -110,7 +110,7 @@ describe("SonarClient", () => {
         const onUnauthorized = vi.fn();
         const fetchSpy = vi.fn(async () => mockResponse({ status: 401, json: { message: "nope" } }));
         const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth, onUnauthorized } });
-        await expect(client.listAvailableEntities({ saleUUID: "s" })).rejects.toBeInstanceOf(APIError);
+        await expect(client.readEntity({ saleUUID: "s", walletAddress: "w" })).rejects.toBeInstanceOf(APIError);
         expect(onUnauthorized).toHaveBeenCalledTimes(1);
     });
 
@@ -145,7 +145,7 @@ describe("SonarClient", () => {
             walletAddress: "w",
         });
         await client.fetchAllocation({ saleUUID: "s", walletAddress: "w" });
-        await client.listAvailableEntities({ saleUUID: "s" });
+        await client.readEntity({ saleUUID: "s", walletAddress: "w" });
         expect(fetchSpy).toHaveBeenCalledTimes(4);
     });
 });

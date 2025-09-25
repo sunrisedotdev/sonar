@@ -71,13 +71,14 @@ export async function completeOAuthFromCallback() {
 
 // Call APIs (after token is set)
 export async function exampleCalls() {
+    const { walletAddress } = useWallet(); // User's connected wallet.
     // List entities available to this user for the configured sale
-    const { Entities } = await client.listAvailableEntities({ saleUUID });
+    const { Entity } = await client.readEntity({ saleUUID, walletAddress });
 
     // Run a pre-purchase check
     const pre = await client.prePurchaseCheck({
         saleUUID,
-        entityUUID: Entities[0].EntityUUID,
+        entityUUID: Entity.EntityUUID,
         entityType: EntityType.USER, // or EntityType.ORGANIZATION
         walletAddress: "0x1234...abcd" as `0x${string}`,
     });
@@ -86,7 +87,7 @@ export async function exampleCalls() {
         // Generate a purchase permit
         const permit = await client.generatePurchasePermit({
             saleUUID,
-            entityUUID: Entities[0].EntityUUID,
+            entityUUID: Entity.EntityUUID,
             entityType: EntityType.USER,
             walletAddress: "0x1234...abcd" as `0x${string}`,
         });
@@ -94,7 +95,7 @@ export async function exampleCalls() {
     }
 
     // Fetch allocation
-    const alloc = await client.fetchAllocation({ saleUUID, walletAddress: "0x1234...abcd" as `0x${string}` });
+    const alloc = await client.fetchAllocation({ saleUUID, walletAddress });
     console.log(alloc);
 }
 ```
