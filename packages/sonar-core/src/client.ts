@@ -22,8 +22,8 @@ export type AllocationResponse = {
     MaxAmountUSD: string;
 };
 
-export type ListAvailableEntitiesResponse = {
-    Entities: EntityDetails[];
+export type ReadEntityResponse = {
+    Entity: EntityDetails;
 };
 
 export type ClientOptions = {
@@ -198,11 +198,11 @@ export class SonarClient {
         });
     }
 
-    async listAvailableEntities(args: { saleUUID: string }): Promise<ListAvailableEntitiesResponse> {
-        const data = await this.postJSON<ListAvailableEntitiesResponse>("/externalapi.ListAvailableEntities", {
+    async readEntity(args: { saleUUID: string; walletAddress: string }): Promise<ReadEntityResponse> {
+        return this.postJSON<ReadEntityResponse>("/externalapi.ReadEntity", {
             SaleUUID: args.saleUUID,
+            WalletAddress: args.walletAddress,
         });
-        return data;
     }
 }
 
