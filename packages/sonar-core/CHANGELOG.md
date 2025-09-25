@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.2.0
+
+### Minor Changes
+
+- a043774: Replace listEntities with readEntity function
+
 ## 0.1.5
 
 ### Patch Changes

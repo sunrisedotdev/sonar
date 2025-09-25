@@ -1,5 +1,12 @@
 # @echoxyz/sonar-react
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [a043774]
+    - @echoxyz/sonar-core@0.2.0
+
 ## 0.2.0
 
 ### Minor Changes
