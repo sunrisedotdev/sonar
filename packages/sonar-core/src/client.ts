@@ -12,7 +12,7 @@ export type PrePurchaseCheckResponse = {
 
 export type GeneratePurchasePermitResponse = {
     // TODO: Add 'type' field to the permit
-    Permit: BasicPermit | AllocationPermit;
+    PermitJSON: BasicPermit | AllocationPermit;
     Signature: string;
 };
 

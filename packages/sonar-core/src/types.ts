@@ -53,12 +53,18 @@ export enum PrePurchaseFailureReason {
     NO_RESERVED_ALLOCATION = "no-reserved-allocation",
 }
 
+export enum InvestingRegion {
+    UNKNOWN = "unknown",
+    OTHER = "other",
+    US = "us",
+}
+
 export type EntityDetails = {
     Label: string;
     EntityUUID: string;
     EntityType: EntityType;
-    EntitySetupState: string;
-    SaleEligibility: string;
-    InvestingRegion: string;
+    EntitySetupState: EntitySetupState;
+    SaleEligibility: SaleEligibility;
+    InvestingRegion: InvestingRegion;
     ObfuscatedEntityID: `0x${string}`;
 };
