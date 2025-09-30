@@ -118,7 +118,7 @@ const ExampleEntityPanel = () => {
 
 ```
 
-5. Call APIs using the low-level client:
+5. Optional: call APIs with the low level client to implement the purchase flow:
 
 ```tsx
 import { useEffect } from "react";
