@@ -15,7 +15,7 @@ export type SonarProviderConfig = {
     tokenStorageKey?: string; // default: "sonar:auth-token"
 };
 
-type AuthContextValue = {
+export type AuthContextValue = {
     authenticated: boolean;
     ready: boolean;
     token?: string;
@@ -24,12 +24,12 @@ type AuthContextValue = {
     logout: () => void;
 };
 
-type ClientContextValue = {
+export type ClientContextValue = {
     client: SonarClient;
 };
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-const ClientContext = createContext<ClientContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const ClientContext = createContext<ClientContextValue | undefined>(undefined);
 
 export function SonarProvider({ children, config }: SonarProviderProps) {
     const [authState, setAuthState] = useState<{ token?: string; ready: boolean }>({ token: undefined, ready: false });
@@ -115,20 +115,4 @@ export function SonarProvider({ children, config }: SonarProviderProps) {
             <ClientContext.Provider value={clientValue}>{children}</ClientContext.Provider>
         </AuthContext.Provider>
     );
-}
-
-export function useSonarAuth(): AuthContextValue {
-    const ctx = useContext(AuthContext);
-    if (!ctx) {
-        throw new Error("useSonarAuth must be used within a SonarProvider");
-    }
-    return ctx;
-}
-
-export function useSonarClient(): SonarClient {
-    const ctx = useContext(ClientContext);
-    if (!ctx) {
-        throw new Error("useSonarClient must be used within a SonarProvider");
-    }
-    return ctx.client;
 }

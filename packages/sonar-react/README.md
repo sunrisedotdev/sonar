@@ -78,26 +78,69 @@ export default function OAuthCallback() {
 }
 ```
 
-4. Call APIs using the low-level client:
+4. Load the Sonar entity associated with the user's wallet
+
+```tsx
+import { useSonarEntity } from "./hooks/useSonarEntity";
+import { useAccount } from "wagmi";
+
+const ExampleEntityPanel = () => {
+    const { address, isConnected } = useAccount();
+    const { authenticated, loading, entity, error } = useSonarEntity({
+        saleUUID: "<your-sale-uuid>",
+        wallet: { address, isConnected },
+    });
+
+    if (!isConnected || !authenticated) {
+        return <p>Connect your wallet and Sonar account to continue</p>;
+    }
+
+    if (loading) {
+        return <p>Loading...</p>;
+    }
+
+    if (error) {
+        return <p>Error: {error.message}</p>;
+    }
+
+    if (!entity) {
+        return <p>No entity found for this wallet. Please link your wallet on Sonar to continue.</p>;
+    }
+
+    return (
+        <div>
+            <span>entity.Label</span>
+            <span>entity.EntitySetupState</span>
+            <span>entity.EntitySaleEligibility</span>
+        </div>
+    );
+};
+
+```
+
+5. Call APIs using the low-level client:
 
 ```tsx
 import { useEffect } from "react";
-import { useSonarAuth, useSonarClient } from "@echoxyz/sonar-react";
+import { useSonarEntity } from "./hooks/useSonarEntity";
+import { useAccount } from "wagmi";
 import { EntityType } from "@echoxyz/sonar-core";
 
 export function Example() {
-    const { authenticated, ready } = useSonarAuth();
+    const { address, isConnected } = useAccount();
+    // Would normally need to handle loading and error states like above
+    const { entity } = useSonarEntity({
+        saleUUID: "<your-sale-uuid>",
+        wallet: { address, isConnected },
+    });
     const client = useSonarClient();
-    const { walletAddress } = useWallet();
 
     useEffect(() => {
-        if (!ready || !authenticated) {
+        if (!entity) {
             return;
         }
 
         (async () => {
-            const { Entity: entity } = await client.readEntity({ saleUUID: "<your-sale-uuid>", walletAddress });
-
             const pre = await client.prePurchaseCheck({
                 saleUUID: "<your-sale-uuid>",
                 entityUUID: entity.EntityUUID,
@@ -121,7 +164,7 @@ export function Example() {
             });
             console.log(alloc);
         })();
-    }, [authenticated, client, ready]);
+    }, [entity]);
 
     return null;
 }
@@ -140,6 +183,8 @@ export function Example() {
 - `useSonarAuth()` → `{ authenticated, ready, token?, login(), completeOAuth({ code, state }), logout() }`
 
 - `useSonarClient()` → low-level `SonarClient` instance.
+  
+- `useSonarEntity()` → `{ authenticated, loading, entity?, error? }` high-level convenience hook for fetching a Sonar entity by wallet address.
 
 ## Notes
 
