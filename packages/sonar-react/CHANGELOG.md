@@ -1,5 +1,11 @@
 # @echoxyz/sonar-react
 
+## 0.3.0
+
+### Minor Changes
+
+- b6393ef: Add useSonarEntity hook
+
 ## 0.2.1
 
 ### Patch Changes
