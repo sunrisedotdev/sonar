@@ -118,55 +118,75 @@ const ExampleEntityPanel = () => {
 
 ```
 
-5. Optional: call APIs with the low level client to implement the purchase flow:
+5. Implement the purchase flow
 
 ```tsx
-import { useEffect } from "react";
-import { useSonarEntity } from "./hooks/useSonarEntity";
-import { useAccount } from "wagmi";
-import { EntityType } from "@echoxyz/sonar-core";
-
-export function Example() {
-    const { address, isConnected } = useAccount();
-    // Would normally need to handle loading and error states like above
-    const { entity } = useSonarEntity({
-        saleUUID: "<your-sale-uuid>",
-        wallet: { address, isConnected },
+function PurchasePanel({
+  entityUUID,
+  entityType,
+  wallet,
+}: {
+  entityUUID?: string;
+  entityType?: EntityType;
+  wallet: WalletConnection;
+}) {
+  const { loading, prePurchaseCheckResponse, generatePurchasePermit, error } =
+    useSonarPurchase({
+      saleUUID: sonarConfig.saleUUID,
+      entityUUID,
+      entityType,
+      wallet,
     });
-    const client = useSonarClient();
 
-    useEffect(() => {
-        if (!entity) {
-            return;
-        }
+  const purchase = async () => {
+    if (!generatePurchasePermit) {
+      console.log("Not ready to purchase");
+      return;
+    }
 
-        (async () => {
-            const pre = await client.prePurchaseCheck({
-                saleUUID: "<your-sale-uuid>",
-                entityUUID: entity.EntityUUID,
-                entityType: EntityType.USER,
-                walletAddress: "0x1234...abcd" as `0x${string}`,
-            });
+    const response = await generatePurchasePermit();
+    const r = response as unknown as {
+      Signature: string;
+      PermitJSON: AllocationPermit;
+    };
+    if (r.Signature && r.PermitJSON) {
+      console.log(permit.Signature, permit.Permit);
+      return;
+    }
+  };
 
-            if (pre.ReadyToPurchase) {
-                const permit = await client.generatePurchasePermit({
-                    saleUUID: "<your-sale-uuid>",
-                    entityUUID: entity.EntityUUID,
-                    entityType: EntityType.USER,
-                    walletAddress: "0x1234...abcd" as `0x${string}`,
-                });
-                console.log(permit.Signature, permit.Permit);
-            }
+  if (loading) {
+    return <p>Loading...</p>;
+  }
 
-            const alloc = await client.fetchAllocation({
-                saleUUID: "<your-sale-uuid>",
-                walletAddress,
-            });
-            console.log(alloc);
-        })();
-    }, [entity]);
+  if (error) {
+    return <p>Error: {error.message}</p>;
+  }
 
-    return null;
+  if (!prePurchaseCheckResult) {
+    return <p>Error: No pre purchase check result</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-2 bg-gray-100 p-4 rounded-xl w-full items-center">
+      {prePurchaseCheckResult.ReadyToPurchase && (
+        <button onClick={purchase}>
+          Purchase
+        </button>
+      )}
+
+      {prePurchaseCheckResult.FailureReason ===
+        PrePurchaseFailureReason.REQUIRES_LIVENESS && (
+        <button
+          onClick={() => {
+            window.open(prePurchaseCheckResult.LivenessCheckURL, "_blank");
+          }}
+        >
+          Complete liveness check to purchase
+        </button>
+      )}
+    </div>
+  );
 }
 ```
 

@@ -1,4 +1,11 @@
-import { APIError, EntityDetails, SonarClient } from "@echoxyz/sonar-core";
+import {
+    APIError,
+    EntityDetails,
+    EntityType,
+    GeneratePurchasePermitResponse,
+    PrePurchaseCheckResponse,
+    SonarClient,
+} from "@echoxyz/sonar-core";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { AuthContext, ClientContext, AuthContextValue } from "./provider";
 
@@ -108,5 +115,87 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
         loading: state.loading,
         entity: state.entity,
         error: state.error,
+    };
+}
+
+export type UseSonarPurchaseResult = {
+    loading: boolean;
+    prePurchaseCheckResponse?: PrePurchaseCheckResponse;
+    generatePurchasePermit?: () => Promise<GeneratePurchasePermitResponse>;
+    error?: Error;
+};
+
+export function useSonarPurchase(args: {
+    saleUUID: string;
+    entityUUID?: string;
+    entityType?: EntityType;
+    walletAddress?: string;
+}): UseSonarPurchaseResult {
+    const saleUUID = args.saleUUID;
+    const entityUUID = args.entityUUID;
+    const entityType = args.entityType;
+    const walletAddress = args.walletAddress;
+
+    const client = useSonarClient();
+
+    const [prePurchaseCheckState, setPrePurchaseCheckState] = useState<{
+        loading: boolean;
+        value?: PrePurchaseCheckResponse;
+        error?: Error;
+    }>({
+        loading: false,
+    });
+
+    useEffect(() => {
+        const prePurchaseCheck = async () => {
+            if (!entityUUID || !entityType || !walletAddress) {
+                return;
+            }
+
+            setPrePurchaseCheckState((prev) => ({
+                ...prev,
+                loading: true,
+                error: undefined,
+            }));
+
+            try {
+                const response = await client.prePurchaseCheck({
+                    saleUUID,
+                    entityType,
+                    entityUUID,
+                    walletAddress,
+                });
+                setPrePurchaseCheckState({
+                    loading: false,
+                    value: response,
+                });
+            } catch (error) {
+                setPrePurchaseCheckState({
+                    loading: false,
+                    error: error instanceof Error ? error : new Error(String(error)),
+                });
+            }
+        };
+
+        prePurchaseCheck();
+    }, [saleUUID, walletAddress, entityUUID, entityType, client]);
+
+    const generatePurchasePermit =
+        entityUUID && entityType && walletAddress && prePurchaseCheckState.value?.ReadyToPurchase
+            ? async () => {
+                  return await client.generatePurchasePermit({
+                      saleUUID,
+                      entityUUID,
+                      entityType,
+                      walletAddress,
+                  });
+              }
+            : undefined;
+
+    return {
+        loading: prePurchaseCheckState.loading,
+        error: prePurchaseCheckState.error,
+        prePurchaseCheckResponse: prePurchaseCheckState.value,
+        generatePurchasePermit,
     };
 }
