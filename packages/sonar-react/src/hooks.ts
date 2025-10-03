@@ -1,5 +1,5 @@
 import { APIError, EntityDetails, SonarClient } from "@echoxyz/sonar-core";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AuthContext, ClientContext, AuthContextValue } from "./provider";
 
 export function useSonarAuth(): AuthContextValue {
@@ -46,6 +46,10 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
         hasFetched: false,
     });
 
+    const prevParamsRef = useRef<{
+        walletAddress?: string;
+    }>({ walletAddress });
+
     const fullyConnected = ready && authenticated && Boolean(walletAddress);
 
     const refetch = useCallback(async () => {
@@ -90,12 +94,20 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
     }, []);
 
     useEffect(() => {
-        if (fullyConnected) {
-            if (!state.hasFetched && !state.loading) {
-                refetch();
-            }
+        const prevParams = prevParamsRef.current;
+        const currentParams = { walletAddress };
+
+        // Check if walletAddress has changed OR if this is the initial fetch
+        const walletChanged = prevParams.walletAddress !== currentParams.walletAddress;
+        const isInitialFetch = !state.hasFetched && !state.loading;
+
+        if ((walletChanged || isInitialFetch) && walletAddress && fullyConnected && !state.loading) {
+            refetch();
         }
-    }, [fullyConnected, state.hasFetched, state.loading, refetch]);
+
+        // Update the ref with current parameters
+        prevParamsRef.current = currentParams;
+    }, [walletAddress, fullyConnected, state.hasFetched, state.loading]);
 
     useEffect(() => {
         if (ready && (!authenticated || !walletAddress)) {
