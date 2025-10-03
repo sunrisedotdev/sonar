@@ -124,7 +124,6 @@ const ExampleEntityPanel = () => {
 import { useEffect } from "react";
 import { useSonarEntity } from "./hooks/useSonarEntity";
 import { useAccount } from "wagmi";
-import { EntityType } from "@echoxyz/sonar-core";
 
 export function Example() {
     const { address, isConnected } = useAccount();
@@ -144,7 +143,6 @@ export function Example() {
             const pre = await client.prePurchaseCheck({
                 saleUUID: "<your-sale-uuid>",
                 entityUUID: entity.EntityUUID,
-                entityType: EntityType.USER,
                 walletAddress: "0x1234...abcd" as `0x${string}`,
             });
 
@@ -152,7 +150,6 @@ export function Example() {
                 const permit = await client.generatePurchasePermit({
                     saleUUID: "<your-sale-uuid>",
                     entityUUID: entity.EntityUUID,
-                    entityType: EntityType.USER,
                     walletAddress: "0x1234...abcd" as `0x${string}`,
                 });
                 console.log(permit.Signature, permit.Permit);
