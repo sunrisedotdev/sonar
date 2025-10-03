@@ -121,7 +121,7 @@ const ExampleEntityPanel = () => {
 5. Implement the purchase flow
 
 ```tsx
-function PurchasePanel({
+function Example({
   entityUUID,
   entityType,
   wallet,
@@ -164,7 +164,7 @@ function PurchasePanel({
   }
 
   if (!prePurchaseCheckResult) {
-    return <p>Error: No pre purchase check result</p>;
+    return null;
   }
 
   return (
