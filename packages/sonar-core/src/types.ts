@@ -51,6 +51,8 @@ export enum PrePurchaseFailureReason {
     MAX_WALLETS_USED = "max-wallets-used",
     REQUIRES_LIVENESS = "requires-liveness",
     NO_RESERVED_ALLOCATION = "no-reserved-allocation",
+    SALE_NOT_ACTIVE = "sale-not-active",
+    WALLET_NOT_LINKED = "wallet-not-linked",
 }
 
 export enum InvestingRegion {
