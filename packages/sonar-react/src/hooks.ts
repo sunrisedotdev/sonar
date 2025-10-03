@@ -18,11 +18,6 @@ export function useSonarClient(): SonarClient {
     return ctx.client;
 }
 
-export type WalletConnection = {
-    address?: string;
-    isConnected: boolean;
-};
-
 export type UseSonarEntityResult = {
     authenticated: boolean;
     loading: boolean;
@@ -30,7 +25,7 @@ export type UseSonarEntityResult = {
     error?: Error;
 };
 
-export function useSonarEntity(args: { saleUUID: string; wallet: WalletConnection }): UseSonarEntityResult {
+export function useSonarEntity(args: { saleUUID: string; walletAddress?: string }): UseSonarEntityResult {
     const { authenticated, ready } = useSonarAuth();
     const client = useSonarClient();
 
@@ -39,8 +34,7 @@ export function useSonarEntity(args: { saleUUID: string; wallet: WalletConnectio
     }
 
     const saleUUID = args.saleUUID;
-    const activeWallet = args.wallet.address;
-    const walletConnected = args.wallet.isConnected;
+    const walletAddress = args.walletAddress;
 
     const [state, setState] = useState<{
         loading: boolean;
@@ -52,17 +46,17 @@ export function useSonarEntity(args: { saleUUID: string; wallet: WalletConnectio
         hasFetched: false,
     });
 
-    const fullyConnected = ready && authenticated && Boolean(activeWallet) && walletConnected;
+    const fullyConnected = ready && authenticated && Boolean(walletAddress);
 
     const refetch = useCallback(async () => {
-        if (!saleUUID || !activeWallet || !fullyConnected) {
+        if (!walletAddress || !fullyConnected) {
             return;
         }
         setState((s) => ({ ...s, loading: true }));
         try {
             const resp = await client.readEntity({
                 saleUUID,
-                walletAddress: activeWallet,
+                walletAddress,
             });
             setState({
                 loading: false,
@@ -84,7 +78,7 @@ export function useSonarEntity(args: { saleUUID: string; wallet: WalletConnectio
             const error = err instanceof Error ? err : new Error(String(err));
             setState({ loading: false, entity: undefined, error, hasFetched: true });
         }
-    }, [client, saleUUID, activeWallet, fullyConnected]);
+    }, [client, saleUUID, walletAddress, fullyConnected]);
 
     const reset = useCallback(() => {
         setState({
@@ -104,10 +98,10 @@ export function useSonarEntity(args: { saleUUID: string; wallet: WalletConnectio
     }, [fullyConnected, state.hasFetched, state.loading, refetch]);
 
     useEffect(() => {
-        if (ready && (!authenticated || !walletConnected || !activeWallet)) {
+        if (ready && (!authenticated || !walletAddress)) {
             reset();
         }
-    }, [ready, authenticated, walletConnected, activeWallet, reset]);
+    }, [ready, authenticated, walletAddress, reset]);
 
     return {
         authenticated,
