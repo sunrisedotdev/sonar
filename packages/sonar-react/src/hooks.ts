@@ -94,16 +94,16 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
     }, []);
 
     useEffect(() => {
-        if (fullyConnected && !state.hasFetched && !state.loading) {
+        if (fullyConnected && state.walletAddress !== walletAddress) {
             refetch();
         }
-    }, [fullyConnected, state.hasFetched, state.loading, refetch]);
+    }, [fullyConnected, state.walletAddress, walletAddress, refetch]);
 
     useEffect(() => {
-        if (ready && (!authenticated || !walletAddress || state.walletAddress !== walletAddress)) {
+        if (ready && (!authenticated || !walletAddress)) {
             reset();
         }
-    }, [ready, authenticated, walletAddress, reset, state.walletAddress]);
+    }, [ready, authenticated, walletAddress, reset]);
 
     return {
         authenticated,
