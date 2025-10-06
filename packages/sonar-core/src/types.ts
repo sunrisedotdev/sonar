@@ -8,6 +8,7 @@ export enum EntityType {
 export enum EntitySetupState {
     NOT_STARTED = "not-started",
     IN_PROGRESS = "in-progress",
+    READY_FOR_REVIEW = "ready-for-review",
     IN_REVIEW = "in-review",
     FAILURE = "failure",
     FAILURE_FINAL = "failure-final",
@@ -51,6 +52,8 @@ export enum PrePurchaseFailureReason {
     MAX_WALLETS_USED = "max-wallets-used",
     REQUIRES_LIVENESS = "requires-liveness",
     NO_RESERVED_ALLOCATION = "no-reserved-allocation",
+    SALE_NOT_ACTIVE = "sale-not-active",
+    WALLET_NOT_LINKED = "wallet-not-linked",
 }
 
 export enum InvestingRegion {
