@@ -125,22 +125,53 @@ function Example({
   entityUUID,
   walletAddress,
 }: {
-  entityUUID?: string;
-  walletAddress?: string;
+  entityUUID: string;
+  walletAddress: string;
 }) {
-  const { loading, prePurchaseCheckResponse, generatePurchasePermit, error } =
-    useSonarPurchase({
-      saleUUID: sonarConfig.saleUUID,
-      entityUUID,
-      walletAddress,
-    });
+  const sonarPurchaser = useSonarPurchase({
+    saleUUID: sonarConfig.saleUUID,
+    entityUUID,
+    entityType,
+    walletAddress,
+  });
 
+  if (sonarPurchaser.loading) {
+    return <p>Loading...</p>;
+  }
+
+  if (sonarPurchaser.error) {
+    return <p>Error: {error.message}</p>;
+  }
+
+  return (
+    <div>
+      {sonarPurchaser.readyToPurchase && (
+        <PurchaseButton
+          generatePurchasePermit={sonarPurchaser.generatePurchasePermit}
+        />
+      )}
+
+      {!sonarPurchaser.readyToPurchase &&
+        sonarPurchaser.failureReason ===
+          PrePurchaseFailureReason.REQUIRES_LIVENESS && (
+          <button
+            onClick={() => {
+              window.open(prePurchaseCheckResult.LivenessCheckURL, "_blank");
+            }}
+          >
+            Complete liveness check to purchase
+          </button>
+        )}
+    </div>
+  );
+}
+
+function PurchaseButton({
+  generatePurchasePermit,
+}: {
+  generatePurchasePermit: () => Promise<GeneratePurchasePermitResponse>;
+}) {
   const purchase = async () => {
-    if (!generatePurchasePermit) {
-      console.log("Not ready to purchase");
-      return;
-    }
-
     const response = await generatePurchasePermit();
     const r = response as unknown as {
       Signature: string;
@@ -152,37 +183,10 @@ function Example({
     }
   };
 
-  if (loading) {
-    return <p>Loading...</p>;
-  }
-
-  if (error) {
-    return <p>Error: {error.message}</p>;
-  }
-
-  if (!prePurchaseCheckResult) {
-    return null;
-  }
-
   return (
-    <div className="flex flex-col gap-2 bg-gray-100 p-4 rounded-xl w-full items-center">
-      {prePurchaseCheckResult.ReadyToPurchase && (
-        <button onClick={purchase}>
-          Purchase
-        </button>
-      )}
-
-      {prePurchaseCheckResult.FailureReason ===
-        PrePurchaseFailureReason.REQUIRES_LIVENESS && (
-        <button
-          onClick={() => {
-            window.open(prePurchaseCheckResult.LivenessCheckURL, "_blank");
-          }}
-        >
-          Complete liveness check to purchase
-        </button>
-      )}
-    </div>
+    <button onClick={purchase}>
+      Purchase
+    </button>
   );
 }
 ```

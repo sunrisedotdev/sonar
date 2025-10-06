@@ -2,10 +2,10 @@ import {
     APIError,
     EntityDetails,
     GeneratePurchasePermitResponse,
-    PrePurchaseCheckResponse,
+    PrePurchaseFailureReason,
     SonarClient,
 } from "@echoxyz/sonar-core";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AuthContext, ClientContext, AuthContextValue } from "./provider";
 
 export function useSonarAuth(): AuthContextValue {
@@ -117,17 +117,43 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
     };
 }
 
-export type UseSonarPurchaseResult = {
-    loading: boolean;
-    prePurchaseCheckResponse?: PrePurchaseCheckResponse;
-    generatePurchasePermit?: () => Promise<GeneratePurchasePermitResponse>;
-    error?: Error;
+export type UseSonarPurchaseResultReadyToPurchase = {
+    loading: false;
+    readyToPurchase: true;
+    error: undefined;
+    generatePurchasePermit: () => Promise<GeneratePurchasePermitResponse>;
 };
+
+export type UseSonarPurchaseResultNotReadyToPurchase = {
+    loading: false;
+    readyToPurchase: false;
+    error: undefined;
+    failureReason: PrePurchaseFailureReason;
+    livenessCheckURL: string;
+};
+
+export type UseSonarPurchaseResultError = {
+    loading: false;
+    readyToPurchase: false;
+    error: Error;
+};
+
+export type UseSonarPurchaseResultLoading = {
+    loading: true;
+    readyToPurchase: false;
+    error: undefined;
+};
+
+export type UseSonarPurchaseResult =
+    | UseSonarPurchaseResultLoading
+    | UseSonarPurchaseResultReadyToPurchase
+    | UseSonarPurchaseResultNotReadyToPurchase
+    | UseSonarPurchaseResultError;
 
 export function useSonarPurchase(args: {
     saleUUID: string;
-    entityUUID?: string;
-    walletAddress?: string;
+    entityUUID: string;
+    walletAddress: string;
 }): UseSonarPurchaseResult {
     const saleUUID = args.saleUUID;
     const entityUUID = args.entityUUID;
@@ -135,78 +161,13 @@ export function useSonarPurchase(args: {
 
     const client = useSonarClient();
 
-    const [state, setState] = useState<{
-        loading: boolean;
-        value?: PrePurchaseCheckResponse;
-        walletAddress?: string; // To track the wallet address of the fetched entity (rather than the wallet address that was passed in)
-        error?: Error;
-        hasFetched: boolean;
-    }>({
-        loading: false,
-        hasFetched: false,
+    const [state, setState] = useState<UseSonarPurchaseResult>({
+        loading: true,
+        readyToPurchase: false,
+        error: undefined,
     });
 
-    const refetch = useCallback(async () => {
-        if (!entityUUID || !walletAddress) {
-            return;
-        }
-
-        setState((s) => ({
-            ...s,
-            loading: true,
-        }));
-
-        try {
-            const response = await client.prePurchaseCheck({
-                saleUUID,
-                entityUUID,
-                walletAddress,
-            });
-            setState({
-                loading: false,
-                value: response,
-                walletAddress: walletAddress,
-                error: undefined,
-                hasFetched: true,
-            });
-        } catch (err) {
-            const error = err instanceof Error ? err : new Error(String(err));
-            setState({
-                loading: false,
-                value: undefined,
-                walletAddress: undefined,
-                error: error,
-                hasFetched: true,
-            });
-        }
-    }, [client, saleUUID, entityUUID, walletAddress]);
-
-    const reset = useCallback(() => {
-        setState({
-            loading: false,
-            value: undefined,
-            walletAddress: undefined,
-            error: undefined,
-            hasFetched: false,
-        });
-    }, []);
-
-    useEffect(() => {
-        if (entityUUID && state.walletAddress !== walletAddress) {
-            reset();
-        }
-    }, [entityUUID, state.walletAddress, walletAddress, refetch]);
-
-    useEffect(() => {
-        if (!entityUUID || !walletAddress) {
-            refetch();
-        }
-    }, [entityUUID, walletAddress, reset]);
-
     const generatePurchasePermit = useCallback(() => {
-        if (!entityUUID || !walletAddress) {
-            throw new Error("Can only generate a purchase permit if the entityUUID and walletAddress are set");
-        }
         return client.generatePurchasePermit({
             saleUUID,
             entityUUID,
@@ -214,10 +175,48 @@ export function useSonarPurchase(args: {
         });
     }, [client, saleUUID, entityUUID, walletAddress]);
 
-    return {
-        loading: state.loading,
-        error: state.error,
-        prePurchaseCheckResponse: state.value,
-        generatePurchasePermit: generatePurchasePermit,
-    };
+    useEffect(() => {
+        const fetchPurchaseData = async () => {
+            setState({
+                loading: true,
+                readyToPurchase: false,
+                error: undefined,
+            });
+
+            try {
+                const response = await client.prePurchaseCheck({
+                    saleUUID,
+                    entityUUID,
+                    walletAddress,
+                });
+                if (response.ReadyToPurchase) {
+                    setState({
+                        loading: false,
+                        readyToPurchase: true,
+                        generatePurchasePermit,
+                        error: undefined,
+                    });
+                } else {
+                    setState({
+                        loading: false,
+                        readyToPurchase: false,
+                        failureReason: response.FailureReason as PrePurchaseFailureReason,
+                        livenessCheckURL: response.LivenessCheckURL,
+                        error: undefined,
+                    });
+                }
+            } catch (err) {
+                const error = err instanceof Error ? err : new Error(String(err));
+                setState({
+                    loading: false,
+                    readyToPurchase: false,
+                    error: error,
+                });
+            }
+        };
+
+        fetchPurchaseData();
+    }, [saleUUID, entityUUID, walletAddress, client, generatePurchasePermit]);
+
+    return state;
 }

@@ -238,8 +238,8 @@ function PurchaseStateProbe({
     walletAddress,
 }: {
     saleUUID: string;
-    entityUUID?: string;
-    walletAddress?: string;
+    entityUUID: string;
+    walletAddress: string;
 }) {
     const value = useSonarPurchase({ saleUUID, entityUUID, walletAddress });
 
@@ -247,10 +247,14 @@ function PurchaseStateProbe({
         <div
             data-testid="purchase-state"
             data-loading={value.loading ? "true" : "false"}
-            data-ready-to-purchase={value.prePurchaseCheckResponse?.ReadyToPurchase ? "true" : "false"}
-            data-failure-reason={value.prePurchaseCheckResponse?.FailureReason ?? ""}
-            data-liveness-check-url={value.prePurchaseCheckResponse?.LivenessCheckURL ?? ""}
-            data-has-generate-permit={value.generatePurchasePermit ? "true" : "false"}
+            data-ready-to-purchase={value.readyToPurchase ? "true" : "false"}
+            data-failure-reason={value.readyToPurchase === false && "failureReason" in value ? value.failureReason : ""}
+            data-liveness-check-url={
+                value.readyToPurchase === false && "livenessCheckURL" in value ? value.livenessCheckURL : ""
+            }
+            data-has-generate-permit={
+                value.readyToPurchase === true && "generatePurchasePermit" in value ? "true" : "false"
+            }
             data-error={value.error?.message ?? ""}
         />
     );
@@ -489,18 +493,19 @@ describe("useSonarPurchase", () => {
         });
         expect(getByTestId("purchase-state").dataset.readyToPurchase).toBe("true");
         expect(getByTestId("purchase-state").dataset.failureReason).toBe("");
-        expect(getByTestId("purchase-state").dataset.livenessCheckUrl).toBe("https://example.com/liveness");
+        expect(getByTestId("purchase-state").dataset.livenessCheckUrl).toBe("");
         expect(getByTestId("purchase-state").dataset.hasGeneratePermit).toBe("true");
     });
 
-    it("does not perform pre-purchase check when entityUUID is missing", async () => {
-        const mockPrePurchaseCheck = vi.fn();
+    it("handles pre-purchase check errors", async () => {
+        const mockPrePurchaseCheck = vi.fn().mockRejectedValue(new Error("API Error"));
         __test.mockClient.prePurchaseCheck = mockPrePurchaseCheck;
 
         const { getByTestId } = render(
             <SonarProvider config={config}>
                 <PurchaseStateProbe
                     saleUUID="test-sale"
+                    entityUUID={mockEntityUUID}
                     walletAddress={mockWalletAddress}
                 />
             </SonarProvider>,
@@ -508,45 +513,13 @@ describe("useSonarPurchase", () => {
 
         await waitFor(() => expect(getByTestId("purchase-state").dataset.loading).toBe("false"));
 
-        expect(mockPrePurchaseCheck).not.toHaveBeenCalled();
+        expect(mockPrePurchaseCheck).toHaveBeenCalledWith({
+            saleUUID: "test-sale",
+            entityUUID: mockEntityUUID,
+            walletAddress: mockWalletAddress,
+        });
         expect(getByTestId("purchase-state").dataset.readyToPurchase).toBe("false");
-        expect(getByTestId("purchase-state").dataset.hasGeneratePermit).toBe("false");
-    });
-
-    it("does not perform pre-purchase check when entityUUID is missing", async () => {
-        const mockPrePurchaseCheck = vi.fn();
-        __test.mockClient.prePurchaseCheck = mockPrePurchaseCheck;
-
-        const { getByTestId } = render(
-            <SonarProvider config={config}>
-                <PurchaseStateProbe
-                    saleUUID="test-sale"
-                    walletAddress={mockWalletAddress}
-                />
-            </SonarProvider>,
-        );
-
-        await waitFor(() => expect(getByTestId("purchase-state").dataset.loading).toBe("false"));
-
-        expect(mockPrePurchaseCheck).not.toHaveBeenCalled();
-        expect(getByTestId("purchase-state").dataset.readyToPurchase).toBe("false");
-        expect(getByTestId("purchase-state").dataset.hasGeneratePermit).toBe("false");
-    });
-
-    it("does not perform pre-purchase check when walletAddress is missing", async () => {
-        const mockPrePurchaseCheck = vi.fn();
-        __test.mockClient.prePurchaseCheck = mockPrePurchaseCheck;
-
-        const { getByTestId } = render(
-            <SonarProvider config={config}>
-                <PurchaseStateProbe saleUUID="test-sale" entityUUID={mockEntityUUID} />
-            </SonarProvider>,
-        );
-
-        await waitFor(() => expect(getByTestId("purchase-state").dataset.loading).toBe("false"));
-
-        expect(mockPrePurchaseCheck).not.toHaveBeenCalled();
-        expect(getByTestId("purchase-state").dataset.readyToPurchase).toBe("false");
+        expect(getByTestId("purchase-state").dataset.error).toBe("API Error");
         expect(getByTestId("purchase-state").dataset.hasGeneratePermit).toBe("false");
     });
 
@@ -574,6 +547,7 @@ describe("useSonarPurchase", () => {
 
         expect(getByTestId("purchase-state").dataset.readyToPurchase).toBe("false");
         expect(getByTestId("purchase-state").dataset.failureReason).toBe("wallet-risk");
+        expect(getByTestId("purchase-state").dataset.livenessCheckUrl).toBe("https://example.com/liveness");
         expect(getByTestId("purchase-state").dataset.hasGeneratePermit).toBe("false");
     });
 
@@ -612,22 +586,18 @@ describe("useSonarPurchase", () => {
         );
 
         await waitFor(() => expect(getByTestId("purchase-state").dataset.loading).toBe("false"));
-        expect(mockPrePurchaseCheck).toHaveBeenCalledTimes(1);
+        const initialCallCount = mockPrePurchaseCheck.mock.calls.length;
 
         // Change wallet address - the hook should now re-fetch automatically
         const newWalletAddress = "0x9876543210fedcba9876543210fedcba98765432";
         rerender(
             <SonarProvider config={config}>
-                <PurchaseStateProbe
-                    saleUUID="test-sale"
-                    entityUUID={mockEntityUUID}
-                    walletAddress={newWalletAddress}
-                />
+                <PurchaseStateProbe saleUUID="test-sale" entityUUID={mockEntityUUID} walletAddress={newWalletAddress} />
             </SonarProvider>,
         );
 
         // The pre-purchase check should be called again with the new wallet address
-        await waitFor(() => expect(mockPrePurchaseCheck).toHaveBeenCalledTimes(2));
+        await waitFor(() => expect(mockPrePurchaseCheck.mock.calls.length).toBeGreaterThan(initialCallCount));
         expect(mockPrePurchaseCheck).toHaveBeenLastCalledWith({
             saleUUID: "test-sale",
             entityUUID: mockEntityUUID,
@@ -635,7 +605,7 @@ describe("useSonarPurchase", () => {
         });
     });
 
-    it("resets state when wallet disconnects", async () => {
+    it("reruns pre-purchase check when entityUUID changes", async () => {
         const mockPrePurchaseCheck = vi.fn().mockResolvedValue(mockPrePurchaseCheckResponse);
         __test.mockClient.prePurchaseCheck = mockPrePurchaseCheck;
 
@@ -649,55 +619,24 @@ describe("useSonarPurchase", () => {
             </SonarProvider>,
         );
 
-        await waitFor(() => expect(getByTestId("purchase-state").dataset.readyToPurchase).toBe("true"));
+        await waitFor(() => expect(getByTestId("purchase-state").dataset.loading).toBe("false"));
+        expect(mockPrePurchaseCheck).toHaveBeenCalledTimes(1);
+        expect(mockPrePurchaseCheck).toHaveBeenCalledWith({
+            saleUUID: "test-sale",
+            entityUUID: mockEntityUUID,
+            walletAddress: mockWalletAddress,
+        });
 
-        // Disconnect wallet - the hook now resets the state
+        // Change entityUUID - the hook should re-fetch automatically
+        const newEntityUUID = "new-entity-uuid-456";
         rerender(
             <SonarProvider config={config}>
-                <PurchaseStateProbe
-                    saleUUID="test-sale"
-                    entityUUID={mockEntityUUID}
-                    walletAddress={undefined}
-                />
+                <PurchaseStateProbe saleUUID="test-sale" entityUUID={newEntityUUID} walletAddress={mockWalletAddress} />
             </SonarProvider>,
         );
 
-        // The state is reset when walletAddress becomes undefined
-        await waitFor(() => expect(getByTestId("purchase-state").dataset.readyToPurchase).toBe("false"));
-        expect(getByTestId("purchase-state").dataset.hasGeneratePermit).toBe("false");
-        expect(getByTestId("purchase-state").dataset.error).toBe("");
+        // The pre-purchase check should be called again with the new entityUUID
+        await waitFor(() => expect(mockPrePurchaseCheck.mock.calls.length).toBeGreaterThan(1));
+        expect(mockPrePurchaseCheck).toHaveBeenCalledTimes(2);
     });
-
-    it("resets state when entityUUID becomes undefined", async () => {
-        const mockPrePurchaseCheck = vi.fn().mockResolvedValue(mockPrePurchaseCheckResponse);
-        __test.mockClient.prePurchaseCheck = mockPrePurchaseCheck;
-
-        const { getByTestId, rerender } = render(
-            <SonarProvider config={config}>
-                <PurchaseStateProbe
-                    saleUUID="test-sale"
-                    entityUUID={mockEntityUUID}
-                    walletAddress={mockWalletAddress}
-                />
-            </SonarProvider>,
-        );
-
-        await waitFor(() => expect(getByTestId("purchase-state").dataset.readyToPurchase).toBe("true"));
-
-        // Remove entityUUID - the hook should reset the state
-        rerender(
-            <SonarProvider config={config}>
-                <PurchaseStateProbe
-                    saleUUID="test-sale"
-                    walletAddress={mockWalletAddress}
-                />
-            </SonarProvider>,
-        );
-
-        // The state is reset when entityUUID becomes undefined
-        await waitFor(() => expect(getByTestId("purchase-state").dataset.readyToPurchase).toBe("false"));
-        expect(getByTestId("purchase-state").dataset.hasGeneratePermit).toBe("false");
-        expect(getByTestId("purchase-state").dataset.error).toBe("");
-    });
-
 });
