@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.3.0
+
+### Minor Changes
+
+- c032c29: Strip EntityType param from API requests
+
 ## 0.2.1
 
 ### Patch Changes
