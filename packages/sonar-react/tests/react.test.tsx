@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Mock } from "vitest";
 
 import { SonarProvider } from "../src/provider";
-import { useSonarAuth, useSonarEntity, type WalletConnection } from "../src/hooks";
+import { useSonarAuth, useSonarEntity } from "../src/hooks";
 import {
     APIError,
     EntityDetails,
@@ -209,8 +209,8 @@ describe("SonarProvider auth state", () => {
     });
 });
 
-function EntityStateProbe({ saleUUID, wallet }: { saleUUID: string; wallet: WalletConnection }) {
-    const value = useSonarEntity({ saleUUID, wallet });
+function EntityStateProbe({ saleUUID, walletAddress }: { saleUUID: string; walletAddress?: string }) {
+    const value = useSonarEntity({ saleUUID, walletAddress });
 
     return (
         <div
@@ -235,10 +235,7 @@ describe("useSonarEntity", () => {
         ObfuscatedEntityID: "0x1234567890abcdef",
     };
 
-    const mockWallet: WalletConnection = {
-        address: "0x1234567890abcdef1234567890abcdef12345678",
-        isConnected: true,
-    };
+    const mockWalletAddress = "0x1234567890abcdef1234567890abcdef12345678";
 
     beforeEach(() => {
         __test.reset();
@@ -255,7 +252,7 @@ describe("useSonarEntity", () => {
         expect(() => {
             render(
                 <SonarProvider config={config}>
-                    <EntityStateProbe saleUUID="" wallet={mockWallet} />
+                    <EntityStateProbe saleUUID="" walletAddress={mockWalletAddress} />
                 </SonarProvider>,
             );
         }).toThrow("saleUUID is required");
@@ -266,7 +263,7 @@ describe("useSonarEntity", () => {
     it("initializes with correct default state", async () => {
         const { getByTestId } = render(
             <SonarProvider config={config}>
-                <EntityStateProbe saleUUID="test-sale" wallet={mockWallet} />
+                <EntityStateProbe saleUUID="test-sale" walletAddress={mockWalletAddress} />
             </SonarProvider>,
         );
 
@@ -282,7 +279,7 @@ describe("useSonarEntity", () => {
 
         const { getByTestId } = render(
             <SonarProvider config={config}>
-                <EntityStateProbe saleUUID="test-sale" wallet={mockWallet} />
+                <EntityStateProbe saleUUID="test-sale" walletAddress={mockWalletAddress} />
             </SonarProvider>,
         );
 
@@ -297,7 +294,7 @@ describe("useSonarEntity", () => {
 
         expect(mockReadEntity).toHaveBeenCalledWith({
             saleUUID: "test-sale",
-            walletAddress: mockWallet.address,
+            walletAddress: mockWalletAddress,
         });
         expect(getByTestId("entity-state").dataset.entityUuid).toBe(mockEntity.EntityUUID);
         expect(getByTestId("entity-state").dataset.entityLabel).toBe(mockEntity.Label);
@@ -309,7 +306,7 @@ describe("useSonarEntity", () => {
 
         const { getByTestId } = render(
             <SonarProvider config={config}>
-                <EntityStateProbe saleUUID="test-sale" wallet={mockWallet} />
+                <EntityStateProbe saleUUID="test-sale" walletAddress={mockWalletAddress} />
             </SonarProvider>,
         );
 
@@ -332,7 +329,7 @@ describe("useSonarEntity", () => {
 
         const { getByTestId } = render(
             <SonarProvider config={config}>
-                <EntityStateProbe saleUUID="test-sale" wallet={mockWallet} />
+                <EntityStateProbe saleUUID="test-sale" walletAddress={mockWalletAddress} />
             </SonarProvider>,
         );
 
@@ -355,7 +352,7 @@ describe("useSonarEntity", () => {
 
         const { getByTestId, rerender } = render(
             <SonarProvider config={config}>
-                <EntityStateProbe saleUUID="test-sale" wallet={mockWallet} />
+                <EntityStateProbe saleUUID="test-sale" walletAddress={mockWalletAddress} />
             </SonarProvider>,
         );
 
@@ -370,36 +367,7 @@ describe("useSonarEntity", () => {
 
         rerender(
             <SonarProvider config={config}>
-                <EntityStateProbe saleUUID="test-sale" wallet={{ ...mockWallet, isConnected: false }} />
-            </SonarProvider>,
-        );
-
-        await waitFor(() => expect(getByTestId("entity-state").dataset.entityUuid).toBe(""));
-        expect(getByTestId("entity-state").dataset.error).toBe("");
-    });
-
-    it("resets state when wallet address changes", async () => {
-        const mockReadEntity = vi.fn().mockResolvedValue({ Entity: mockEntity });
-        __test.mockClient.readEntity = mockReadEntity;
-
-        const { getByTestId, rerender } = render(
-            <SonarProvider config={config}>
-                <EntityStateProbe saleUUID="test-sale" wallet={mockWallet} />
-            </SonarProvider>,
-        );
-
-        await waitFor(() => expect(getByTestId("entity-state").dataset.authenticated).toBe("false"));
-
-        act(() => {
-            __test.emitToken("token-123");
-        });
-
-        await waitFor(() => expect(getByTestId("entity-state").dataset.authenticated).toBe("true"));
-        await waitFor(() => expect(getByTestId("entity-state").dataset.entityUuid).toBe(mockEntity.EntityUUID));
-
-        rerender(
-            <SonarProvider config={config}>
-                <EntityStateProbe saleUUID="test-sale" wallet={{ ...mockWallet, address: undefined }} />
+                <EntityStateProbe saleUUID="test-sale" walletAddress={undefined} />
             </SonarProvider>,
         );
 
@@ -413,7 +381,7 @@ describe("useSonarEntity", () => {
 
         const { getByTestId } = render(
             <SonarProvider config={config}>
-                <EntityStateProbe saleUUID="test-sale" wallet={mockWallet} />
+                <EntityStateProbe saleUUID="test-sale" walletAddress={mockWalletAddress} />
             </SonarProvider>,
         );
 
