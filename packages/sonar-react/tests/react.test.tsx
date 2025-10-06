@@ -235,15 +235,13 @@ function EntityStateProbe({ saleUUID, walletAddress }: { saleUUID: string; walle
 function PurchaseStateProbe({
     saleUUID,
     entityUUID,
-    entityType,
     walletAddress,
 }: {
     saleUUID: string;
     entityUUID?: string;
-    entityType?: EntityType;
     walletAddress?: string;
 }) {
-    const value = useSonarPurchase({ saleUUID, entityUUID, entityType, walletAddress });
+    const value = useSonarPurchase({ saleUUID, entityUUID, walletAddress });
 
     return (
         <div
@@ -477,7 +475,6 @@ describe("useSonarPurchase", () => {
                 <PurchaseStateProbe
                     saleUUID="test-sale"
                     entityUUID={mockEntityUUID}
-                    entityType={EntityType.USER}
                     walletAddress={mockWalletAddress}
                 />
             </SonarProvider>,
@@ -487,7 +484,6 @@ describe("useSonarPurchase", () => {
 
         expect(mockPrePurchaseCheck).toHaveBeenCalledWith({
             saleUUID: "test-sale",
-            entityType: EntityType.USER,
             entityUUID: mockEntityUUID,
             walletAddress: mockWalletAddress,
         });
@@ -505,7 +501,6 @@ describe("useSonarPurchase", () => {
             <SonarProvider config={config}>
                 <PurchaseStateProbe
                     saleUUID="test-sale"
-                    entityType={EntityType.USER}
                     walletAddress={mockWalletAddress}
                 />
             </SonarProvider>,
@@ -518,7 +513,7 @@ describe("useSonarPurchase", () => {
         expect(getByTestId("purchase-state").dataset.hasGeneratePermit).toBe("false");
     });
 
-    it("does not perform pre-purchase check when entityType is missing", async () => {
+    it("does not perform pre-purchase check when entityUUID is missing", async () => {
         const mockPrePurchaseCheck = vi.fn();
         __test.mockClient.prePurchaseCheck = mockPrePurchaseCheck;
 
@@ -526,7 +521,6 @@ describe("useSonarPurchase", () => {
             <SonarProvider config={config}>
                 <PurchaseStateProbe
                     saleUUID="test-sale"
-                    entityUUID={mockEntityUUID}
                     walletAddress={mockWalletAddress}
                 />
             </SonarProvider>,
@@ -545,7 +539,7 @@ describe("useSonarPurchase", () => {
 
         const { getByTestId } = render(
             <SonarProvider config={config}>
-                <PurchaseStateProbe saleUUID="test-sale" entityUUID={mockEntityUUID} entityType={EntityType.USER} />
+                <PurchaseStateProbe saleUUID="test-sale" entityUUID={mockEntityUUID} />
             </SonarProvider>,
         );
 
@@ -571,7 +565,6 @@ describe("useSonarPurchase", () => {
                 <PurchaseStateProbe
                     saleUUID="test-sale"
                     entityUUID={mockEntityUUID}
-                    entityType={EntityType.USER}
                     walletAddress={mockWalletAddress}
                 />
             </SonarProvider>,
@@ -595,7 +588,6 @@ describe("useSonarPurchase", () => {
                 <PurchaseStateProbe
                     saleUUID="test-sale"
                     entityUUID={mockEntityUUID}
-                    entityType={EntityType.USER}
                     walletAddress={mockWalletAddress}
                 />
             </SonarProvider>,
@@ -605,7 +597,7 @@ describe("useSonarPurchase", () => {
         expect(getByTestId("purchase-state").dataset.hasGeneratePermit).toBe("true");
     });
 
-    it("re-runs pre-purchase check when parameters change", async () => {
+    it("re-runs pre-purchase check when wallet address changes", async () => {
         const mockPrePurchaseCheck = vi.fn().mockResolvedValue(mockPrePurchaseCheckResponse);
         __test.mockClient.prePurchaseCheck = mockPrePurchaseCheck;
 
@@ -614,7 +606,6 @@ describe("useSonarPurchase", () => {
                 <PurchaseStateProbe
                     saleUUID="test-sale"
                     entityUUID={mockEntityUUID}
-                    entityType={EntityType.USER}
                     walletAddress={mockWalletAddress}
                 />
             </SonarProvider>,
@@ -623,25 +614,24 @@ describe("useSonarPurchase", () => {
         await waitFor(() => expect(getByTestId("purchase-state").dataset.loading).toBe("false"));
         expect(mockPrePurchaseCheck).toHaveBeenCalledTimes(1);
 
-        // Change entityUUID - the hook should now re-fetch automatically
+        // Change wallet address - the hook should now re-fetch automatically
+        const newWalletAddress = "0x9876543210fedcba9876543210fedcba98765432";
         rerender(
             <SonarProvider config={config}>
                 <PurchaseStateProbe
                     saleUUID="test-sale"
-                    entityUUID="new-entity-uuid"
-                    entityType={EntityType.USER}
-                    walletAddress={mockWalletAddress}
+                    entityUUID={mockEntityUUID}
+                    walletAddress={newWalletAddress}
                 />
             </SonarProvider>,
         );
 
-        // The pre-purchase check should be called again with the new parameters
+        // The pre-purchase check should be called again with the new wallet address
         await waitFor(() => expect(mockPrePurchaseCheck).toHaveBeenCalledTimes(2));
         expect(mockPrePurchaseCheck).toHaveBeenLastCalledWith({
             saleUUID: "test-sale",
-            entityType: EntityType.USER,
-            entityUUID: "new-entity-uuid",
-            walletAddress: mockWalletAddress,
+            entityUUID: mockEntityUUID,
+            walletAddress: newWalletAddress,
         });
     });
 
@@ -654,7 +644,6 @@ describe("useSonarPurchase", () => {
                 <PurchaseStateProbe
                     saleUUID="test-sale"
                     entityUUID={mockEntityUUID}
-                    entityType={EntityType.USER}
                     walletAddress={mockWalletAddress}
                 />
             </SonarProvider>,
@@ -668,7 +657,6 @@ describe("useSonarPurchase", () => {
                 <PurchaseStateProbe
                     saleUUID="test-sale"
                     entityUUID={mockEntityUUID}
-                    entityType={EntityType.USER}
                     walletAddress={undefined}
                 />
             </SonarProvider>,
@@ -689,7 +677,6 @@ describe("useSonarPurchase", () => {
                 <PurchaseStateProbe
                     saleUUID="test-sale"
                     entityUUID={mockEntityUUID}
-                    entityType={EntityType.USER}
                     walletAddress={mockWalletAddress}
                 />
             </SonarProvider>,
@@ -702,7 +689,6 @@ describe("useSonarPurchase", () => {
             <SonarProvider config={config}>
                 <PurchaseStateProbe
                     saleUUID="test-sale"
-                    entityType={EntityType.USER}
                     walletAddress={mockWalletAddress}
                 />
             </SonarProvider>,
@@ -714,37 +700,4 @@ describe("useSonarPurchase", () => {
         expect(getByTestId("purchase-state").dataset.error).toBe("");
     });
 
-    it("resets state when entityType becomes undefined", async () => {
-        const mockPrePurchaseCheck = vi.fn().mockResolvedValue(mockPrePurchaseCheckResponse);
-        __test.mockClient.prePurchaseCheck = mockPrePurchaseCheck;
-
-        const { getByTestId, rerender } = render(
-            <SonarProvider config={config}>
-                <PurchaseStateProbe
-                    saleUUID="test-sale"
-                    entityUUID={mockEntityUUID}
-                    entityType={EntityType.USER}
-                    walletAddress={mockWalletAddress}
-                />
-            </SonarProvider>,
-        );
-
-        await waitFor(() => expect(getByTestId("purchase-state").dataset.readyToPurchase).toBe("true"));
-
-        // Remove entityType - the hook should reset the state
-        rerender(
-            <SonarProvider config={config}>
-                <PurchaseStateProbe
-                    saleUUID="test-sale"
-                    entityUUID={mockEntityUUID}
-                    walletAddress={mockWalletAddress}
-                />
-            </SonarProvider>,
-        );
-
-        // The state is reset when entityType becomes undefined
-        await waitFor(() => expect(getByTestId("purchase-state").dataset.readyToPurchase).toBe("false"));
-        expect(getByTestId("purchase-state").dataset.hasGeneratePermit).toBe("false");
-        expect(getByTestId("purchase-state").dataset.error).toBe("");
-    });
 });

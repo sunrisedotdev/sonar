@@ -123,18 +123,15 @@ const ExampleEntityPanel = () => {
 ```tsx
 function Example({
   entityUUID,
-  entityType,
   walletAddress,
 }: {
   entityUUID?: string;
-  entityType?: EntityType;
   walletAddress?: string;
 }) {
   const { loading, prePurchaseCheckResponse, generatePurchasePermit, error } =
     useSonarPurchase({
       saleUUID: sonarConfig.saleUUID,
       entityUUID,
-      entityType,
       walletAddress,
     });
 
