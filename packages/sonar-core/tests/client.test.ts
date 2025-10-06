@@ -141,7 +141,6 @@ describe("SonarClient", () => {
         await client.generatePurchasePermit({
             saleUUID: "s",
             entityUUID: "e",
-            entityType: "product" as any,
             walletAddress: "w",
         });
         await client.fetchAllocation({ saleUUID: "s", walletAddress: "w" });
