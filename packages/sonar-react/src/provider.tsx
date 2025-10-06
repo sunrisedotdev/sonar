@@ -1,5 +1,5 @@
 import { buildAuthorizationUrl, createClient, generatePKCEParams, type SonarClient } from "@echoxyz/sonar-core";
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
 
 type SonarProviderProps = {
     children: React.ReactNode;

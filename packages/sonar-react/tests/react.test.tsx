@@ -25,7 +25,6 @@ type TestHelpers = {
 
 declare module "@echoxyz/sonar-core" {
     // augment mocked module with test helpers for TypeScript
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     export const __test: TestHelpers;
 }
 
