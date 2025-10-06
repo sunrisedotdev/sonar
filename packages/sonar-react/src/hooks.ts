@@ -192,21 +192,20 @@ export function useSonarPurchase(args: {
     }, []);
 
     useEffect(() => {
-        if (!entityUUID || !walletAddress || state.walletAddress !== walletAddress) {
+        if (entityUUID && state.walletAddress !== walletAddress) {
             reset();
         }
-    }, [entityUUID, walletAddress, state.walletAddress, reset]);
+    }, [entityUUID, state.walletAddress, walletAddress, refetch]);
 
     useEffect(() => {
-        if (entityUUID && walletAddress && !state.loading) {
+        if (!entityUUID || !walletAddress) {
             refetch();
         }
-    }, [entityUUID, walletAddress, refetch]);
+    }, [entityUUID, walletAddress, reset]);
 
     const generatePurchasePermit = useCallback(() => {
         if (!entityUUID || !walletAddress) {
-            // Should never happen because this callback is returned as undefined if the pre-purchase check has not run
-            throw new Error("entityUUID and walletAddress are required");
+            throw new Error("Can only generate a purchase permit if the entityUUID and walletAddress are set");
         }
         return client.generatePurchasePermit({
             saleUUID,
@@ -219,6 +218,6 @@ export function useSonarPurchase(args: {
         loading: state.loading,
         error: state.error,
         prePurchaseCheckResponse: state.value,
-        generatePurchasePermit: state.value?.ReadyToPurchase ? generatePurchasePermit : undefined,
+        generatePurchasePermit: generatePurchasePermit,
     };
 }
