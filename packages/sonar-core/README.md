@@ -13,7 +13,7 @@ pnpm add @echoxyz/sonar-core
 The default client targets Echo’s hosted API and reads the auth token from `localStorage` under the `sonar:auth-token` key.
 
 ```ts
-import { createClient, buildAuthorizationUrl, generatePKCEParams, EntityType } from "@echoxyz/sonar-core";
+import { createClient, buildAuthorizationUrl, generatePKCEParams } from "@echoxyz/sonar-core";
 
 // Configure once at app startup
 const saleUUID = "<your-sale-uuid>";
@@ -79,7 +79,6 @@ export async function exampleCalls() {
     const pre = await client.prePurchaseCheck({
         saleUUID,
         entityUUID: Entity.EntityUUID,
-        entityType: EntityType.USER, // or EntityType.ORGANIZATION
         walletAddress: "0x1234...abcd" as `0x${string}`,
     });
 
@@ -88,7 +87,6 @@ export async function exampleCalls() {
         const permit = await client.generatePurchasePermit({
             saleUUID,
             entityUUID: Entity.EntityUUID,
-            entityType: EntityType.USER,
             walletAddress: "0x1234...abcd" as `0x${string}`,
         });
         console.log(permit.Signature, permit.Permit);

@@ -124,18 +124,18 @@ const ExampleEntityPanel = () => {
 function Example({
   entityUUID,
   entityType,
-  wallet,
+  walletAddress,
 }: {
   entityUUID?: string;
   entityType?: EntityType;
-  wallet: WalletConnection;
+  walletAddress?: string;
 }) {
   const { loading, prePurchaseCheckResponse, generatePurchasePermit, error } =
     useSonarPurchase({
       saleUUID: sonarConfig.saleUUID,
       entityUUID,
       entityType,
-      wallet,
+      walletAddress,
     });
 
   const purchase = async () => {

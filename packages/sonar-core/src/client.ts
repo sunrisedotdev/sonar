@@ -1,6 +1,6 @@
 import { AuthSession } from "./auth";
 import { createWebStorage } from "./storage";
-import type { AllocationPermit, BasicPermit, EntityDetails, EntityType } from "./types";
+import type { AllocationPermit, BasicPermit, EntityDetails } from "./types";
 
 export type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -166,13 +166,11 @@ export class SonarClient {
     async prePurchaseCheck(args: {
         saleUUID: string;
         entityUUID: string;
-        entityType: EntityType;
         walletAddress: string;
     }): Promise<PrePurchaseCheckResponse> {
         return this.postJSON<PrePurchaseCheckResponse>("/externalapi.PrePurchaseCheck", {
             SaleUUID: args.saleUUID,
             EntityUUID: args.entityUUID,
-            EntityType: args.entityType,
             PurchasingWalletAddress: args.walletAddress,
         });
     }
@@ -180,13 +178,11 @@ export class SonarClient {
     async generatePurchasePermit(args: {
         saleUUID: string;
         entityUUID: string;
-        entityType: EntityType;
         walletAddress: string;
     }): Promise<GeneratePurchasePermitResponse> {
         return this.postJSON<GeneratePurchasePermitResponse>("/externalapi.GenerateSalePurchasePermit", {
             SaleUUID: args.saleUUID,
             EntityUUID: args.entityUUID,
-            EntityType: args.entityType,
             PurchasingWalletAddress: args.walletAddress,
         });
     }
