@@ -1,5 +1,11 @@
 # @echoxyz/sonar-react
 
+## 0.4.2
+
+### Patch Changes
+
+- 1102d83: Ensure that entity is refetched whenever the wallet address changes
+
 ## 0.4.1
 
 ### Patch Changes
