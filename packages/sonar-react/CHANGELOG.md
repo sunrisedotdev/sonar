@@ -1,5 +1,18 @@
 # @echoxyz/sonar-react
 
+## 0.4.0
+
+### Minor Changes
+
+- 2571855: useSonarEntity now just takes walletAddress, and not isConnected
+
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies [affa026]
+    - @echoxyz/sonar-core@0.2.1
+
 ## 0.3.0
 
 ### Minor Changes

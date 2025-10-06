@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.2.1
+
+### Patch Changes
+
+- affa026: Add missing values to PrePurchaseFailureReason enum
+
 ## 0.2.0
 
 ### Minor Changes
