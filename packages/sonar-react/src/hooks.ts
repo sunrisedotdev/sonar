@@ -39,6 +39,7 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
     const [state, setState] = useState<{
         loading: boolean;
         entity?: EntityDetails;
+        walletAddress?: string; // To track the wallet address of the fetched entity (rather than the wallet address that was passed in)
         error?: Error;
         hasFetched: boolean;
     }>({
@@ -61,6 +62,7 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
             setState({
                 loading: false,
                 entity: resp.Entity,
+                walletAddress: walletAddress,
                 error: undefined,
                 hasFetched: true,
             });
@@ -70,13 +72,14 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
                 setState({
                     loading: false,
                     entity: undefined,
+                    walletAddress: undefined,
                     error: undefined,
                     hasFetched: true,
                 });
                 return;
             }
             const error = err instanceof Error ? err : new Error(String(err));
-            setState({ loading: false, entity: undefined, error, hasFetched: true });
+            setState({ loading: false, entity: undefined, walletAddress: undefined, error, hasFetched: true });
         }
     }, [client, saleUUID, walletAddress, fullyConnected]);
 
@@ -85,17 +88,16 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
             loading: false,
             hasFetched: false,
             entity: undefined,
+            walletAddress: undefined,
             error: undefined,
         });
     }, []);
 
     useEffect(() => {
-        if (fullyConnected) {
-            if (!state.hasFetched && !state.loading) {
-                refetch();
-            }
+        if (fullyConnected && state.walletAddress !== walletAddress) {
+            refetch();
         }
-    }, [fullyConnected, state.hasFetched, state.loading, refetch]);
+    }, [fullyConnected, state.walletAddress, walletAddress, refetch]);
 
     useEffect(() => {
         if (ready && (!authenticated || !walletAddress)) {

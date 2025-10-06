@@ -402,4 +402,40 @@ describe("useSonarEntity", () => {
         await waitFor(() => expect(getByTestId("entity-state").dataset.entityUuid).toBe(""));
         expect(getByTestId("entity-state").dataset.error).toBe("");
     });
+
+    it("re-runs entity fetch when wallet address changes", async () => {
+        const mockReadEntity = vi.fn().mockResolvedValue({ Entity: mockEntity });
+        __test.mockClient.readEntity = mockReadEntity;
+
+        const { getByTestId, rerender } = render(
+            <SonarProvider config={config}>
+                <EntityStateProbe saleUUID="test-sale" walletAddress={mockWalletAddress} />
+            </SonarProvider>,
+        );
+
+        await waitFor(() => expect(getByTestId("entity-state").dataset.authenticated).toBe("false"));
+
+        act(() => {
+            __test.emitToken("token-123");
+        });
+
+        await waitFor(() => expect(getByTestId("entity-state").dataset.authenticated).toBe("true"));
+        await waitFor(() => expect(getByTestId("entity-state").dataset.loading).toBe("false"));
+        expect(mockReadEntity).toHaveBeenCalledTimes(1);
+
+        // Change wallet address - the hook should now re-fetch automatically
+        const newWalletAddress = "0x9876543210fedcba9876543210fedcba98765432";
+        rerender(
+            <SonarProvider config={config}>
+                <EntityStateProbe saleUUID="test-sale" walletAddress={newWalletAddress} />
+            </SonarProvider>,
+        );
+
+        // The entity fetch should be called again with the new wallet address
+        await waitFor(() => expect(mockReadEntity).toHaveBeenCalledTimes(2));
+        expect(mockReadEntity).toHaveBeenLastCalledWith({
+            saleUUID: "test-sale",
+            walletAddress: newWalletAddress,
+        });
+    });
 });
