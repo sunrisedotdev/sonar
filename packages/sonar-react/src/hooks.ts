@@ -1,5 +1,5 @@
 import { APIError, EntityDetails, SonarClient } from "@echoxyz/sonar-core";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { AuthContext, ClientContext, AuthContextValue } from "./provider";
 
 export function useSonarAuth(): AuthContextValue {
@@ -39,16 +39,13 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
     const [state, setState] = useState<{
         loading: boolean;
         entity?: EntityDetails;
+        walletAddress?: string; // To track the wallet address of the fetched entity (rather than the wallet address that was passed in)
         error?: Error;
         hasFetched: boolean;
     }>({
         loading: false,
         hasFetched: false,
     });
-
-    const prevParamsRef = useRef<{
-        walletAddress?: string;
-    }>({ walletAddress });
 
     const fullyConnected = ready && authenticated && Boolean(walletAddress);
 
@@ -65,6 +62,7 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
             setState({
                 loading: false,
                 entity: resp.Entity,
+                walletAddress: walletAddress,
                 error: undefined,
                 hasFetched: true,
             });
@@ -74,13 +72,14 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
                 setState({
                     loading: false,
                     entity: undefined,
+                    walletAddress: undefined,
                     error: undefined,
                     hasFetched: true,
                 });
                 return;
             }
             const error = err instanceof Error ? err : new Error(String(err));
-            setState({ loading: false, entity: undefined, error, hasFetched: true });
+            setState({ loading: false, entity: undefined, walletAddress: undefined, error, hasFetched: true });
         }
     }, [client, saleUUID, walletAddress, fullyConnected]);
 
@@ -89,31 +88,22 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
             loading: false,
             hasFetched: false,
             entity: undefined,
+            walletAddress: undefined,
             error: undefined,
         });
     }, []);
 
     useEffect(() => {
-        const prevParams = prevParamsRef.current;
-        const currentParams = { walletAddress };
-
-        // Check if walletAddress has changed OR if this is the initial fetch
-        const walletChanged = prevParams.walletAddress !== currentParams.walletAddress;
-        const isInitialFetch = !state.hasFetched && !state.loading;
-
-        if ((walletChanged || isInitialFetch) && walletAddress && fullyConnected && !state.loading) {
+        if (fullyConnected && !state.hasFetched && !state.loading) {
             refetch();
         }
-
-        // Update the ref with current parameters
-        prevParamsRef.current = currentParams;
-    }, [walletAddress, fullyConnected, state.hasFetched, state.loading]);
+    }, [fullyConnected, state.hasFetched, state.loading, refetch]);
 
     useEffect(() => {
-        if (ready && (!authenticated || !walletAddress)) {
+        if (ready && (!authenticated || !walletAddress || state.walletAddress !== walletAddress)) {
             reset();
         }
-    }, [ready, authenticated, walletAddress, reset]);
+    }, [ready, authenticated, walletAddress, reset, state.walletAddress]);
 
     return {
         authenticated,
