@@ -15,7 +15,7 @@ describe("createClient", () => {
         const originalFetch = globalThis.fetch;
         (globalThis as { fetch: unknown }).fetch = vi.fn(async () => new Response(JSON.stringify({ Entities: [] }), { status: 200 }));
         try {
-            const client = createClient({ saleUUID: "sale", onTokenChange });
+            const client = createClient({ onTokenChange });
             await client.readEntity({ saleUUID: "sale", walletAddress: "w" });
             expect(globalThis.fetch).toHaveBeenCalledTimes(1);
             // ensure token change propagation works
@@ -38,12 +38,12 @@ describe("createClient", () => {
             expect(u.toString()).toBe(`${apiURL}/externalapi.ReadEntity`);
             return new Response(JSON.stringify({ Entities: [] }), { status: 200 });
         });
-        const client = createClient({ saleUUID: "sale", apiURL, auth, fetch: fetchSpy });
+        const client = createClient({ apiURL, auth, fetch: fetchSpy });
         await client.readEntity({ saleUUID: "sale", walletAddress: "w" });
         expect(fetchSpy).toHaveBeenCalledTimes(1);
         // onExpire should be called when clear happens due to unauthorized
         const unauthorizedFetch = vi.fn(async () => new Response(JSON.stringify({ message: "nope" }), { status: 401 }));
-        const client2 = createClient({ saleUUID: "sale", apiURL, auth, fetch: unauthorizedFetch });
+        const client2 = createClient({ apiURL, auth, fetch: unauthorizedFetch });
         await expect(client2.readEntity({ saleUUID: "sale", walletAddress: "w" })).rejects.toBeInstanceOf(Error);
         // clear triggers onExpire
         expect(onExpire).toHaveBeenCalledTimes(1);

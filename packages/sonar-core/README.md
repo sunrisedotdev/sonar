@@ -20,7 +20,7 @@ const saleUUID = "<your-sale-uuid>";
 const clientUUID = "<your-oauth-client-id>";
 const redirectURI = window.location.origin + "/oauth/callback";
 
-const client = createClient({ saleUUID });
+const client = createClient();
 
 // Start OAuth login (e.g. on a button click)
 export async function login() {
@@ -30,7 +30,6 @@ export async function login() {
     sessionStorage.setItem("sonar:oauth:verifier", codeVerifier);
 
     const url = buildAuthorizationUrl({
-        saleUUID,
         clientUUID,
         redirectURI,
         state,
@@ -106,7 +105,6 @@ export async function exampleCalls() {
 import { AuthSession, buildAuthorizationUrl, createClient, createMemoryStorage } from "@echoxyz/sonar-core";
 
 const client = createClient({
-    saleUUID: "<sale-uuid>",
     apiURL: "https://api.echo.xyz",
     fetch: customFetchImplementation,
     auth: new AuthSession({
@@ -117,13 +115,11 @@ const client = createClient({
 
 // or let the factory create the session but tweak defaults
 const clientWithCallbacks = createClient({
-    saleUUID: "<sale-uuid>",
     onTokenChange: (token) => console.log("token updated", token),
     onExpire: () => console.log("session expired"),
 });
 
 const oauthURL = buildAuthorizationUrl({
-    saleUUID: "<sale-uuid>",
     clientUUID: "<client-id>",
     redirectURI: "https://example.com/oauth/callback",
     state: "opaque-state",

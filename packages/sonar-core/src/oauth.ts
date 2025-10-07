@@ -1,7 +1,6 @@
 const DEFAULT_FRONTEND_URL = "https://app.echo.xyz";
 
 export type BuildAuthorizationUrlArgs = {
-    saleUUID: string;
     clientUUID: string;
     redirectURI: string;
     state: string;
@@ -10,7 +9,6 @@ export type BuildAuthorizationUrlArgs = {
 };
 
 export function buildAuthorizationUrl({
-    saleUUID,
     clientUUID,
     redirectURI,
     state,
@@ -23,6 +21,5 @@ export function buildAuthorizationUrl({
     url.searchParams.set("response_type", "code");
     url.searchParams.set("state", state);
     url.searchParams.set("code_challenge", codeChallenge);
-    url.searchParams.set("saleUUID", saleUUID);
     return url;
 }

@@ -11,7 +11,6 @@ export * from "./types";
 const DEFAULT_API_URL = "https://api.echo.xyz";
 
 export type CreateClientOptions = {
-    saleUUID: string; // TODO: remove this
     apiURL?: string;
     auth?: AuthSession;
     fetch?: FetchLike;
@@ -20,8 +19,8 @@ export type CreateClientOptions = {
     onTokenChange?: (token?: string) => void;
 };
 
-export function createClient(options: CreateClientOptions): SonarClient {
-    const { apiURL = DEFAULT_API_URL, auth, fetch, tokenKey, onExpire, onTokenChange } = options;
+export function createClient(options?: CreateClientOptions): SonarClient {
+    const { apiURL = DEFAULT_API_URL, auth, fetch, tokenKey, onExpire, onTokenChange } = options ?? {};
 
     const authSession =
         auth ??

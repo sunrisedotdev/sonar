@@ -7,7 +7,6 @@ type SonarProviderProps = {
 };
 
 export type SonarProviderConfig = {
-    saleUUID: string;
     clientUUID: string;
     redirectURI: string;
     apiURL?: string;
@@ -36,14 +35,13 @@ export function SonarProvider({ children, config }: SonarProviderProps) {
 
     const client = useMemo(() => {
         return createClient({
-            saleUUID: config.saleUUID,
             apiURL: config.apiURL,
             tokenKey: config.tokenStorageKey,
             onTokenChange: (nextToken?: string) => {
                 setAuthState({ token: nextToken ?? undefined, ready: true });
             },
         });
-    }, [config.apiURL, config.saleUUID, config.tokenStorageKey]);
+    }, [config.apiURL, config.tokenStorageKey]);
 
     useEffect(() => {
         setAuthState({ token: client.getToken() ?? undefined, ready: true });
@@ -58,7 +56,6 @@ export function SonarProvider({ children, config }: SonarProviderProps) {
         window.sessionStorage.setItem("sonar:oauth:verifier", codeVerifier);
 
         const url = buildAuthorizationUrl({
-            saleUUID: config.saleUUID,
             clientUUID: config.clientUUID,
             redirectURI: config.redirectURI,
             state,
@@ -66,7 +63,7 @@ export function SonarProvider({ children, config }: SonarProviderProps) {
             frontendURL: config.frontendURL,
         });
         window.location.href = url.toString();
-    }, [config.saleUUID, config.clientUUID, config.redirectURI, config.frontendURL]);
+    }, [config.clientUUID, config.redirectURI, config.frontendURL]);
 
     const completeOAuth = useCallback(
         async ({ code, state }: { code: string; state: string }) => {
