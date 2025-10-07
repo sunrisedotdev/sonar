@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.4.0
+
+### Minor Changes
+
+- 1ccce38: Remove redundant saleUUID from constructor/Provider
+
 ## 0.3.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @echoxyz/sonar-react
 
+## 0.6.0
+
+### Minor Changes
+
+- 1ccce38: Remove redundant saleUUID from constructor/Provider
+
+### Patch Changes
+
+- Updated dependencies [1ccce38]
+    - @echoxyz/sonar-core@0.4.0
+
 ## 0.5.0
 
 ### Minor Changes
