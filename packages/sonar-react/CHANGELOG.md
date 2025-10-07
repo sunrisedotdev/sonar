@@ -1,5 +1,11 @@
 # @echoxyz/sonar-react
 
+## 0.5.0
+
+### Minor Changes
+
+- 2e6e793: Introduce useSonarPurchase hook
+
 ## 0.4.2
 
 ### Patch Changes
