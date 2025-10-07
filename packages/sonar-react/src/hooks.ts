@@ -1,5 +1,11 @@
-import { APIError, EntityDetails, SonarClient } from "@echoxyz/sonar-core";
-import { useCallback, useContext, useEffect, useState } from "react";
+import {
+    APIError,
+    EntityDetails,
+    GeneratePurchasePermitResponse,
+    PrePurchaseFailureReason,
+    SonarClient,
+} from "@echoxyz/sonar-core";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AuthContext, ClientContext, AuthContextValue } from "./provider";
 
 export function useSonarAuth(): AuthContextValue {
@@ -111,4 +117,108 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
         entity: state.entity,
         error: state.error,
     };
+}
+
+export type UseSonarPurchaseResultReadyToPurchase = {
+    loading: false;
+    readyToPurchase: true;
+    error: undefined;
+    generatePurchasePermit: () => Promise<GeneratePurchasePermitResponse>;
+};
+
+export type UseSonarPurchaseResultNotReadyToPurchase = {
+    loading: false;
+    readyToPurchase: false;
+    error: undefined;
+    failureReason: PrePurchaseFailureReason;
+    livenessCheckURL: string;
+};
+
+export type UseSonarPurchaseResultError = {
+    loading: false;
+    readyToPurchase: false;
+    error: Error;
+};
+
+export type UseSonarPurchaseResultLoading = {
+    loading: true;
+    readyToPurchase: false;
+    error: undefined;
+};
+
+export type UseSonarPurchaseResult =
+    | UseSonarPurchaseResultLoading
+    | UseSonarPurchaseResultReadyToPurchase
+    | UseSonarPurchaseResultNotReadyToPurchase
+    | UseSonarPurchaseResultError;
+
+export function useSonarPurchase(args: {
+    saleUUID: string;
+    entityUUID: string;
+    walletAddress: string;
+}): UseSonarPurchaseResult {
+    const saleUUID = args.saleUUID;
+    const entityUUID = args.entityUUID;
+    const walletAddress = args.walletAddress;
+
+    const client = useSonarClient();
+
+    const [state, setState] = useState<UseSonarPurchaseResult>({
+        loading: true,
+        readyToPurchase: false,
+        error: undefined,
+    });
+
+    const generatePurchasePermit = useCallback(() => {
+        return client.generatePurchasePermit({
+            saleUUID,
+            entityUUID,
+            walletAddress,
+        });
+    }, [client, saleUUID, entityUUID, walletAddress]);
+
+    useEffect(() => {
+        const fetchPurchaseData = async () => {
+            setState({
+                loading: true,
+                readyToPurchase: false,
+                error: undefined,
+            });
+
+            try {
+                const response = await client.prePurchaseCheck({
+                    saleUUID,
+                    entityUUID,
+                    walletAddress,
+                });
+                if (response.ReadyToPurchase) {
+                    setState({
+                        loading: false,
+                        readyToPurchase: true,
+                        generatePurchasePermit,
+                        error: undefined,
+                    });
+                } else {
+                    setState({
+                        loading: false,
+                        readyToPurchase: false,
+                        failureReason: response.FailureReason as PrePurchaseFailureReason,
+                        livenessCheckURL: response.LivenessCheckURL,
+                        error: undefined,
+                    });
+                }
+            } catch (err) {
+                const error = err instanceof Error ? err : new Error(String(err));
+                setState({
+                    loading: false,
+                    readyToPurchase: false,
+                    error: error,
+                });
+            }
+        };
+
+        fetchPurchaseData();
+    }, [saleUUID, entityUUID, walletAddress, client, generatePurchasePermit]);
+
+    return state;
 }
