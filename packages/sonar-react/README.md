@@ -4,7 +4,7 @@ React provider and hooks for Echo’s Sonar APIs, built on `@echoxyz/sonar-core`
 
 - Framework/router agnostic (works with React Router, Next.js, etc.).
 - Handles PKCE OAuth redirect flow and token storage for the browser.
-- Exposes a ready-to-use API client bound to a single `saleUUID`.
+- Exposes a ready-to-use API client bound to a single Sonar oauth client.
 
 ## Install
 
@@ -25,7 +25,6 @@ export function AppRoot({ children }: { children: React.ReactNode }) {
     return (
         <SonarProvider
             config={{
-                saleUUID: "<your-sale-uuid>",
                 clientUUID: "<your-oauth-client-id>",
                 redirectURI: window.location.origin + "/oauth/callback",
                 // Optional:
@@ -171,7 +170,6 @@ export function Example() {
 
 - `SonarProvider`
     - Props `config`:
-        - `saleUUID: string` (required) – Sale to scope API calls against.
         - `clientUUID: string` (required) – Echo OAuth Client ID.
         - `redirectURI: string` (required) – Your OAuth callback URI.
         - `apiURL?: string` (default: `https://api.echo.xyz`) – API base URL.

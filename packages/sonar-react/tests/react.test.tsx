@@ -137,7 +137,6 @@ function AuthStateProbe() {
 }
 
 const config = {
-    saleUUID: "sale-uuid",
     clientUUID: "client-uuid",
     redirectURI: "https://example.com/callback",
 };
