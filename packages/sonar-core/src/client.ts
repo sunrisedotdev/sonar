@@ -103,7 +103,9 @@ export class SonarClient {
         if (resp.status === 401 && this.onUnauthorized) {
             try {
                 this.onUnauthorized();
-            } catch {}
+            } catch {
+                // Ignore errors from onUnauthorized callback
+            }
         }
 
         if (!resp.ok) {

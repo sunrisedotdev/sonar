@@ -13,7 +13,7 @@ describe("createClient", () => {
     it("creates client with default api url and token change wiring", async () => {
         const onTokenChange = vi.fn();
         const originalFetch = globalThis.fetch;
-        (globalThis as any).fetch = vi.fn(async () => new Response(JSON.stringify({ Entities: [] }), { status: 200 }));
+        (globalThis as { fetch: unknown }).fetch = vi.fn(async () => new Response(JSON.stringify({ Entities: [] }), { status: 200 }));
         try {
             const client = createClient({ saleUUID: "sale", onTokenChange });
             await client.readEntity({ saleUUID: "sale", walletAddress: "w" });
@@ -22,7 +22,7 @@ describe("createClient", () => {
             client.setToken(makeJwt({ exp: Math.floor((Date.now() + 60000) / 1000) }));
             expect(onTokenChange).toHaveBeenCalledTimes(1);
         } finally {
-            (globalThis as any).fetch = originalFetch;
+            (globalThis as { fetch: unknown }).fetch = originalFetch;
         }
     });
 

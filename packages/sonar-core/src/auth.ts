@@ -10,7 +10,7 @@ function safeDecodeExp(token: string): number | undefined {
     }
     try {
         // Decode base64url (RFC 7515) to base64
-        let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
         const payload = JSON.parse(atob(base64));
         const exp = payload?.exp;
         if (typeof exp === "number" && isFinite(exp)) {

@@ -27,16 +27,16 @@ describe("createMemoryStorage", () => {
 });
 
 describe("createWebStorage", () => {
-    const originalWindow = globalThis.window as any;
+    const originalWindow = globalThis.window as { window?: unknown };
     let getItemSpy: ReturnType<typeof vi.fn> & ((key: string) => string | null);
     let setItemSpy: ReturnType<typeof vi.fn> & ((key: string, value: string) => void);
     let removeItemSpy: ReturnType<typeof vi.fn> & ((key: string) => void);
 
     beforeEach(() => {
-        getItemSpy = vi.fn((key: string) => null);
-        setItemSpy = vi.fn((key: string, _value: string) => undefined);
-        removeItemSpy = vi.fn((key: string) => undefined);
-        (globalThis as any).window = {
+        getItemSpy = vi.fn(() => null);
+        setItemSpy = vi.fn(() => undefined);
+        removeItemSpy = vi.fn(() => undefined);
+        (globalThis as { window: unknown }).window = {
             localStorage: {
                 getItem: getItemSpy,
                 setItem: setItemSpy,
@@ -46,7 +46,7 @@ describe("createWebStorage", () => {
     });
 
     afterEach(() => {
-        (globalThis as any).window = originalWindow;
+        (globalThis as { window: unknown }).window = originalWindow;
         vi.restoreAllMocks();
     });
 
@@ -84,7 +84,7 @@ describe("createWebStorage", () => {
     });
 
     it("falls back to memory storage when window is undefined", () => {
-        (globalThis as any).window = undefined;
+        (globalThis as { window: unknown }).window = undefined;
         const s = createWebStorage();
         s.setItem("k", "v");
         expect(s.getItem("k")).toBe("v");

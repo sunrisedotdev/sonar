@@ -40,13 +40,13 @@ describe("SonarClient", () => {
 
     it("throws if no fetch available", () => {
         const original = globalThis.fetch;
-        (globalThis as any).fetch = undefined;
+        (globalThis as { fetch: unknown }).fetch = undefined;
         try {
             expect(() =>
                 new SonarClient({ apiURL, opts: { auth } }).readEntity({ saleUUID: "s", walletAddress: "w" }),
             ).toThrowError(/No fetch implementation/);
         } finally {
-            (globalThis as any).fetch = original;
+            (globalThis as { fetch: unknown }).fetch = original;
         }
     });
 
