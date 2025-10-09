@@ -5,7 +5,7 @@ import {
     PrePurchaseFailureReason,
     SonarClient,
 } from "@echoxyz/sonar-core";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { AuthContext, ClientContext, AuthContextValue } from "./provider";
 
 export function useSonarAuth(): AuthContextValue {
