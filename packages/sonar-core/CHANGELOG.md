@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.4.1
+
+### Patch Changes
+
+- d52cd7b: Add MinAmount to AllocationPermit
+
 ## 0.4.0
 
 ### Minor Changes
