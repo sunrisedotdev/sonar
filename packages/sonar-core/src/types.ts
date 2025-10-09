@@ -33,6 +33,7 @@ export type AllocationPermit = {
     Permit: BasicPermit;
     ReservedAmount: string;
     MaxAmount: string;
+    MinAmount: string;
 };
 
 export enum PurchasePermitType {
