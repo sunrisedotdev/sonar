@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.5.0
+
+### Minor Changes
+
+- bece3e6: Update types to match new GeneratePurchasePermit API.
+
 ## 0.4.1
 
 ### Patch Changes
