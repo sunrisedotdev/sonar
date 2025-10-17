@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { APIError, SonarClient } from "../src/client";
+import {
+    AllocationResponse,
+    APIError,
+    GeneratePurchasePermitResponse,
+    ReadEntityResponse,
+    SonarClient,
+} from "../src/client";
 import { AuthSession } from "../src/auth";
 import { createMemoryStorage } from "../src/storage";
+import { EntityType, EntitySetupState, SaleEligibility, InvestingRegion } from "../src/types";
 
 type MockResponseInit = {
     status: number;
@@ -114,37 +121,158 @@ describe("SonarClient", () => {
         expect(onUnauthorized).toHaveBeenCalledTimes(1);
     });
 
-    it("sends correct payload shapes for helpers", async () => {
-        const fetchSpy = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
-            const body = JSON.parse(init!.body as string);
-            // minimal check of keys
-            if (body.Code !== undefined) {
-                return mockResponse({ status: 200, json: { token: "t" } });
-            }
-            if (body.PurchasingWalletAddress) {
-                return mockResponse({ status: 200, json: { Permit: {}, Signature: "sig" } });
-            }
-            if (body.WalletAddress) {
-                return mockResponse({
-                    status: 200,
-                    json: { HasReservedAllocation: false, ReservedAmountUSD: "0", MaxAmountUSD: "0" },
-                });
-            }
-            if (body.SaleUUID && Object.keys(body).length === 1) {
-                return mockResponse({ status: 200, json: { Entities: [] } });
-            }
-            return mockResponse({ status: 200, json: {} });
+    it("sends correct payload for exchangeAuthorizationCode", async () => {
+        const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+            const url = input as URL;
+            expect(url.pathname).toBe("/oauth.ExchangeAuthorizationCode");
+            return mockResponse({ status: 200, json: { token: "t" } });
         });
 
         const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
-        await client.exchangeAuthorizationCode({ code: "c", codeVerifier: "v", redirectURI: "u" });
-        await client.generatePurchasePermit({
+        const token = await client.exchangeAuthorizationCode({ code: "c", codeVerifier: "v", redirectURI: "u" });
+
+        expect(token).toEqual({ token: "t" } satisfies { token: string });
+    });
+
+    it("sends correct payload for generatePurchasePermit with basic permit", async () => {
+        const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+            const url = input as URL;
+            expect(url.pathname).toBe("/externalapi.GenerateSalePurchasePermit");
+            return mockResponse({
+                status: 200,
+                json: {
+                    PermitJSON: {
+                        EntityID: "0xe",
+                        SaleUUID: "0xs",
+                        Wallet: "0xw",
+                        ExpiresAt: 0,
+                        Payload: "0xp",
+                    },
+                    Signature: "0xsig",
+                },
+            });
+        });
+
+        const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
+        const permit = await client.generatePurchasePermit({
             saleUUID: "s",
             entityUUID: "e",
             walletAddress: "w",
         });
-        await client.fetchAllocation({ saleUUID: "s", walletAddress: "w" });
-        await client.readEntity({ saleUUID: "s", walletAddress: "w" });
-        expect(fetchSpy).toHaveBeenCalledTimes(4);
+
+        expect(permit).toEqual({
+            PermitJSON: {
+                EntityID: "0xe",
+                SaleUUID: "0xs",
+                Wallet: "0xw",
+                ExpiresAt: 0,
+                Payload: "0xp",
+            },
+            Signature: "0xsig",
+        } satisfies GeneratePurchasePermitResponse);
+    });
+
+    it("sends correct payload for generatePurchasePermit with allocation permit", async () => {
+        const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+            const url = input as URL;
+            expect(url.pathname).toBe("/externalapi.GenerateSalePurchasePermit");
+            return mockResponse({
+                status: 200,
+                json: {
+                    PermitJSON: {
+                        Permit: {
+                            EntityID: "0xe",
+                            SaleUUID: "0xs",
+                            Wallet: "0xw",
+                            ExpiresAt: 0,
+                            Payload: "0xp",
+                        },
+                        ReservedAmount: "1000",
+                        MaxAmount: "5000",
+                        MinAmount: "100",
+                    },
+                    Signature: "0xsig",
+                },
+            });
+        });
+
+        const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
+        const permit = await client.generatePurchasePermit({
+            saleUUID: "s",
+            entityUUID: "e",
+            walletAddress: "w",
+        });
+
+        expect(permit).toEqual({
+            PermitJSON: {
+                Permit: {
+                    EntityID: "0xe",
+                    SaleUUID: "0xs",
+                    Wallet: "0xw",
+                    ExpiresAt: 0,
+                    Payload: "0xp",
+                },
+                ReservedAmount: "1000",
+                MaxAmount: "5000",
+                MinAmount: "100",
+            },
+            Signature: "0xsig",
+        } satisfies GeneratePurchasePermitResponse);
+    });
+
+    it("sends correct payload for fetchAllocation", async () => {
+        const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+            const url = input as URL;
+            expect(url.pathname).toBe("/externalapi.Allocation");
+            return mockResponse({
+                status: 200,
+                json: { HasReservedAllocation: false, ReservedAmountUSD: "0", MaxAmountUSD: "0" },
+            });
+        });
+
+        const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
+        const allocation = await client.fetchAllocation({ saleUUID: "s", walletAddress: "w" });
+
+        expect(allocation).toEqual({
+            HasReservedAllocation: false,
+            ReservedAmountUSD: "0",
+            MaxAmountUSD: "0",
+        } satisfies AllocationResponse);
+    });
+
+    it("sends correct payload for readEntity", async () => {
+        const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+            const url = input as URL;
+            expect(url.pathname).toBe("/externalapi.ReadEntity");
+            return mockResponse({
+                status: 200,
+                json: {
+                    Entity: {
+                        Label: "Test Entity",
+                        EntityUUID: "test-uuid",
+                        EntityType: EntityType.USER,
+                        EntitySetupState: EntitySetupState.COMPLETE,
+                        SaleEligibility: SaleEligibility.ELIGIBLE,
+                        InvestingRegion: InvestingRegion.US,
+                        ObfuscatedEntityID: "0x123",
+                    },
+                },
+            });
+        });
+
+        const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
+        const entity = await client.readEntity({ saleUUID: "s", walletAddress: "w" });
+
+        expect(entity).toEqual({
+            Entity: {
+                Label: "Test Entity",
+                EntityUUID: "test-uuid",
+                EntityType: EntityType.USER,
+                EntitySetupState: EntitySetupState.COMPLETE,
+                SaleEligibility: SaleEligibility.ELIGIBLE,
+                InvestingRegion: InvestingRegion.US,
+                ObfuscatedEntityID: "0x123",
+            },
+        } satisfies ReadEntityResponse);
     });
 });
