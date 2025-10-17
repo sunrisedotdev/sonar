@@ -22,11 +22,11 @@ export enum SaleEligibility {
 }
 
 export type BasicPermit = {
-    EntityID: Uint8Array;
-    SaleUUID: Uint8Array;
-    Wallet: string;
-    ExpiresAt: string;
-    Payload: Uint8Array;
+    EntityID: Hex;
+    SaleUUID: Hex;
+    Wallet: Hex;
+    ExpiresAt: number;
+    Payload: Hex;
 };
 
 export type AllocationPermit = {
