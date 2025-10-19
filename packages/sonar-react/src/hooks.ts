@@ -2,6 +2,7 @@ import {
     APIError,
     EntityDetails,
     GeneratePurchasePermitResponse,
+    Hex,
     PrePurchaseFailureReason,
     SonarClient,
 } from "@echoxyz/sonar-core";
@@ -154,11 +155,11 @@ export type UseSonarPurchaseResult =
 
 export function useSonarPurchase(args: {
     saleUUID: string;
-    entityUUID: string;
+    entityID: Hex;
     walletAddress: string;
 }): UseSonarPurchaseResult {
     const saleUUID = args.saleUUID;
-    const entityUUID = args.entityUUID;
+    const entityID = args.entityID;
     const walletAddress = args.walletAddress;
 
     const client = useSonarClient();
@@ -172,10 +173,10 @@ export function useSonarPurchase(args: {
     const generatePurchasePermit = useCallback(() => {
         return client.generatePurchasePermit({
             saleUUID,
-            entityUUID,
+            entityID,
             walletAddress,
         });
-    }, [client, saleUUID, entityUUID, walletAddress]);
+    }, [client, saleUUID, entityID, walletAddress]);
 
     useEffect(() => {
         const fetchPurchaseData = async () => {
@@ -188,7 +189,7 @@ export function useSonarPurchase(args: {
             try {
                 const response = await client.prePurchaseCheck({
                     saleUUID,
-                    entityUUID,
+                    entityID,
                     walletAddress,
                 });
                 if (response.ReadyToPurchase) {
@@ -218,7 +219,7 @@ export function useSonarPurchase(args: {
         };
 
         fetchPurchaseData();
-    }, [saleUUID, entityUUID, walletAddress, client, generatePurchasePermit]);
+    }, [saleUUID, entityID, walletAddress, client, generatePurchasePermit]);
 
     return state;
 }

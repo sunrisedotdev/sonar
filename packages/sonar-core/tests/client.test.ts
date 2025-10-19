@@ -156,7 +156,7 @@ describe("SonarClient", () => {
         const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
         const permit = await client.generatePurchasePermit({
             saleUUID: "s",
-            entityUUID: "e",
+            entityID: "0xe",
             walletAddress: "w",
         });
 
@@ -199,7 +199,7 @@ describe("SonarClient", () => {
         const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
         const permit = await client.generatePurchasePermit({
             saleUUID: "s",
-            entityUUID: "e",
+            entityID: "0xe",
             walletAddress: "w",
         });
 
@@ -249,12 +249,11 @@ describe("SonarClient", () => {
                 json: {
                     Entity: {
                         Label: "Test Entity",
-                        EntityUUID: "test-uuid",
+                        EntityID: "0x1234",
                         EntityType: EntityType.USER,
                         EntitySetupState: EntitySetupState.COMPLETE,
                         SaleEligibility: SaleEligibility.ELIGIBLE,
                         InvestingRegion: InvestingRegion.US,
-                        ObfuscatedEntityID: "0x123",
                     },
                 },
             });
@@ -266,12 +265,11 @@ describe("SonarClient", () => {
         expect(entity).toEqual({
             Entity: {
                 Label: "Test Entity",
-                EntityUUID: "test-uuid",
+                EntityID: "0x1234",
                 EntityType: EntityType.USER,
                 EntitySetupState: EntitySetupState.COMPLETE,
                 SaleEligibility: SaleEligibility.ELIGIBLE,
                 InvestingRegion: InvestingRegion.US,
-                ObfuscatedEntityID: "0x123",
             },
         } satisfies ReadEntityResponse);
     });

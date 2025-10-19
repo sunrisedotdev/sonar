@@ -77,7 +77,7 @@ export async function exampleCalls() {
     // Run a pre-purchase check
     const pre = await client.prePurchaseCheck({
         saleUUID,
-        entityUUID: Entity.EntityUUID,
+        entityID: Entity.EntityID,
         walletAddress: "0x1234...abcd" as `0x${string}`,
     });
 
@@ -85,7 +85,7 @@ export async function exampleCalls() {
         // Generate a purchase permit
         const permit = await client.generatePurchasePermit({
             saleUUID,
-            entityUUID: Entity.EntityUUID,
+            entityID: Entity.EntityID,
             walletAddress: "0x1234...abcd" as `0x${string}`,
         });
         console.log(permit.Signature, permit.Permit);
