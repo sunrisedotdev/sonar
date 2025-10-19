@@ -1,5 +1,16 @@
 # @echoxyz/sonar-react
 
+## 0.7.0
+
+### Minor Changes
+
+- f47a532: Replace EntityUUID + ObfuscatedEntityID in the API interface with a single EntityID
+
+### Patch Changes
+
+- Updated dependencies [f47a532]
+    - @echoxyz/sonar-core@0.6.0
+
 ## 0.6.2
 
 ### Patch Changes

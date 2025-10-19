@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.6.0
+
+### Minor Changes
+
+- f47a532: Replace EntityUUID + ObfuscatedEntityID in the API interface with a single EntityID
+
 ## 0.5.0
 
 ### Minor Changes
