@@ -121,15 +121,15 @@ const ExampleEntityPanel = () => {
 
 ```tsx
 function Example({
-  entityUUID,
+  entityID,
   walletAddress,
 }: {
-  entityUUID: string;
+  entityID: string;
   walletAddress: string;
 }) {
   const sonarPurchaser = useSonarPurchase({
     saleUUID: sonarConfig.saleUUID,
-    entityUUID,
+    entityID,
     entityType,
     walletAddress,
   });

@@ -167,24 +167,24 @@ export class SonarClient {
 
     async prePurchaseCheck(args: {
         saleUUID: string;
-        entityUUID: string;
+        entityID: Hex;
         walletAddress: string;
     }): Promise<PrePurchaseCheckResponse> {
         return this.postJSON<PrePurchaseCheckResponse>("/externalapi.PrePurchaseCheck", {
             SaleUUID: args.saleUUID,
-            EntityUUID: args.entityUUID,
+            EntityID: args.entityID,
             PurchasingWalletAddress: args.walletAddress,
         });
     }
 
     async generatePurchasePermit(args: {
         saleUUID: string;
-        entityUUID: string;
+        entityID: Hex;
         walletAddress: string;
     }): Promise<GeneratePurchasePermitResponse> {
         return this.postJSON<GeneratePurchasePermitResponse>("/externalapi.GenerateSalePurchasePermit", {
             SaleUUID: args.saleUUID,
-            EntityUUID: args.entityUUID,
+            EntityID: args.entityID,
             PurchasingWalletAddress: args.walletAddress,
         });
     }
