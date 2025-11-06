@@ -1,0 +1,75 @@
+name: contracts
+
+on:
+    push:
+    workflow_dispatch:
+
+env:
+    FOUNDRY_PROFILE: ci
+
+jobs:
+    changed:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  fetch-depth: 0
+
+            - name: Get changed files in the service folder
+              id: changed-files
+              uses: step-security/changed-files@v45
+              with:
+                  since_last_remote_commit: true
+                  files: |
+                      .github/workflows/sonar-contracts.yml
+                      contracts/**
+
+            - name: List changes
+              run: |
+                  echo "Files that have changed: ${{ steps.changed-files.outputs.all_changed_files }}"
+
+            - name: Set flag
+              id: set-flag
+              if: steps.changed-files.outputs.any_changed == 'true'
+              run: echo "::set-output name=trigger::true"
+
+        outputs:
+            trigger: ${{steps.set-flag.outputs.trigger}}
+
+    check:
+        name: Foundry project
+        runs-on: ubuntu-latest
+        needs: changed
+        if: (needs.changed.outputs.trigger == 'true' || github.event_name == 'workflow_dispatch')
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: recursive
+
+            - name: Install Foundry
+              uses: foundry-rs/foundry-toolchain@v1
+              with:
+                  version: stable
+
+            - name: Show Forge version
+              run: |
+                  forge --version
+              working-directory: contracts
+
+            - name: Run Forge fmt
+              run: |
+                  forge fmt --check
+              working-directory: contracts
+              id: fmt
+
+            - name: Run Forge build
+              run: |
+                  forge build --sizes
+              working-directory: contracts
+              id: build
+
+            - name: Run Forge tests
+              run: |
+                  forge test -vvv
+              working-directory: contracts
+              id: test

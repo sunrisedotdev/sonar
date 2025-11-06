@@ -1,0 +1,31 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+allow_paths = ["../../../contracts/src"]
+
+dynamic_test_linking = true
+
+optimizer = true
+optimizer_runs = 200
+solc_version = "0.8.30"
+
+
+[fmt]
+line_length = 120
+single_line_statement_blocks = "multi"
+sort_imports = true
+
+
+[lint]
+mixed_case_exceptions = [
+    "ERC",
+    "URI",
+    "ID",
+    "UUID",
+]
+ignore = [
+  "*.t.sol"
+]
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
