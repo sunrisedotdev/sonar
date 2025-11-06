@@ -21,7 +21,7 @@ jobs:
               with:
                   since_last_remote_commit: true
                   files: |
-                      .github/workflows/sonar-contracts.yml
+                      .github/workflows/contracts.yml
                       contracts/**
 
             - name: List changes
