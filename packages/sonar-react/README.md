@@ -114,8 +114,9 @@ const ExampleEntityPanel = () => {
         </div>
     );
 };
-
 ```
+
+If you want to fetch all entities associated with the logged in user, you can use the `useSonarEntities` hook.
 
 5. Implement the purchase flow
 

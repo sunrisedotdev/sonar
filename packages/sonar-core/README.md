@@ -71,8 +71,13 @@ export async function completeOAuthFromCallback() {
 // Call APIs (after token is set)
 export async function exampleCalls() {
     const { walletAddress } = useWallet(); // User's connected wallet.
-    // List entities available to this user for the configured sale
+
+    // Read the entity for linked to the wallet for the configured sale.
+    // If the authenticated user has not yet linked the wallet on Sonar, this will return a 404.
     const { Entity } = await client.readEntity({ saleUUID, walletAddress });
+
+    // List entities available to this user for the configured sale
+    const { Entities } = await client.listAvailableEntities({ saleUUD });
 
     // Run a pre-purchase check
     const pre = await client.prePurchaseCheck({

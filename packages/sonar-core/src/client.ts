@@ -26,6 +26,10 @@ export type ReadEntityResponse = {
     Entity: EntityDetails;
 };
 
+export type ListAvailableEntitiesResponse = {
+    Entities: EntityDetails[];
+};
+
 export type ClientOptions = {
     auth?: AuthSession;
     fetch?: FetchLike;
@@ -200,6 +204,12 @@ export class SonarClient {
         return this.postJSON<ReadEntityResponse>("/externalapi.ReadEntity", {
             SaleUUID: args.saleUUID,
             WalletAddress: args.walletAddress,
+        });
+    }
+
+    async listAvailableEntities(args: { saleUUID: string }): Promise<ListAvailableEntitiesResponse> {
+        return this.postJSON<ListAvailableEntitiesResponse>("/externalapi.ListAvailableEntities", {
+            SaleUUID: args.saleUUID,
         });
     }
 }

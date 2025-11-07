@@ -3,6 +3,7 @@ import {
     AllocationResponse,
     APIError,
     GeneratePurchasePermitResponse,
+    ListAvailableEntitiesResponse,
     ReadEntityResponse,
     SonarClient,
 } from "../src/client";
@@ -272,5 +273,43 @@ describe("SonarClient", () => {
                 InvestingRegion: InvestingRegion.US,
             },
         } satisfies ReadEntityResponse);
+    });
+
+    it("sends correct payload for listAvailableEntities", async () => {
+        const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+            const url = input as URL;
+            expect(url.pathname).toBe("/externalapi.ListAvailableEntities");
+            return mockResponse({
+                status: 200,
+                json: {
+                    Entities: [
+                        {
+                            Label: "Test Entity",
+                            EntityID: "0x1234",
+                            EntityType: EntityType.USER,
+                            EntitySetupState: EntitySetupState.COMPLETE,
+                            SaleEligibility: SaleEligibility.ELIGIBLE,
+                            InvestingRegion: InvestingRegion.US,
+                        },
+                    ],
+                },
+            });
+        });
+
+        const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
+        const entities = await client.listAvailableEntities({ saleUUID: "s" });
+
+        expect(entities).toEqual({
+            Entities: [
+                {
+                    Label: "Test Entity",
+                    EntityID: "0x1234",
+                    EntityType: EntityType.USER,
+                    EntitySetupState: EntitySetupState.COMPLETE,
+                    SaleEligibility: SaleEligibility.ELIGIBLE,
+                    InvestingRegion: InvestingRegion.US,
+                },
+            ],
+        } satisfies ListAvailableEntitiesResponse);
     });
 });
