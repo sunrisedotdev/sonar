@@ -2,6 +2,8 @@
 
 This directory contains Foundry-based smart contracts for Sonar, including reference implementations and examples for token sales and auctions.
 
+## 🚨 WARNING: These contracts are untested and unaudited and should ONLY be used for reference purposes. 🚨
+
 ---
 
 ## Prerequisites
@@ -21,6 +23,7 @@ forge install
 ```
 
 This will install:
+
 - `forge-std` - Foundry's standard library for testing
 - `openzeppelin-contracts` - OpenZeppelin's secure smart contract library
 
@@ -43,9 +46,10 @@ contracts/
 
 ### EnglishAuctionSale
 
-The `EnglishAuctionSale` contract is a reference implementation of a token sale using an English-auction-style mechanism. 
+The `EnglishAuctionSale` contract is a reference implementation of a token sale using an English-auction-style mechanism.
 
 **Key Features:**
+
 - Integration with Sonar's purchase permit system
 - Multi-stage sale process (PreOpen → Auction → Closed → Cancellation → Settlement → Done)
 - Offchain auction clearing with onchain settlement
@@ -66,4 +70,3 @@ forge test
 - [Foundry Book](https://book.getfoundry.sh/) - Complete Foundry documentation
 - [Foundry GitHub](https://github.com/foundry-rs/foundry) - Source code and issue tracker
 - [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts/) - Contract library documentation
-
