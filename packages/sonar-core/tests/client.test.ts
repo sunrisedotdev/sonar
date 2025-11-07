@@ -125,7 +125,7 @@ describe("SonarClient", () => {
     it("sends correct payload for exchangeAuthorizationCode", async () => {
         const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
             const url = input as URL;
-            expect(url.pathname).toBe("/oauth.ExchangeAuthorizationCode");
+            expect(url.pathname).toBe("/oauth.ExchangeAuthorizationCodeV2");
             return mockResponse({ status: 200, json: { token: "t" } });
         });
 

@@ -159,11 +159,11 @@ export class SonarClient {
         redirectURI: string;
     }): Promise<{ token: string }> {
         return this.postJSON<{ token: string }>(
-            "/oauth.ExchangeAuthorizationCode",
+            "/oauth.ExchangeAuthorizationCodeV2",
             {
-                Code: args.code,
-                CodeVerifier: args.codeVerifier,
-                RedirectURI: args.redirectURI,
+                code: args.code,
+                code_verifier: args.codeVerifier,
+                redirect_uri: args.redirectURI,
             },
             { includeAuth: false },
         );
