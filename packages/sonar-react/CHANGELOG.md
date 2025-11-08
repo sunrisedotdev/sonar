@@ -1,5 +1,17 @@
 # @echoxyz/sonar-react
 
+## 0.8.0
+
+### Minor Changes
+
+- 5b96860: Add listAvailableEntities / useSonarEntities
+
+### Patch Changes
+
+- Updated dependencies [5b96860]
+- Updated dependencies [ef7e0f9]
+    - @echoxyz/sonar-core@0.7.0
+
 ## 0.7.0
 
 ### Minor Changes

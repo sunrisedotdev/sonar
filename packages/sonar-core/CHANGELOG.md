@@ -1,5 +1,15 @@
 # @echoxyz/sonar-core
 
+## 0.7.0
+
+### Minor Changes
+
+- 5b96860: Add listAvailableEntities / useSonarEntities
+
+### Patch Changes
+
+- ef7e0f9: Switch to new ExchangeAuthorizationCodeV2 endpoint
+
 ## 0.6.0
 
 ### Minor Changes
