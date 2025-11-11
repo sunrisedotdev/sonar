@@ -6,11 +6,10 @@ import {Vm} from "forge-std/Vm.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
+
 import {ERC1967Utils} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
-
-import {ConfigChanged} from "../src/interfaces/PlatformEvents.sol";
 
 contract BaseTest is Test {
     using EnumerableMap for EnumerableMap.Bytes32ToBytes32Map;
@@ -51,11 +50,6 @@ contract BaseTest is Test {
      */
     function missingRoleError(address account, bytes32 role) internal pure returns (bytes memory) {
         return abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, account, role);
-    }
-
-    function expectConfigChangedEvent(address emitter, string memory setterSignature, bytes memory value) internal {
-        vm.expectEmit(emitter);
-        emit ConfigChanged(bytes4(keccak256(bytes(setterSignature))), setterSignature, value);
     }
 
     function sign(uint256 pk, bytes32 hash) internal pure returns (bytes memory) {

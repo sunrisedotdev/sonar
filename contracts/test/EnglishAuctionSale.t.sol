@@ -7,16 +7,18 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {PurchasePermit} from "../src/permits/PurchasePermit.sol";
+import {PurchasePermit} from "sonar/permits/PurchasePermit.sol";
 import {
-    PurchasePermitWithAuctionData,
+    PurchasePermitWithAuctionData,  
     PurchasePermitWithAuctionDataLib
-} from "../src/permits/PurchasePermitWithAuctionData.sol";
+} from "sonar/permits/PurchasePermitWithAuctionData.sol";
 
 import {BaseTest, console} from "./BaseTest.sol";
 import {ERC20Fake, ERC20Permit} from "./doubles/ERC20Fake.sol";
 
-import {EnglishAuctionSale} from "../src/EnglishAuctionSale.sol";
+import {EnglishAuctionSale} from "sonar/EnglishAuctionSale.sol";
+import {IAuctionBidDataReader} from "sonar/interfaces/IAuctionBidData.sol";
+import {IOffchainSettlement} from "sonar/interfaces/IOffchainSettlement.sol";
 
 bytes16 constant TEST_SALE_UUID = hex"1234567890abcdef1234567890abcdef";
 bytes32 constant ERC20_PERMIT_TYPEHASH =
@@ -113,7 +115,11 @@ contract EnglishAuctionSaleTest is BaseTest {
     ) internal pure returns (PurchasePermitWithAuctionData memory) {
         return PurchasePermitWithAuctionData({
             permit: PurchasePermit({
-                entityID: entityID, saleUUID: saleUUID, wallet: wallet, expiresAt: expiresAt, payload: hex""
+                entityID: entityID,
+                saleUUID: saleUUID,
+                wallet: wallet,
+                expiresAt: expiresAt,
+                payload: hex""
             }),
             minAmount: minAmount,
             maxAmount: maxAmount,
@@ -177,8 +183,8 @@ contract EnglishAuctionSaleTest is BaseTest {
     }
 
     function doSetAllocation(address user, uint256 amount) internal {
-        EnglishAuctionSale.Allocation[] memory allocations = new EnglishAuctionSale.Allocation[](1);
-        allocations[0] = EnglishAuctionSale.Allocation({committer: user, acceptedAmount: amount});
+        IOffchainSettlement.Allocation[] memory allocations = new IOffchainSettlement.Allocation[](1);
+        allocations[0] = IOffchainSettlement.Allocation({committer: user, acceptedAmount: amount});
 
         vm.prank(settler);
         sale.setAllocations({allocations: allocations, allowOverwrite: false});
@@ -279,7 +285,9 @@ contract EnglishAuctionSaleVandalTest is EnglishAuctionSaleTest {
         sale.withdraw();
     }
 
-    function testVandalCannotSetAllocations(address vandal, EnglishAuctionSale.Allocation[] memory allocations) public {
+    function testVandalCannotSetAllocations(address vandal, IOffchainSettlement.Allocation[] memory allocations)
+        public
+    {
         vm.assume(vandal != settler);
         vm.expectRevert(missingRoleError(vandal, sale.SETTLER_ROLE()));
         vm.prank(vandal);
@@ -425,7 +433,7 @@ contract EnglishAuctionSaleStageTest is EnglishAuctionSaleTest {
 contract EnglishAuctionSaleBidTest is EnglishAuctionSaleTest {
     struct State {
         uint256 saleTokenBalance;
-        uint256 totalActiveBidAmount;
+        uint256 totalComittedAmount;
         EnglishAuctionSale.Bid userBid;
         uint256 numCommitters;
     }
@@ -433,7 +441,7 @@ contract EnglishAuctionSaleBidTest is EnglishAuctionSaleTest {
     function getState(address user) internal view returns (State memory) {
         return State({
             saleTokenBalance: paymentToken.balanceOf(address(sale)),
-            totalActiveBidAmount: sale.totalActiveBidAmount(),
+            totalComittedAmount: sale.totalComittedAmount(),
             userBid: sale.committerStateByAddress(user).currentBid,
             numCommitters: sale.numCommitters()
         });
@@ -476,7 +484,7 @@ contract EnglishAuctionSaleBidTest is EnglishAuctionSaleTest {
         State memory stateAfter = getState(user);
 
         assertEq(stateAfter.saleTokenBalance, stateBefore.saleTokenBalance + amountDelta);
-        assertEq(stateAfter.totalActiveBidAmount, stateBefore.totalActiveBidAmount + amountDelta);
+        assertEq(stateAfter.totalComittedAmount, stateBefore.totalComittedAmount + amountDelta);
         assertEq(stateAfter.userBid, bid);
         assertTrue(sale.containsCommitter(user));
         assertEq(stateAfter.numCommitters, stateBefore.numCommitters + (newCommitter ? 1 : 0));
@@ -704,9 +712,7 @@ contract EnglishAuctionSaleBidTest is EnglishAuctionSaleTest {
             price: 10,
             amount: SALE_MIN_AMOUNT - 1,
             maxPrice: 100,
-            err: abi.encodeWithSelector(
-                EnglishAuctionSale.BidBelowMinAmount.selector, SALE_MIN_AMOUNT - 1, SALE_MIN_AMOUNT
-            )
+            err: abi.encodeWithSelector(EnglishAuctionSale.BidBelowMinAmount.selector, SALE_MIN_AMOUNT - 1, SALE_MIN_AMOUNT)
         });
     }
 
@@ -924,8 +930,8 @@ contract EnglishAuctionSaleSettlementTest is EnglishAuctionSaleTest {
         State memory stateBefore = getState(committer);
         bytes16 entityID = addressToEntityID(committer);
 
-        EnglishAuctionSale.Allocation[] memory allocations = new EnglishAuctionSale.Allocation[](1);
-        allocations[0] = EnglishAuctionSale.Allocation({committer: committer, acceptedAmount: amount});
+        IOffchainSettlement.Allocation[] memory allocations = new IOffchainSettlement.Allocation[](1);
+        allocations[0] = IOffchainSettlement.Allocation({committer: committer, acceptedAmount: amount});
 
         vm.expectEmit(true, true, true, true, address(sale));
         emit EnglishAuctionSale.AllocationSet(entityID, committer, amount);
@@ -939,8 +945,8 @@ contract EnglishAuctionSaleSettlementTest is EnglishAuctionSaleTest {
     }
 
     function setAllocationFail(address committer, uint256 amount, bool allowOverwrite, bytes memory err) internal {
-        EnglishAuctionSale.Allocation[] memory allocations = new EnglishAuctionSale.Allocation[](1);
-        allocations[0] = EnglishAuctionSale.Allocation({committer: committer, acceptedAmount: amount});
+        IOffchainSettlement.Allocation[] memory allocations = new IOffchainSettlement.Allocation[](1);
+        allocations[0] = IOffchainSettlement.Allocation({committer: committer, acceptedAmount: amount});
 
         vm.expectRevert(err);
         vm.prank(settler);
@@ -1485,7 +1491,7 @@ contract EnglishAuctionSaleFuzzTest is EnglishAuctionSaleTest {
         checkInvariants(manuallySentUSDT);
         openAuction();
 
-        uint256 totalActiveBidAmountExpected = 0;
+        uint256 totalComittedAmountExpected = 0;
         for (uint256 i = 0; i < auctionBids.length; i++) {
             FuzzedAuctionBids memory bid = auctionBids[i];
             if (isDisallowedAddress(bid.wallet)) {
@@ -1507,7 +1513,7 @@ contract EnglishAuctionSaleFuzzTest is EnglishAuctionSaleTest {
             doBid({user: bid.wallet, price: bid.bid.price, amount: bid.bid.amount, maxPrice: MAX_PRICE});
 
             // update test counters
-            totalActiveBidAmountExpected += amountDelta;
+            totalComittedAmountExpected += amountDelta;
             lastBid[bid.wallet] = bid.bid;
 
             assertEq(
@@ -1518,11 +1524,11 @@ contract EnglishAuctionSaleFuzzTest is EnglishAuctionSaleTest {
 
         checkInvariants(manuallySentUSDT);
 
-        assertEq(sale.totalActiveBidAmount(), totalActiveBidAmountExpected, "total auction commitments after bids");
+        assertEq(sale.totalComittedAmount(), totalComittedAmountExpected, "total auction commitments after bids");
         assertEq(sale.totalAcceptedAmount(), 0, "total allocated paymentToken after bids");
 
         // assume we have at least one commitment so the auction can be closed
-        vm.assume(sale.totalActiveBidAmount() > 0);
+        vm.assume(sale.totalComittedAmount() > 0);
         closeAuction();
 
         openCancellation();
@@ -1624,7 +1630,7 @@ contract EnglishAuctionSaleFuzzTest is EnglishAuctionSaleTest {
         for (uint256 i = 0; i < committerStates.length; i++) {
             sumAuctionCommitments += committerStates[i].currentBid.amount;
         }
-        assertEq(sale.totalActiveBidAmount(), sumAuctionCommitments, "total auction commitments");
+        assertEq(sale.totalComittedAmount(), sumAuctionCommitments, "total auction commitments");
 
         uint256 sumRefundedAmounts = 0;
         for (uint256 i = 0; i < committerStates.length; i++) {
@@ -1647,3 +1653,261 @@ contract EnglishAuctionSaleFuzzTest is EnglishAuctionSaleTest {
     }
 }
 
+contract BidDataReaderTest is EnglishAuctionSaleTest {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    function assertEq(IAuctionBidDataReader.BidData memory a, IAuctionBidDataReader.BidData memory b) internal pure {
+        assertEq(a, b, "");
+    }
+
+    function assertEq(
+        IAuctionBidDataReader.BidData memory a,
+        IAuctionBidDataReader.BidData memory b,
+        string memory message
+    ) internal pure {
+        assertEq(a.bidID, b.bidID, string.concat(message, " bidID"));
+        assertEq(a.committer, b.committer, string.concat(message, " committer"));
+        assertEq(a.entityID, b.entityID, string.concat(message, " entityID"));
+        assertEq(a.timestamp, b.timestamp, string.concat(message, " timestamp"));
+        assertEq(a.price, b.price, string.concat(message, " price"));
+        assertEq(a.amount, b.amount, string.concat(message, " amount"));
+        assertEq(a.refunded, b.refunded, string.concat(message, " refunded"));
+        assertEq(a.extraData, b.extraData, string.concat(message, " extraData"));
+    }
+
+    function testNumBidsEmpty() public {
+        assertEq(sale.numBids(), 0, "numBids should be 0 for empty auction");
+    }
+
+    function testNumBidsSingleBid() public {
+        openAuction();
+        doBid(alice, 1000e6, 10);
+        assertEq(sale.numBids(), 1, "numBids should be 1 after single bid");
+    }
+
+    function testNumBidsMultipleBidsFromSameCommitter() public {
+        openAuction();
+        doBid(alice, 1000e6, 10);
+        doBid(alice, 2000e6, 20);
+        doBid(alice, 3000e6, 30);
+        assertEq(sale.numBids(), 1, "numBids should be 1 when same committer places multiple bids");
+    }
+
+    function testNumBidsMultipleCommitters() public {
+        openAuction();
+        doBid(alice, 1000e6, 10);
+        doBid(bob, 2000e6, 20);
+        doBid(charlie, 3000e6, 30);
+        assertEq(sale.numBids(), 3, "numBids should be 3 for three committers");
+    }
+
+    function testReadBidDataAtSingleBid() public {
+        openAuction();
+        vm.warp(1000);
+        doBid(alice, 1000e6, 10);
+
+        IAuctionBidDataReader.BidData memory bidData = sale.readBidDataAt(0);
+
+        assertEq(bidData.bidID, bytes32(uint256(uint160(alice))), "bidID should be derived from committer address");
+        assertEq(bidData.committer, alice, "committer should be alice");
+        assertEq(bidData.entityID, aliceID, "entityID should be aliceID");
+        assertEq(bidData.timestamp, uint64(1000), "timestamp should match block timestamp");
+        assertEq(bidData.price, 10, "price should be 10");
+        assertEq(bidData.amount, 1000e6, "amount should be 1000e6");
+        assertEq(bidData.refunded, false, "refunded should be false");
+        assertEq(bidData.extraData, hex"", "extraData should be empty");
+    }
+
+    function testReadBidDataAtMultipleCommitters() public {
+        openAuction();
+
+        vm.warp(1000);
+        doBid(alice, 1000e6, 10);
+
+        vm.warp(2000);
+        doBid(bob, 2000e6, 20);
+
+        vm.warp(3000);
+        doBid(charlie, 3000e6, 30);
+
+        IAuctionBidDataReader.BidData memory aliceBidData = sale.readBidDataAt(0);
+        assertEq(aliceBidData.committer, alice, "first bid should be alice");
+        assertEq(aliceBidData.price, 10, "alice price should be 10");
+        assertEq(aliceBidData.amount, 1000e6, "alice amount should be 1000e6");
+        assertEq(aliceBidData.timestamp, uint64(1000), "alice timestamp should be 1000");
+
+        IAuctionBidDataReader.BidData memory bobBidData = sale.readBidDataAt(1);
+        assertEq(bobBidData.committer, bob, "second bid should be bob");
+        assertEq(bobBidData.price, 20, "bob price should be 20");
+        assertEq(bobBidData.amount, 2000e6, "bob amount should be 2000e6");
+        assertEq(bobBidData.timestamp, uint64(2000), "bob timestamp should be 2000");
+
+        IAuctionBidDataReader.BidData memory charlieBidData = sale.readBidDataAt(2);
+        assertEq(charlieBidData.committer, charlie, "third bid should be charlie");
+        assertEq(charlieBidData.price, 30, "charlie price should be 30");
+        assertEq(charlieBidData.amount, 3000e6, "charlie amount should be 3000e6");
+        assertEq(charlieBidData.timestamp, uint64(3000), "charlie timestamp should be 3000");
+    }
+
+    function testReadBidDataAtReflectsLatestBid() public {
+        openAuction();
+
+        vm.warp(1000);
+        doBid(alice, 1000e6, 10);
+
+        vm.warp(2000);
+        doBid(alice, 2000e6, 20);
+
+        IAuctionBidDataReader.BidData memory bidData = sale.readBidDataAt(0);
+        assertEq(bidData.price, 20, "price should reflect latest bid");
+        assertEq(bidData.amount, 2000e6, "amount should reflect latest bid");
+        assertEq(bidData.timestamp, uint64(2000), "timestamp should reflect latest bid");
+    }
+
+    function testReadBidDataInEmpty() public {
+        IAuctionBidDataReader.BidData[] memory bidData = sale.readBidDataIn(0, 0);
+        assertEq(bidData.length, 0, "readBidDataIn should return empty array for empty range");
+    }
+
+    function testReadBidDataInSingleBid() public {
+        openAuction();
+        vm.warp(1000);
+        doBid(alice, 1000e6, 10);
+
+        IAuctionBidDataReader.BidData[] memory bidData = sale.readBidDataIn(0, 1);
+        assertEq(bidData.length, 1, "readBidDataIn should return 1 bid");
+        assertEq(bidData[0].committer, alice, "committer should be alice");
+        assertEq(bidData[0].price, 10, "price should be 10");
+        assertEq(bidData[0].amount, 1000e6, "amount should be 1000e6");
+    }
+
+    function testReadBidDataInMultipleBids() public {
+        openAuction();
+
+        vm.warp(1000);
+        doBid(alice, 1000e6, 10);
+        vm.warp(2000);
+        doBid(bob, 2000e6, 20);
+        vm.warp(3000);
+        doBid(charlie, 3000e6, 30);
+
+        IAuctionBidDataReader.BidData[] memory bidData = sale.readBidDataIn(0, 3);
+        assertEq(bidData.length, 3, "readBidDataIn should return 3 bids");
+
+        assertEq(bidData[0].committer, alice, "first bid should be alice");
+        assertEq(bidData[1].committer, bob, "second bid should be bob");
+        assertEq(bidData[2].committer, charlie, "third bid should be charlie");
+    }
+
+    function testReadBidDataInPagination() public {
+        openAuction();
+
+        vm.warp(1000);
+        doBid(alice, 1000e6, 10);
+        vm.warp(2000);
+        doBid(bob, 2000e6, 20);
+        vm.warp(3000);
+        doBid(charlie, 3000e6, 30);
+
+        // Read first 2 bids
+        IAuctionBidDataReader.BidData[] memory page1 = sale.readBidDataIn(0, 2);
+        assertEq(page1.length, 2, "first page should have 2 bids");
+        assertEq(page1[0].committer, alice, "first page should start with alice");
+        assertEq(page1[1].committer, bob, "first page should end with bob");
+
+        // Read last bid
+        IAuctionBidDataReader.BidData[] memory page2 = sale.readBidDataIn(2, 3);
+        assertEq(page2.length, 1, "second page should have 1 bid");
+        assertEq(page2[0].committer, charlie, "second page should be charlie");
+    }
+
+    function testReadBidDataInPartialRange() public {
+        openAuction();
+
+        vm.warp(1000);
+        doBid(alice, 1000e6, 10);
+        vm.warp(2000);
+        doBid(bob, 2000e6, 20);
+        vm.warp(3000);
+        doBid(charlie, 3000e6, 30);
+
+        IAuctionBidDataReader.BidData[] memory bidData = sale.readBidDataIn(1, 2);
+        assertEq(bidData.length, 1, "should return 1 bid");
+        assertEq(bidData[0].committer, bob, "should be bob's bid");
+    }
+
+    function testReadBidDataInReflectsRefundStatus() public {
+        openAuction();
+        doBid(alice, 1000e6, 10);
+        doBid(bob, 2000e6, 20);
+
+        closeAuction();
+        openSettlement();
+
+        doSetAllocation(alice, 500e6);
+        doSetAllocation(bob, 1000e6);
+
+        finalizeSettlement();
+
+        // Refund alice
+        vm.prank(refunder);
+        address[] memory committers = new address[](1);
+        committers[0] = alice;
+        sale.processRefunds(committers, false);
+
+        IAuctionBidDataReader.BidData[] memory bidData = sale.readBidDataIn(0, 2);
+
+        assertEq(bidData[0].committer, alice, "first should be alice");
+        assertEq(bidData[0].refunded, true, "alice should be refunded");
+        assertEq(bidData[1].committer, bob, "second should be bob");
+        assertEq(bidData[1].refunded, false, "bob should not be refunded yet");
+    }
+
+    function testBidIDIsUnique() public {
+        openAuction();
+        doBid(alice, 1000e6, 10);
+        doBid(bob, 2000e6, 20);
+        doBid(charlie, 3000e6, 30);
+
+        IAuctionBidDataReader.BidData[] memory bidData = sale.readBidDataIn(0, 3);
+
+        // bidIDs should be unique
+        assertTrue(bidData[0].bidID != bidData[1].bidID, "alice and bob bidIDs should differ");
+        assertTrue(bidData[0].bidID != bidData[2].bidID, "alice and charlie bidIDs should differ");
+        assertTrue(bidData[1].bidID != bidData[2].bidID, "bob and charlie bidIDs should differ");
+
+        // bidIDs should be derived from committer addresses
+        assertEq(bidData[0].bidID, bytes32(uint256(uint160(alice))), "alice bidID should match address");
+        assertEq(bidData[1].bidID, bytes32(uint256(uint160(bob))), "bob bidID should match address");
+        assertEq(bidData[2].bidID, bytes32(uint256(uint160(charlie))), "charlie bidID should match address");
+    }
+
+    function testBidIDRemainsConstantOnUpdate() public {
+        openAuction();
+        vm.warp(1000);
+        doBid(alice, 1000e6, 10);
+
+        IAuctionBidDataReader.BidData memory bidData1 = sale.readBidDataAt(0);
+        bytes32 originalBidID = bidData1.bidID;
+
+        vm.warp(2000);
+        doBid(alice, 2000e6, 20);
+
+        IAuctionBidDataReader.BidData memory bidData2 = sale.readBidDataAt(0);
+        assertEq(bidData2.bidID, originalBidID, "bidID should remain constant when committer updates bid");
+        assertEq(bidData2.price, 20, "price should be updated");
+        assertEq(bidData2.amount, 2000e6, "amount should be updated");
+    }
+
+    function testReadBidDataConsistencyWithNumBids() public {
+        openAuction();
+        doBid(alice, 1000e6, 10);
+        doBid(bob, 2000e6, 20);
+        doBid(charlie, 3000e6, 30);
+
+        uint256 numBids = sale.numBids();
+        IAuctionBidDataReader.BidData[] memory bidData = sale.readBidDataIn(0, numBids);
+
+        assertEq(bidData.length, numBids, "readBidDataIn should return numBids bids");
+    }
+}
