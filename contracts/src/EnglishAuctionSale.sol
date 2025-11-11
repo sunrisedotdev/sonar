@@ -1,10 +1,9 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.23;
 
 import {AccessControlEnumerable} from "@openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {
@@ -12,12 +11,15 @@ import {
     PurchasePermitWithAuctionDataLib
 } from "./permits/PurchasePermitWithAuctionData.sol";
 
+import {IAuctionBidDataReader} from "./interfaces/IAuctionBidData.sol";
+import {IOffchainSettlement} from "./interfaces/IOffchainSettlement.sol";
+
 /// @title  EnglishAuctionSale
 /// @notice Public sale contract for a token offering with an English-auction-style mechanism.
 ///
 /// @dev
 /// This contract raises funds in `paymentToken` through a competitive English auction.
-/// The contract acts as an escrow that records deposits, enforces limits, and handles refunds and withdrawals.
+/// The contract acts as an escrow that records bids, enforces limits, and handles refunds and withdrawals.
 /// Auction mechanics (clearing price determination and token allocations) are computed offchain, with final results recorded onchain during settlement.
 ///
 /// # Sale Stages
@@ -77,13 +79,12 @@ import {
 /// - partially returned to the committer, with the remainder withdrawable by the proceeds receiver
 ///
 /// @custom:security-contact security@echo.xyz
-contract EnglishAuctionSale is AccessControlEnumerable {
+contract EnglishAuctionSale is AccessControlEnumerable, IAuctionBidDataReader, IOffchainSettlement {
     using SafeERC20 for IERC20;
-    using SafeERC20 for IERC20Metadata;
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// @notice The role allowed to recover tokens from the contract.
-    /// @dev This not intended to be granted by default, but will be granted manually by the DEFAULT_ADMIN_ROLE if needed.
+    /// @dev This is not intended to be granted by default, but will be granted manually by the DEFAULT_ADMIN_ROLE if needed.
     bytes32 public constant TOKEN_RECOVERER_ROLE = keccak256("TOKEN_RECOVERER_ROLE");
 
     /// @notice The role allowed to sign purchase permits.
@@ -138,30 +139,30 @@ contract EnglishAuctionSale is AccessControlEnumerable {
     event RefundedCommitterSkipped(bytes16 indexed entityID, address indexed committer);
     event ProceedsWithdrawn(address indexed receiver, uint256 amount);
 
-    /// @notice The state of an entity in the sale.
-    /// @dev This tracks the entity's address, the amount of `PAYMENT_TOKEN` they have committed, etc.
-    /// @param addr The address of the entity.
-    /// @param entityID The entity ID of the entity.
-    /// @param acceptedAmount The amount of `PAYMENT_TOKEN` that has been accepted from the entity to purchase tokens after clearing the sale.
-    /// The accepted amount will be withdrawn as proceeds at the end of the sale.
-    /// The difference, i.e. `currentBid.amount - acceptedAmount`, will be refunded to the entity.
-    /// @param refunded Whether the entity was refunded according to the formula above.
-    /// @param cancelled Whether the entity cancelled their bid during the withdrawal stage. This is tracked mostly for audit purposes and is not used for any logic.
-    /// @param currentBid The active bid of the entity in the auction part of the sale.
-    /// @param bidTimestamp The timestamp of the last bid placed by the entity.
+    /// @notice The state of a committer in the sale.
+    /// @dev This tracks the committer's address, the amount of `PAYMENT_TOKEN` they have committed, etc.
     struct CommitterState {
+        /// The address of the committer.
         address addr;
+        /// The Sonar entity ID associated with the committer.
         bytes16 entityID;
+        /// The timestamp of the last bid placed by the committer.
         uint32 bidTimestamp;
+        /// Whether the committer cancelled their bid during the cancellation stage. This is tracked mostly for audit purposes and is not used for any logic.
         bool cancelled;
+        /// Whether the committer was refunded.
         bool refunded;
+        /// The amount of `PAYMENT_TOKEN` that has been accepted from the committer to purchase tokens after clearing the sale.
+        /// The accepted amount will be withdrawn as proceeds at the end of the sale.
+        /// The difference, i.e. `currentBid.amount - acceptedAmount`, will be refunded to the committer.
         uint256 acceptedAmount;
+        /// The active bid of the committer in the auction part of the sale.
         Bid currentBid;
     }
 
     /// @notice A bid in the auction.
-    /// @param price The willing to pay price normalized to the price tick of the English auction.
-    /// @param amount The amount of `PAYMENT_TOKEN` that the entity is willing to spend.
+    /// @param price The price the committer is willing to pay, normalized to the price tick of the English auction.
+    /// @param amount The amount of `PAYMENT_TOKEN` that the committer is willing to spend.
     struct Bid {
         uint64 price;
         uint256 amount;
@@ -177,26 +178,11 @@ contract EnglishAuctionSale is AccessControlEnumerable {
         Done
     }
 
-    /// @notice The additional payload on the purchase permit issued by Sonar.
-    /// @param forcedLockup Whether the purchased tokens for a specific entity must be locked up.
-    /// @param maxPrice The maximum price that the entity is allowed to bid at.
-    struct PurchasePermitPayload {
-        uint64 maxPrice;
-    }
-
-    /// @notice The allocation of `PAYMENT_TOKEN` to an entity.
-    /// @param committer The entity ID of the entity.
-    /// @param acceptedAmount The amount of `PAYMENT_TOKEN` that has been accepted from the entity to purchase tokens after clearing the sale.
-    struct Allocation {
-        address committer;
-        uint256 acceptedAmount;
-    }
-
     /// @notice The Sonar UUID of the sale.
     bytes16 public immutable SALE_UUID;
 
     /// @notice The token used to fund the sale.
-    IERC20Metadata public immutable PAYMENT_TOKEN;
+    IERC20 public immutable PAYMENT_TOKEN;
 
     /// @notice Whether the sale is paused.
     /// @dev This is intended to be used in emergency situations and will disable the main external functions of the contract.
@@ -212,17 +198,17 @@ contract EnglishAuctionSale is AccessControlEnumerable {
     uint64 public closeAuctionAtTimestamp;
 
     /// @notice The total amount of `PAYMENT_TOKEN` that has been committed to the auction part of the sale.
-    /// @dev This is the sum of all `CommitterState.currentBid.amount`s across all entities, tracked when bids are placed.
+    /// @dev This is the sum of all `CommitterState.currentBid.amount`s across all committers, tracked when bids are placed.
     /// Note: It is monotonically increasing and will not decrease on refunds/cancellations. Those are tracked separately by `totalRefundedAmount`.
-    uint256 public totalActiveBidAmount;
+    uint256 public totalComittedAmount;
 
-    /// @notice The total amount of `PAYMENT_TOKEN` that has been refunded to entities.
-    /// @dev This is the sum of all `CommitterState.currentBid.amount - CommitterState.acceptedAmount`s across all refunded entities.
+    /// @notice The total amount of `PAYMENT_TOKEN` that has been refunded to committers.
+    /// @dev This is the sum of all `CommitterState.currentBid.amount - CommitterState.acceptedAmount`s across all refunded committers.
     uint256 public totalRefundedAmount;
 
     /// @notice The total amount of `PAYMENT_TOKEN` that has been allocated to receive tokens.
     /// @dev This is the amount that will be withdrawn to the proceedsReceiver at the end of the sale.
-    /// @dev This is the sum of all `CommitterState.acceptedAmount`s across all entities.
+    /// @dev This is the sum of all `CommitterState.acceptedAmount`s across all committers.
     uint256 public totalAcceptedAmount;
 
     /// @notice The address that will receive the proceeds of the sale.
@@ -240,22 +226,22 @@ contract EnglishAuctionSale is AccessControlEnumerable {
     /// @dev If disabled, only addresses with the REFUNDER_ROLE can process refunds.
     bool public claimRefundEnabled;
 
-    /// @notice The set of all entities that have participated in the sale.
-    /// @dev The actual entity IDs are bytes16, but we're using a standard bytes32 set here for convenience.
-    /// Standard bytes16 <-> bytes32 casts can be used to convert between the two.
+    /// @notice The set of all committers that have participated in the sale.
     EnumerableSet.AddressSet internal _committers;
 
-    /// @notice The mapping of entity IDs to entity states.
-    /// @dev This is used to track the state of each entity.
+    /// @notice The mapping of committer addresses to committer states.
+    /// @dev This is used to track the state of each committer.
     mapping(address => CommitterState) internal _committerStateByAddress;
 
+    /// @notice The mapping of entity IDs to committer addresses.
+    /// @dev This is used to track the committer addresses for each entity.
     mapping(bytes16 => EnumerableSet.AddressSet) internal _addressesByEntityID;
 
     /// @notice The initialization parameters for the sale.
     struct Init {
         bytes16 saleUUID;
         address admin;
-        IERC20Metadata paymentToken;
+        IERC20 paymentToken;
         address purchasePermitSigner;
         address proceedsReceiver;
         address pauser;
@@ -278,7 +264,7 @@ contract EnglishAuctionSale is AccessControlEnumerable {
     }
 
     /// @notice Returns the current stage of the sale.
-    /// @dev The stage is either computed automatically if `manualStage` is set to `Automatic`,
+    /// @dev The stage is either computed automatically if `manualStage` is set to `Auction`,
     /// or just returns the `manualStage` otherwise. This allows the contract to automatically
     /// move between active sale stages, while still allowing the admin to manually override
     /// the stage if needed.
@@ -299,8 +285,8 @@ contract EnglishAuctionSale is AccessControlEnumerable {
         manualStage = Stage.Auction;
     }
 
-    /// @notice Tracks entities that committed funds to the sale (deposits and/or bids).
-    /// @dev Ensures that entities can only use a single address and addresses can only be tied to a single entityID.
+    /// @notice Tracks entities that placed bids in the sale.
+    /// @dev Ensures that each address can only be tied to a single entityID. An entity can use multiple addresses (up to `maxAddressesPerEntity`).
     function _trackEntity(bytes16 entityID, address addr) internal {
         if (entityID == bytes16(0)) {
             revert ZeroEntityID();
@@ -406,7 +392,7 @@ contract EnglishAuctionSale is AccessControlEnumerable {
 
         state.currentBid = newBid;
         state.bidTimestamp = uint32(block.timestamp);
-        totalActiveBidAmount += amountDelta;
+        totalComittedAmount += amountDelta;
         emit BidPlaced(purchasePermit.permit.entityID, msg.sender, newBid);
 
         return amountDelta;
@@ -513,8 +499,8 @@ contract EnglishAuctionSale is AccessControlEnumerable {
         emit AllocationSet(state.entityID, allocation.committer, allocation.acceptedAmount);
     }
 
-    /// @notice Moves the sale to the `Done` stage, allowing users to claim refunds and the admin to withdraw the proceeds.
-    /// @dev This is intended to be called after the settler has set allocations for all entities.
+    /// @notice Moves the sale to the `Done` stage, allowing committers to claim refunds and the admin to withdraw the proceeds.
+    /// @dev This is intended to be called after the settler has set allocations for all committers.
     function finalizeSettlement(uint256 expectedTotalAcceptedAmount)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -529,7 +515,7 @@ contract EnglishAuctionSale is AccessControlEnumerable {
 
     /// @notice Refunds committers their unallocated `PAYMENT_TOKEN`.
     /// @dev The refund amount equals their commitment minus their allocated, accepted amount.
-    /// @dev Refunds can be triggered by addresses with the REFUNDER role or by committers themselves.
+    /// @dev This function can only be called by addresses with the REFUNDER_ROLE. Committers can use `claimRefund` instead (if enabled).
     /// @param committers The addresses of the committers to refund.
     /// @param skipAlreadyRefunded Whether to skip already refunded committers. If this is false and a committer is already refunded, the transaction will revert.
     function processRefunds(address[] calldata committers, bool skipAlreadyRefunded)
@@ -597,7 +583,7 @@ contract EnglishAuctionSale is AccessControlEnumerable {
     }
 
     /// @notice Sets the manual stage of the sale.
-    /// @dev This is not intended to be used during regular operation (use `openAuction` and `openSettlement` instead),
+    /// @dev This is not intended to be used during regular operation (use `openAuction`, `openCancellation`, `openSettlement`, and `finalizeSettlement` instead),
     /// but only for emergency situations.
     function setManualStage(Stage s) external onlyRole(DEFAULT_ADMIN_ROLE) {
         manualStage = s;
@@ -665,7 +651,11 @@ contract EnglishAuctionSale is AccessControlEnumerable {
     }
 
     /// @notice Returns the states of the given committers.
-    function committerStatesByAddresses(address[] calldata committers) external view returns (CommitterState[] memory) {
+    function committerStatesByAddresses(address[] calldata committers)
+        external
+        view
+        returns (CommitterState[] memory)
+    {
         CommitterState[] memory states = new CommitterState[](committers.length);
         for (uint256 i = 0; i < committers.length; i++) {
             states[i] = committerStateByAddress(committers[i]);
@@ -695,6 +685,50 @@ contract EnglishAuctionSale is AccessControlEnumerable {
     /// @notice Returns all committer addresses associated with an entity ID.
     function addressesByEntityID(bytes16 entityID) public view returns (address[] memory) {
         return _addressesByEntityID[entityID].values();
+    }
+
+    /// @notice Returns the total number of bids (committers) in the auction
+    /// @dev Implementation of IAuctionBidDataReader.numBids().
+    /// Returns the size of the internal _committers set, which tracks all unique wallet addresses
+    /// that have placed at least one bid in the auction. This count remains constant even after
+    /// refunds are processed, as committers are never removed from the set.
+    function numBids() external view returns (uint256) {
+        return _committers.length();
+    }
+
+    /// @notice Reads the bid data for a specific committer by index
+    /// @dev Helper method that converts a CommitterState into a BidData struct.
+    /// This method is used by readBidDataIn to efficiently batch-read multiple bids.
+    /// Since this implementation only allows one bid per committer, the bidID is derived from the committer address.
+    /// @param index The 0-based index of the committer in the _committers set
+    function readBidDataAt(uint256 index) public view returns (BidData memory) {
+        CommitterState memory state = committerStateByAddress(committerAt(index));
+        return BidData({
+            bidID: bytes32(uint256(uint160(state.addr))),
+            committer: state.addr,
+            entityID: state.entityID,
+            timestamp: state.bidTimestamp,
+            price: state.currentBid.price,
+            amount: state.currentBid.amount,
+            refunded: state.refunded,
+            extraData: hex""
+        });
+    }
+
+    /// @notice Reads a range of bid data entries for backend indexing
+    /// @dev Implementation of IAuctionBidDataReader.readBidDataIn().
+    /// This method is the primary interface for the Sonar backend to retrieve all auction bids.
+    /// It iterates through the specified range of committer indices and returns their bid data.
+    /// The Sonar backend typically calls this method multiple times with different ranges to
+    /// paginate through all bids, avoiding RPC response size limitations.
+    /// @param from The starting index (inclusive, 0-based)
+    /// @param to The ending index (exclusive)
+    function readBidDataIn(uint256 from, uint256 to) public view returns (BidData[] memory) {
+        BidData[] memory bidData = new BidData[](to - from);
+        for (uint256 i = from; i < to; i++) {
+            bidData[i - from] = readBidDataAt(i);
+        }
+        return bidData;
     }
 
     /// @notice Recovers any ERC20 tokens that are sent to the contract.

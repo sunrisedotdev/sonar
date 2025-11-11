@@ -1,0 +1,12 @@
+{
+    "recommendations": [
+        // TypeScript/JavaScript
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "christian-kohler.path-intellisense",
+        "christian-kohler.npm-intellisense",
+
+        // Solidity
+        "JuanBlanco.solidity",
+    ],
+}
