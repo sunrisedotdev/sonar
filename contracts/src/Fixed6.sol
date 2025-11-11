@@ -37,7 +37,9 @@ type Fixed6 is uint256;
  * @dev Operator overloads for Fixed6 to enable natural mathematical syntax.
  * These operators work directly on the wrapped uint256 values while maintaining type safety.
  */
-using {addFixed6 as +, subFixed6 as -, ltFixed6 as <, leqFixed6 as <=, gtFixed6 as >, eqFixed6 as ==} for Fixed6 global;
+using {
+    addFixed6 as +, subFixed6 as -, ltFixed6 as <, leqFixed6 as <=, gtFixed6 as >, eqFixed6 as ==
+} for Fixed6 global;
 
 function addFixed6(Fixed6 a, Fixed6 b) pure returns (Fixed6) {
     return Fixed6.wrap(Fixed6.unwrap(a) + Fixed6.unwrap(b));
