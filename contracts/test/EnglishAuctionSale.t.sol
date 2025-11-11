@@ -9,7 +9,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 
 import {PurchasePermit} from "sonar/permits/PurchasePermit.sol";
 import {
-    PurchasePermitWithAuctionData,  
+    PurchasePermitWithAuctionData,
     PurchasePermitWithAuctionDataLib
 } from "sonar/permits/PurchasePermitWithAuctionData.sol";
 
