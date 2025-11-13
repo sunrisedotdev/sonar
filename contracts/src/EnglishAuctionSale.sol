@@ -11,7 +11,7 @@ import {
     PurchasePermitWithAuctionDataLib
 } from "./permits/PurchasePermitWithAuctionData.sol";
 
-import {IAuctionBidDataReader} from "./interfaces/IAuctionBidData.sol";
+import {IAuctionBidDataReader} from "./interfaces/IAuctionBidDataReader.sol";
 import {IOffchainSettlement} from "./interfaces/IOffchainSettlement.sol";
 
 /// @title  EnglishAuctionSale

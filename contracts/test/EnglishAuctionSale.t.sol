@@ -17,7 +17,7 @@ import {BaseTest, console} from "./BaseTest.sol";
 import {ERC20Fake, ERC20Permit} from "./doubles/ERC20Fake.sol";
 
 import {EnglishAuctionSale} from "sonar/EnglishAuctionSale.sol";
-import {IAuctionBidDataReader} from "sonar/interfaces/IAuctionBidData.sol";
+import {IAuctionBidDataReader} from "sonar/interfaces/IAuctionBidDataReader.sol";
 import {IOffchainSettlement} from "sonar/interfaces/IOffchainSettlement.sol";
 
 bytes16 constant TEST_SALE_UUID = hex"1234567890abcdef1234567890abcdef";
