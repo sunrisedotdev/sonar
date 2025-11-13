@@ -8,10 +8,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {PurchasePermit} from "sonar/permits/PurchasePermit.sol";
-import {
-    PurchasePermitWithAuctionData,
-    PurchasePermitWithAuctionDataLib
-} from "sonar/permits/PurchasePermitWithAuctionData.sol";
+import {PurchasePermitV2, PurchasePermitV2Lib} from "sonar/permits/PurchasePermitV2.sol";
 
 import {BaseTest, console} from "./BaseTest.sol";
 import {ERC20Fake, ERC20Permit} from "./doubles/ERC20Fake.sol";
@@ -89,17 +86,13 @@ contract EnglishAuctionSaleTest is BaseTest {
         vm.stopPrank();
     }
 
-    function signPurchasePermit(PurchasePermitWithAuctionData memory permit, uint256 pk)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        bytes32 digest = PurchasePermitWithAuctionDataLib.digest(permit);
+    function signPurchasePermit(PurchasePermitV2 memory permit, uint256 pk) internal pure returns (bytes memory) {
+        bytes32 digest = PurchasePermitV2Lib.digest(permit);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
         return abi.encodePacked(r, s, v);
     }
 
-    function signPurchasePermit(PurchasePermitWithAuctionData memory permit) internal view returns (bytes memory) {
+    function signPurchasePermit(PurchasePermitV2 memory permit) internal view returns (bytes memory) {
         return signPurchasePermit(permit, permitSigner.key);
     }
 
@@ -112,26 +105,24 @@ contract EnglishAuctionSaleTest is BaseTest {
         uint64 minPrice,
         uint64 maxPrice,
         uint64 expiresAt
-    ) internal pure returns (PurchasePermitWithAuctionData memory) {
-        return PurchasePermitWithAuctionData({
-            permit: PurchasePermit({
-                entityID: entityID,
-                saleUUID: saleUUID,
-                wallet: wallet,
-                expiresAt: expiresAt,
-                payload: hex""
-            }),
+    ) internal pure returns (PurchasePermitV2 memory) {
+        return PurchasePermitV2({
+            entityID: entityID,
+            saleUUID: saleUUID,
+            wallet: wallet,
+            expiresAt: expiresAt,
             minAmount: minAmount,
             maxAmount: maxAmount,
             minPrice: minPrice,
-            maxPrice: maxPrice
+            maxPrice: maxPrice,
+            payload: hex""
         });
     }
 
     function makePurchasePermit(bytes16 entityID, address wallet, uint64 maxPrice)
         internal
         view
-        returns (PurchasePermitWithAuctionData memory)
+        returns (PurchasePermitV2 memory)
     {
         return makePurchasePermit({
             entityID: entityID,
@@ -148,7 +139,7 @@ contract EnglishAuctionSaleTest is BaseTest {
     function makePurchasePermit(bytes16 entityID, address wallet, uint64 minPrice, uint64 maxPrice)
         internal
         view
-        returns (PurchasePermitWithAuctionData memory)
+        returns (PurchasePermitV2 memory)
     {
         return makePurchasePermit({
             entityID: entityID,
@@ -168,7 +159,7 @@ contract EnglishAuctionSaleTest is BaseTest {
 
     function doBid(address user, uint256 amount, uint64 price, uint64 maxPrice) internal {
         bytes16 entityID = addressToEntityID(user);
-        PurchasePermitWithAuctionData memory purchasePermit = makePurchasePermit(entityID, user, maxPrice);
+        PurchasePermitV2 memory purchasePermit = makePurchasePermit(entityID, user, maxPrice);
         bytes memory purchasePermitSignature = signPurchasePermit(purchasePermit);
 
         uint256 amountDelta = amount - sale.committerStateByAddress(user).currentBid.amount;
@@ -474,7 +465,7 @@ contract EnglishAuctionSaleBidTest is EnglishAuctionSaleTest {
         emit EnglishAuctionSale.BidPlaced(entityID, user, bid);
 
         {
-            PurchasePermitWithAuctionData memory purchasePermit = makePurchasePermit(entityID, user, minPrice, maxPrice);
+            PurchasePermitV2 memory purchasePermit = makePurchasePermit(entityID, user, minPrice, maxPrice);
             bytes memory purchasePermitSignature = signPurchasePermit(purchasePermit);
 
             vm.prank(user);
@@ -494,7 +485,7 @@ contract EnglishAuctionSaleBidTest is EnglishAuctionSaleTest {
 
     function bidFail(address user, uint64 price, uint256 amount, uint64 maxPrice, bytes memory err) internal {
         bytes16 entityID = addressToEntityID(user);
-        PurchasePermitWithAuctionData memory purchasePermit = makePurchasePermit(entityID, user, maxPrice);
+        PurchasePermitV2 memory purchasePermit = makePurchasePermit(entityID, user, maxPrice);
         bytes memory purchasePermitSignature = signPurchasePermit(purchasePermit);
 
         deal(address(paymentToken), user, amount);
@@ -744,7 +735,7 @@ contract EnglishAuctionSaleBidTest is EnglishAuctionSaleTest {
         doBid({user: alice, price: 10, amount: 1000e6});
 
         // Second address with same entityID should work
-        PurchasePermitWithAuctionData memory purchasePermit2 = makePurchasePermit(entityID, alice2, 100);
+        PurchasePermitV2 memory purchasePermit2 = makePurchasePermit(entityID, alice2, 100);
         bytes memory purchasePermitSignature2 = signPurchasePermit(purchasePermit2);
 
         deal(address(paymentToken), alice2, 1000e6);
@@ -756,7 +747,7 @@ contract EnglishAuctionSaleBidTest is EnglishAuctionSaleTest {
         sale.replaceBidWithApproval(bid2, purchasePermit2, purchasePermitSignature2);
 
         // Third address with same entityID should fail (max is 2)
-        PurchasePermitWithAuctionData memory purchasePermit3 = makePurchasePermit(entityID, alice3, 100);
+        PurchasePermitV2 memory purchasePermit3 = makePurchasePermit(entityID, alice3, 100);
         bytes memory purchasePermitSignature3 = signPurchasePermit(purchasePermit3);
 
         deal(address(paymentToken), alice3, 1000e6);

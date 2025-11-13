@@ -6,10 +6,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {
-    PurchasePermitWithAuctionData,
-    PurchasePermitWithAuctionDataLib
-} from "./permits/PurchasePermitWithAuctionData.sol";
+import {PurchasePermitV2, PurchasePermitV2Lib} from "./permits/PurchasePermitV2.sol";
 
 import {IAuctionBidDataReader} from "./interfaces/IAuctionBidDataReader.sol";
 import {IOffchainSettlement} from "./interfaces/IOffchainSettlement.sol";
@@ -327,7 +324,7 @@ contract EnglishAuctionSale is AccessControlEnumerable, IAuctionBidDataReader, I
     /// Only the difference in bid amount (if positive) is transferred from the bidder to the sale contract.
     function replaceBidWithApproval(
         Bid calldata bid,
-        PurchasePermitWithAuctionData calldata purchasePermit,
+        PurchasePermitV2 calldata purchasePermit,
         bytes calldata purchasePermitSignature
     ) external onlyStage(Stage.Auction) onlyUnpaused {
         uint256 amountDelta = _processBid(bid, purchasePermit, purchasePermitSignature);
@@ -340,7 +337,7 @@ contract EnglishAuctionSale is AccessControlEnumerable, IAuctionBidDataReader, I
     /// @dev The minimum and maximum amount of `PAYMENT_TOKEN` and the minimum and maximum price are specified on the purchase permit (`minAmount`, `maxAmount`, `minPrice`, and `maxPrice`, respectively).
     function _processBid(
         Bid calldata newBid,
-        PurchasePermitWithAuctionData calldata purchasePermit,
+        PurchasePermitV2 calldata purchasePermit,
         bytes calldata purchasePermitSignature
     ) internal returns (uint256) {
         _validatePurchasePermit(purchasePermit, purchasePermitSignature);
@@ -361,11 +358,11 @@ contract EnglishAuctionSale is AccessControlEnumerable, IAuctionBidDataReader, I
             revert BidPriceBelowMinPrice(newBid.price, purchasePermit.minPrice);
         }
 
-        CommitterState storage state = _committerStateByAddress[purchasePermit.permit.wallet];
+        CommitterState storage state = _committerStateByAddress[purchasePermit.wallet];
         // additional safety check: to avoid any bookkeeping issues, we disallow new bids for entities that have already been refunded.
         // this can theoretically happen if the auction was reopened after already refunding some entities.
         if (state.refunded) {
-            revert AlreadyRefunded(purchasePermit.permit.wallet);
+            revert AlreadyRefunded(purchasePermit.wallet);
         }
 
         Bid memory previousBid = state.currentBid;
@@ -386,14 +383,14 @@ contract EnglishAuctionSale is AccessControlEnumerable, IAuctionBidDataReader, I
             revert BidExceedsMaxAmount(newBid.amount, purchasePermit.maxAmount);
         }
 
-        _trackEntity(purchasePermit.permit.entityID, msg.sender);
+        _trackEntity(purchasePermit.entityID, msg.sender);
 
         uint256 amountDelta = newBid.amount - previousBid.amount;
 
         state.currentBid = newBid;
         state.bidTimestamp = uint32(block.timestamp);
         totalComittedAmount += amountDelta;
-        emit BidPlaced(purchasePermit.permit.entityID, msg.sender, newBid);
+        emit BidPlaced(purchasePermit.entityID, msg.sender, newBid);
 
         return amountDelta;
     }
@@ -401,23 +398,20 @@ contract EnglishAuctionSale is AccessControlEnumerable, IAuctionBidDataReader, I
     /// @notice Validates a purchase permit.
     /// @dev This ensures that the permit was issued for the right sale (preventing the reuse of the same permit across sales),
     /// is not expired, and is signed by the purchase permit signer.
-    function _validatePurchasePermit(PurchasePermitWithAuctionData memory permit, bytes calldata signature)
-        internal
-        view
-    {
-        if (permit.permit.saleUUID != SALE_UUID) {
-            revert InvalidSaleUUID(permit.permit.saleUUID, SALE_UUID);
+    function _validatePurchasePermit(PurchasePermitV2 memory permit, bytes calldata signature) internal view {
+        if (permit.saleUUID != SALE_UUID) {
+            revert InvalidSaleUUID(permit.saleUUID, SALE_UUID);
         }
 
-        if (permit.permit.expiresAt <= block.timestamp) {
+        if (permit.expiresAt <= block.timestamp) {
             revert PurchasePermitExpired();
         }
 
-        if (permit.permit.wallet != msg.sender) {
-            revert InvalidSender(msg.sender, permit.permit.wallet);
+        if (permit.wallet != msg.sender) {
+            revert InvalidSender(msg.sender, permit.wallet);
         }
 
-        address recoveredSigner = PurchasePermitWithAuctionDataLib.recoverSigner(permit, signature);
+        address recoveredSigner = PurchasePermitV2Lib.recoverSigner(permit, signature);
         if (!hasRole(PURCHASE_PERMIT_SIGNER_ROLE, recoveredSigner)) {
             revert UnauthorizedSigner(recoveredSigner);
         }
