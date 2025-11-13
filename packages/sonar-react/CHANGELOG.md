@@ -1,5 +1,16 @@
 # @echoxyz/sonar-react
 
+## 0.9.0
+
+### Minor Changes
+
+- f1c6ddd: Added refresh token endpoint. Aligned to new response type shapes.
+
+### Patch Changes
+
+- Updated dependencies [f1c6ddd]
+    - @echoxyz/sonar-core@0.8.0
+
 ## 0.8.0
 
 ### Minor Changes

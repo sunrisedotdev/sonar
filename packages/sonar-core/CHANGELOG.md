@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.8.0
+
+### Minor Changes
+
+- f1c6ddd: Added refresh token endpoint. Aligned to new response type shapes.
+
 ## 0.7.0
 
 ### Minor Changes
