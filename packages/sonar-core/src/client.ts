@@ -30,6 +30,13 @@ export type ListAvailableEntitiesResponse = {
     Entities: EntityDetails[];
 };
 
+export type TokenResponse = {
+    access_token: string;
+    refresh_token: string;
+    token_type: string;
+    expires_in: number;
+};
+
 export type ClientOptions = {
     auth?: AuthSession;
     fetch?: FetchLike;
@@ -157,8 +164,8 @@ export class SonarClient {
         code: string;
         codeVerifier: string;
         redirectURI: string;
-    }): Promise<{ token: string }> {
-        return this.postJSON<{ token: string }>(
+    }): Promise<TokenResponse> {
+        return this.postJSON<TokenResponse>(
             "/oauth.ExchangeAuthorizationCodeV2",
             {
                 code: args.code,
@@ -167,6 +174,12 @@ export class SonarClient {
             },
             { includeAuth: false },
         );
+    }
+
+    async refreshToken(args: { refreshToken: string }): Promise<TokenResponse> {
+        return this.postJSON<TokenResponse>("/oauth.RefreshAccessToken", {
+            refresh_token: args.refreshToken,
+        });
     }
 
     async prePurchaseCheck(args: {

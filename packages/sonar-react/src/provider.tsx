@@ -76,13 +76,13 @@ export function SonarProvider({ children, config }: SonarProviderProps) {
                 throw new Error("Invalid OAuth state or missing verifier");
             }
 
-            const { token } = await client.exchangeAuthorizationCode({
+            const { access_token } = await client.exchangeAuthorizationCode({
                 code,
                 codeVerifier,
                 redirectURI: config.redirectURI,
             });
 
-            client.setToken(token);
+            client.setToken(access_token);
             window.sessionStorage.removeItem("sonar:oauth:state");
             window.sessionStorage.removeItem("sonar:oauth:verifier");
         },
