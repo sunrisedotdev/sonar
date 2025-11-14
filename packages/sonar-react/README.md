@@ -175,7 +175,7 @@ function PurchaseButton({
     const response = await generatePurchasePermit();
     const r = response as unknown as {
       Signature: string;
-      PermitJSON: AllocationPermit;
+      PermitJSON: BasicPermitV2;
     };
     if (r.Signature && r.PermitJSON) {
       console.log(permit.Signature, permit.Permit);
