@@ -21,6 +21,7 @@ export enum SaleEligibility {
     UNKNOWN_INCOMPLETE_SETUP = "unknown-incomplete-setup",
 }
 
+// Deprecated in favor of BasicPermitV2
 export type BasicPermit = {
     EntityID: Hex;
     SaleUUID: Hex;
@@ -29,6 +30,7 @@ export type BasicPermit = {
     Payload: Hex;
 };
 
+// Deprecated in favor of AllocationPermitV2
 export type AllocationPermit = {
     Permit: BasicPermit;
     ReservedAmount: string;
@@ -36,16 +38,31 @@ export type AllocationPermit = {
     MinAmount: string;
 };
 
+export type BasicPermitV2 = {
+    EntityID: Hex;
+    SaleUUID: Hex;
+    Wallet: Hex;
+    ExpiresAt: number;
+    MinAmount: string;
+    MaxAmount: string;
+    MinPrice: number;
+    MaxPrice: number;
+    Payload: Hex;
+};
+
 export enum PurchasePermitType {
     BASIC = "basic",
+    BASIC_V2 = "basic-v2",
     ALLOCATION = "allocation",
 }
 
 export type PurchasePermit<T extends PurchasePermitType> = T extends PurchasePermitType.BASIC
     ? BasicPermit
-    : T extends PurchasePermitType.ALLOCATION
-      ? AllocationPermit
-      : never;
+    : T extends PurchasePermitType.BASIC_V2
+      ? BasicPermitV2
+      : T extends PurchasePermitType.ALLOCATION
+        ? AllocationPermit
+        : never;
 
 export enum PrePurchaseFailureReason {
     UNKNOWN = "unknown",

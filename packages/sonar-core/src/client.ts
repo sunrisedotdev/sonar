@@ -1,6 +1,6 @@
 import { AuthSession } from "./auth";
 import { createWebStorage } from "./storage";
-import type { AllocationPermit, BasicPermit, EntityDetails, Hex } from "./types";
+import type { AllocationPermit, BasicPermit, BasicPermitV2, EntityDetails, Hex } from "./types";
 
 export type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -12,7 +12,7 @@ export type PrePurchaseCheckResponse = {
 
 export type GeneratePurchasePermitResponse = {
     // TODO: Add 'type' field to the permit
-    PermitJSON: BasicPermit | AllocationPermit;
+    PermitJSON: BasicPermit | BasicPermitV2 | AllocationPermit;
     Signature: Hex;
 };
 
