@@ -1,5 +1,16 @@
 # @echoxyz/sonar-react
 
+## 0.10.0
+
+### Minor Changes
+
+- cbf7964: Support new V2 permit
+
+### Patch Changes
+
+- Updated dependencies [cbf7964]
+    - @echoxyz/sonar-core@0.9.0
+
 ## 0.9.0
 
 ### Minor Changes
