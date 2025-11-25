@@ -82,7 +82,8 @@ export enum InvestingRegion {
 
 export type EntityDetails = {
     Label: string;
-    EntityID: Hex;
+    EntityID: string;
+    SaleSpecificEntityID: Hex;
     EntityType: EntityType;
     EntitySetupState: EntitySetupState;
     SaleEligibility: SaleEligibility;
