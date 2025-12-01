@@ -1,5 +1,15 @@
 # @echoxyz/sonar-core
 
+## 0.10.0
+
+### Minor Changes
+
+- d42882b: Changed entityID parameter names
+
+### Patch Changes
+
+- d3dce74: Change EntityID type to a string and add SaleSpecificEntityID
+
 ## 0.9.0
 
 ### Minor Changes

@@ -1,5 +1,17 @@
 # @echoxyz/sonar-react
 
+## 0.11.0
+
+### Minor Changes
+
+- d42882b: Changed entityID parameter names
+
+### Patch Changes
+
+- Updated dependencies [d3dce74]
+- Updated dependencies [d42882b]
+    - @echoxyz/sonar-core@0.10.0
+
 ## 0.10.0
 
 ### Minor Changes
