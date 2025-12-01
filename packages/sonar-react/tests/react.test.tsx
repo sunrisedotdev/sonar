@@ -15,6 +15,7 @@ import {
     PrePurchaseCheckResponse,
     GeneratePurchasePermitResponse,
     Hex,
+    EntityID,
 } from "@echoxyz/sonar-core";
 
 type TestHelpers = {
@@ -254,7 +255,7 @@ function PurchaseStateProbe({
     walletAddress,
 }: {
     saleUUID: string;
-    entityID: Hex;
+    entityID: EntityID;
     walletAddress: string;
 }) {
     const value = useSonarPurchase({ saleUUID, entityID, walletAddress });
@@ -279,7 +280,8 @@ function PurchaseStateProbe({
 describe("useSonarEntity", () => {
     const mockEntity: EntityDetails = {
         Label: "Test Entity",
-        EntityID: "0x1234567890abcdef",
+        EntityID: "asdfasdf",
+        SaleSpecificEntityID: "0x1234567890abcdef",
         EntityType: EntityType.USER,
         EntitySetupState: EntitySetupState.COMPLETE,
         SaleEligibility: SaleEligibility.ELIGIBLE,
@@ -495,7 +497,8 @@ describe("useSonarEntities", () => {
     const mockEntities: EntityDetails[] = [
         {
             Label: "Test Entity",
-            EntityID: "0x1234567890abcdef",
+            EntityID: "asdgasd",
+            SaleSpecificEntityID: "0x1234567890abcdef",
             EntityType: EntityType.USER,
             EntitySetupState: EntitySetupState.COMPLETE,
             SaleEligibility: SaleEligibility.ELIGIBLE,
@@ -625,12 +628,13 @@ describe("useSonarPurchase", () => {
         LivenessCheckURL: "https://example.com/liveness",
     };
 
-    const mockEntityID = "0x1234567890abcdef";
+    const mockEntityID = "asdf";
+    const mockSaleSpecificEntityID = "0x1234567890abcdef";
     const mockWalletAddress = "0x1234567890abcdef1234567890abcdef12345678";
 
     const mockGeneratePurchasePermitResponse: GeneratePurchasePermitResponse = {
         PermitJSON: {
-            EntityID: mockEntityID,
+            EntityID: mockSaleSpecificEntityID,
             SaleUUID: "0xsale",
             Wallet: mockWalletAddress,
             ExpiresAt: 0,

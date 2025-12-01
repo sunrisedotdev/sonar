@@ -1,6 +1,7 @@
 import {
     APIError,
     EntityDetails,
+    EntityID,
     GeneratePurchasePermitResponse,
     Hex,
     PrePurchaseFailureReason,
@@ -234,7 +235,7 @@ export type UseSonarPurchaseResult =
 
 export function useSonarPurchase(args: {
     saleUUID: string;
-    entityID: Hex;
+    entityID: EntityID;
     walletAddress: string;
 }): UseSonarPurchaseResult {
     const saleUUID = args.saleUUID;

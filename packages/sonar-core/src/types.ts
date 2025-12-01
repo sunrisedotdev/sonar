@@ -1,5 +1,7 @@
 export type Hex = `0x${string}`;
 
+export type EntityID = string;
+
 export enum EntityType {
     USER = "user",
     ORGANIZATION = "organization",
@@ -82,7 +84,7 @@ export enum InvestingRegion {
 
 export type EntityDetails = {
     Label: string;
-    EntityID: string;
+    EntityID: EntityID;
     SaleSpecificEntityID: Hex;
     EntityType: EntityType;
     EntitySetupState: EntitySetupState;
