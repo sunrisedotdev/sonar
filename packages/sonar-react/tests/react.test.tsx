@@ -1,21 +1,21 @@
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import React, { useEffect } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Mock } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SonarProvider } from "../src/provider";
-import { useSonarAuth, useSonarEntities, useSonarEntity, useSonarPurchase } from "../src/hooks";
 import {
     APIError,
     EntityDetails,
-    EntityType,
+    EntityID,
     EntitySetupState,
-    SaleEligibility,
+    EntityType,
+    GeneratePurchasePermitResponse,
     InvestingRegion,
     PrePurchaseCheckResponse,
-    GeneratePurchasePermitResponse,
-    Hex,
+    SaleEligibility,
 } from "@echoxyz/sonar-core";
+import { useSonarAuth, useSonarEntities, useSonarEntity, useSonarPurchase } from "../src/hooks";
+import { SonarProvider } from "../src/provider";
 
 type TestHelpers = {
     emitToken: (token?: string) => void;
@@ -254,7 +254,7 @@ function PurchaseStateProbe({
     walletAddress,
 }: {
     saleUUID: string;
-    entityID: Hex;
+    entityID: EntityID;
     walletAddress: string;
 }) {
     const value = useSonarPurchase({ saleUUID, entityID, walletAddress });
@@ -279,7 +279,8 @@ function PurchaseStateProbe({
 describe("useSonarEntity", () => {
     const mockEntity: EntityDetails = {
         Label: "Test Entity",
-        EntityID: "0x1234567890abcdef",
+        EntityID: "asdfasdf",
+        SaleSpecificEntityID: "0x1234567890abcdef",
         EntityType: EntityType.USER,
         EntitySetupState: EntitySetupState.COMPLETE,
         SaleEligibility: SaleEligibility.ELIGIBLE,
@@ -495,7 +496,8 @@ describe("useSonarEntities", () => {
     const mockEntities: EntityDetails[] = [
         {
             Label: "Test Entity",
-            EntityID: "0x1234567890abcdef",
+            EntityID: "asdgasd",
+            SaleSpecificEntityID: "0x1234567890abcdef",
             EntityType: EntityType.USER,
             EntitySetupState: EntitySetupState.COMPLETE,
             SaleEligibility: SaleEligibility.ELIGIBLE,
@@ -625,12 +627,13 @@ describe("useSonarPurchase", () => {
         LivenessCheckURL: "https://example.com/liveness",
     };
 
-    const mockEntityID = "0x1234567890abcdef";
+    const mockEntityID = "asdf";
+    const mockSaleSpecificEntityID = "0x1234567890abcdef";
     const mockWalletAddress = "0x1234567890abcdef1234567890abcdef12345678";
 
     const mockGeneratePurchasePermitResponse: GeneratePurchasePermitResponse = {
         PermitJSON: {
-            EntityID: mockEntityID,
+            EntityID: mockSaleSpecificEntityID,
             SaleUUID: "0xsale",
             Wallet: mockWalletAddress,
             ExpiresAt: 0,

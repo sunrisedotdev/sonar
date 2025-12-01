@@ -9,7 +9,7 @@ import {
 } from "../src/client";
 import { AuthSession } from "../src/auth";
 import { createMemoryStorage } from "../src/storage";
-import { EntityType, EntitySetupState, SaleEligibility, InvestingRegion } from "../src/types";
+import { EntityType, EntitySetupState, SaleEligibility, InvestingRegion, EntityDetails } from "../src/types";
 
 type MockResponseInit = {
     status: number;
@@ -256,7 +256,8 @@ describe("SonarClient", () => {
                 json: {
                     Entity: {
                         Label: "Test Entity",
-                        EntityID: "0x1234",
+                        EntityID: "abcde",
+                        SaleSpecificEntityID: "0x1234",
                         EntityType: EntityType.USER,
                         EntitySetupState: EntitySetupState.COMPLETE,
                         SaleEligibility: SaleEligibility.ELIGIBLE,
@@ -272,7 +273,8 @@ describe("SonarClient", () => {
         expect(entity).toEqual({
             Entity: {
                 Label: "Test Entity",
-                EntityID: "0x1234",
+                EntityID: "abcde",
+                SaleSpecificEntityID: "0x1234",
                 EntityType: EntityType.USER,
                 EntitySetupState: EntitySetupState.COMPLETE,
                 SaleEligibility: SaleEligibility.ELIGIBLE,
@@ -291,8 +293,9 @@ describe("SonarClient", () => {
                     Entities: [
                         {
                             Label: "Test Entity",
-                            EntityID: "0x1234",
+                            EntityID: "abcde",
                             EntityType: EntityType.USER,
+                            SaleSpecificEntityID: "0x1234",
                             EntitySetupState: EntitySetupState.COMPLETE,
                             SaleEligibility: SaleEligibility.ELIGIBLE,
                             InvestingRegion: InvestingRegion.US,
@@ -309,7 +312,8 @@ describe("SonarClient", () => {
             Entities: [
                 {
                     Label: "Test Entity",
-                    EntityID: "0x1234",
+                    EntityID: "abcde",
+                    SaleSpecificEntityID: "0x1234",
                     EntityType: EntityType.USER,
                     EntitySetupState: EntitySetupState.COMPLETE,
                     SaleEligibility: SaleEligibility.ELIGIBLE,
@@ -317,5 +321,36 @@ describe("SonarClient", () => {
                 },
             ],
         } satisfies ListAvailableEntitiesResponse);
+    });
+
+    it("client method arguments are compatible with EntityDetails types", async () => {
+        const fetchSpy = vi.fn(async () => {
+            return mockResponse({
+                status: 200,
+                json: {},
+            });
+        });
+
+        const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
+        const details: EntityDetails = {
+            Label: "Test Entity",
+            EntityID: "abcde",
+            SaleSpecificEntityID: "0x1234",
+            EntityType: EntityType.USER,
+            EntitySetupState: EntitySetupState.COMPLETE,
+            SaleEligibility: SaleEligibility.ELIGIBLE,
+            InvestingRegion: InvestingRegion.US,
+        };
+
+        await client.prePurchaseCheck({
+            saleUUID: "s",
+            entityID: details.EntityID,
+            walletAddress: "w",
+        });
+        await client.generatePurchasePermit({
+            saleUUID: "s",
+            entityID: details.EntityID,
+            walletAddress: "w",
+        });
     });
 });

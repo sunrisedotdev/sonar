@@ -1,13 +1,13 @@
 import {
     APIError,
     EntityDetails,
+    EntityID,
     GeneratePurchasePermitResponse,
-    Hex,
     PrePurchaseFailureReason,
     SonarClient,
 } from "@echoxyz/sonar-core";
 import { useCallback, useContext, useEffect, useState } from "react";
-import { AuthContext, ClientContext, AuthContextValue } from "./provider";
+import { AuthContext, AuthContextValue, ClientContext } from "./provider";
 
 export function useSonarAuth(): AuthContextValue {
     const ctx = useContext(AuthContext);
@@ -234,7 +234,7 @@ export type UseSonarPurchaseResult =
 
 export function useSonarPurchase(args: {
     saleUUID: string;
-    entityID: Hex;
+    entityID: EntityID;
     walletAddress: string;
 }): UseSonarPurchaseResult {
     const saleUUID = args.saleUUID;
