@@ -1,22 +1,21 @@
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import React, { useEffect } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Mock } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SonarProvider } from "../src/provider";
-import { useSonarAuth, useSonarEntities, useSonarEntity, useSonarPurchase } from "../src/hooks";
 import {
     APIError,
     EntityDetails,
-    EntityType,
+    EntityID,
     EntitySetupState,
-    SaleEligibility,
+    EntityType,
+    GeneratePurchasePermitResponse,
     InvestingRegion,
     PrePurchaseCheckResponse,
-    GeneratePurchasePermitResponse,
-    Hex,
-    EntityID,
+    SaleEligibility,
 } from "@echoxyz/sonar-core";
+import { useSonarAuth, useSonarEntities, useSonarEntity, useSonarPurchase } from "../src/hooks";
+import { SonarProvider } from "../src/provider";
 
 type TestHelpers = {
     emitToken: (token?: string) => void;

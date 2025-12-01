@@ -323,10 +323,8 @@ describe("SonarClient", () => {
         } satisfies ListAvailableEntitiesResponse);
     });
 
-
     it("client method arguments are compatible with EntityDetails types", async () => {
-        const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
-            const url = input as URL;
+        const fetchSpy = vi.fn(async () => {
             return mockResponse({
                 status: 200,
                 json: {},
@@ -344,7 +342,15 @@ describe("SonarClient", () => {
             InvestingRegion: InvestingRegion.US,
         };
 
-        const prePurchaseCheck = await client.prePurchaseCheck({ saleUUID: "s", entityID: details.EntityID, walletAddress: "w" });
-        const generatePurchasePermit = await client.generatePurchasePermit({ saleUUID: "s", entityID: details.EntityID, walletAddress: "w" });
-    })
+        await client.prePurchaseCheck({
+            saleUUID: "s",
+            entityID: details.EntityID,
+            walletAddress: "w",
+        });
+        await client.generatePurchasePermit({
+            saleUUID: "s",
+            entityID: details.EntityID,
+            walletAddress: "w",
+        });
+    });
 });
