@@ -18,7 +18,7 @@ interface IAuctionBidDataReader {
         address committer;
         /// The Sonar entity identifier (either a legal entity or individual) associated with this committer.
         /// @dev Entities may be associated with multiple committer addresses.
-        bytes16 entityID;
+        bytes16 saleSpecificEntityID;
         /// The block timestamp when the bid was placed
         uint64 timestamp;
         /// The bid price in the auction's price tick units

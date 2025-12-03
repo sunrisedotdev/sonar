@@ -383,14 +383,14 @@ contract EnglishAuctionSale is AccessControlEnumerable, IAuctionBidDataReader, I
             revert BidExceedsMaxAmount(newBid.amount, purchasePermit.maxAmount);
         }
 
-        _trackEntity(purchasePermit.entityID, msg.sender);
+        _trackEntity(purchasePermit.saleSpecificEntityID, msg.sender);
 
         uint256 amountDelta = newBid.amount - previousBid.amount;
 
         state.currentBid = newBid;
         state.bidTimestamp = uint32(block.timestamp);
         totalComittedAmount += amountDelta;
-        emit BidPlaced(purchasePermit.entityID, msg.sender, newBid);
+        emit BidPlaced(purchasePermit.saleSpecificEntityID, msg.sender, newBid);
 
         return amountDelta;
     }
@@ -700,7 +700,7 @@ contract EnglishAuctionSale is AccessControlEnumerable, IAuctionBidDataReader, I
         return BidData({
             bidID: bytes32(uint256(uint160(state.addr))),
             committer: state.addr,
-            entityID: state.entityID,
+            saleSpecificEntityID: state.entityID,
             timestamp: state.bidTimestamp,
             price: state.currentBid.price,
             amount: state.currentBid.amount,
