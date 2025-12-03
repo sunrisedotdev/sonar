@@ -12,7 +12,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 /// For sales with a fixed price, the minimum and maximum prices will be set to the same value.
 /// These constraints must be enforced by the sale contract.
 struct PurchasePermitV2 {
-    bytes16 entityID;
+    bytes16 saleSpecificEntityID;
     bytes16 saleUUID;
     address wallet;
     uint64 expiresAt;

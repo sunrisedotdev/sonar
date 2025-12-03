@@ -41,7 +41,7 @@ export type AllocationPermit = {
 };
 
 export type BasicPermitV2 = {
-    EntityID: Hex;
+    SaleSpecificEntityID: Hex;
     SaleUUID: Hex;
     Wallet: Hex;
     ExpiresAt: number;

@@ -107,7 +107,7 @@ contract EnglishAuctionSaleTest is BaseTest {
         uint64 expiresAt
     ) internal pure returns (PurchasePermitV2 memory) {
         return PurchasePermitV2({
-            entityID: entityID,
+            saleSpecificEntityID: entityID,
             saleUUID: saleUUID,
             wallet: wallet,
             expiresAt: expiresAt,
@@ -1658,7 +1658,7 @@ contract BidDataReaderTest is EnglishAuctionSaleTest {
     ) internal pure {
         assertEq(a.bidID, b.bidID, string.concat(message, " bidID"));
         assertEq(a.committer, b.committer, string.concat(message, " committer"));
-        assertEq(a.entityID, b.entityID, string.concat(message, " entityID"));
+        assertEq(a.saleSpecificEntityID, b.saleSpecificEntityID, string.concat(message, " saleSpecificEntityID"));
         assertEq(a.timestamp, b.timestamp, string.concat(message, " timestamp"));
         assertEq(a.price, b.price, string.concat(message, " price"));
         assertEq(a.amount, b.amount, string.concat(message, " amount"));
@@ -1701,7 +1701,7 @@ contract BidDataReaderTest is EnglishAuctionSaleTest {
 
         assertEq(bidData.bidID, bytes32(uint256(uint160(alice))), "bidID should be derived from committer address");
         assertEq(bidData.committer, alice, "committer should be alice");
-        assertEq(bidData.entityID, aliceID, "entityID should be aliceID");
+        assertEq(bidData.saleSpecificEntityID, aliceID, "saleSpecificEntityID should be aliceID");
         assertEq(bidData.timestamp, uint64(1000), "timestamp should match block timestamp");
         assertEq(bidData.price, 10, "price should be 10");
         assertEq(bidData.amount, 1000e6, "amount should be 1000e6");

@@ -60,14 +60,14 @@ contract ExampleSale is AccessControlEnumerable {
             revert AmountExceedsMaximum(newTotalAmount, purchasePermit.maxAmount);
         }
 
-        _trackEntity(purchasePermit.entityID, msg.sender);
+        _trackEntity(purchasePermit.saleSpecificEntityID, msg.sender);
 
         // Update the wallet's total amount purchased.
         // Note: This example tracks amounts only by the investing wallet.
         // One might also want to track/limit totals by entity ID.
         amountByAddress[msg.sender] = newTotalAmount;
 
-        emit Purchased(msg.sender, purchasePermit.entityID, amount, newTotalAmount);
+        emit Purchased(msg.sender, purchasePermit.saleSpecificEntityID, amount, newTotalAmount);
 
         // Note: If the purchaser was transferring tokens as part of the purchase, you would do that here.
     }
