@@ -1,5 +1,16 @@
 # @echoxyz/sonar-react
 
+## 0.12.0
+
+### Minor Changes
+
+- cf2914d: Updated entityID name on permit
+
+### Patch Changes
+
+- Updated dependencies [cf2914d]
+    - @echoxyz/sonar-core@0.11.0
+
 ## 0.11.0
 
 ### Minor Changes

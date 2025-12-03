@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.11.0
+
+### Minor Changes
+
+- cf2914d: Updated entityID name on permit
+
 ## 0.10.0
 
 ### Minor Changes
