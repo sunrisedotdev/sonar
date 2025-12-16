@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.12.0
+
+### Minor Changes
+
+- cc7380c: Sync EntitySetupState and SaleEligibility with the API
+
 ## 0.11.0
 
 ### Minor Changes
