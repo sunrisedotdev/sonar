@@ -28,11 +28,11 @@ Whenever you make a change that should result in a new release:
 pnpm changeset
 ```
 
-- Select which package(s) changed (`sonar`, `sonar-react`, or both).
+- Select which package(s) changed (`sonar-core`, `sonar-react`, or both).
 - Choose the bump type:
-  - `patch` – bug fix, backwards compatible
-  - `minor` – new feature, backwards compatible
-  - `major` – breaking change
+    - `patch` – bug fix, backwards compatible
+    - `minor` – new feature, backwards compatible
+    - `major` – breaking change
 
 - A markdown file will be created in `.changeset/` describing the change.
 
@@ -40,60 +40,40 @@ Commit this file along with your code.
 
 ---
 
-### 2. Versioning
+### 2. Prepare a Release
 
-When you’re ready to cut a release (usually after merging PRs with changesets):
+When you’re ready to cut a release (usually after merging PRs with changesets), run the prepare script from the `main` branch:
 
 ```bash
-pnpm version-packages
+pnpm prepare-release
 ```
 
 This will:
 
-- Bump versions of changed packages.
-- Update `CHANGELOG.md` files.
-- Update inter-package dependencies (`workspace:*`) to match new versions.
+- Pull the latest changes from `main`.
+- Run `pnpm changeset version` to bump versions and update changelogs.
+- Create a release branch (e.g., `release/20251216-143052`).
+- Commit and push the changes.
 
-Commit these changes:
+Then create a PR to merge the release branch into `main`:
 
 ```bash
-git add .
-git commit -m "chore: version packages"
+gh pr create --title 'chore: release' --body 'Release packages'
 ```
 
 ---
 
-### 3. Publishing
+### 3. Publishing (automated)
 
-To publish to npm:
+When the release PR is merged, the GitHub Actions workflow (`.github/workflows/release.yml`) automatically:
 
-```bash
-pnpm release
-```
-
-This runs `changeset publish`, which:
-
-- Publishes new versions of changed packages to npm.
-- Skips unchanged packages.
-
----
-
-### 4. CI/CD Auto-Publishing
-
-We also have a GitHub Actions workflow (`.github/workflows/release.yml`) that publishes automatically:
-
-- On every push to `main`, if there are unpublished changesets, the workflow will version & publish.
-- Uses the `NPM_TOKEN` secret for authentication.
-
-This means:
-
-- Engineers only need to run `pnpm changeset` in their PRs.
-- Publishing is handled by CI after merge.
+- Builds and tests the packages.
+- Publishes new versions to npm using `changeset publish`.
 
 ---
 
 ## Summary
 
 - Use **`pnpm changeset`** in your PR to record what changed.
-- CI/CD takes care of versioning & publishing when the PR merges.
-- No manual npm publish needed.
+- Run **`pnpm prepare-release`** to prepare a release PR.
+- Merging the release PR triggers automatic publishing to npm.
