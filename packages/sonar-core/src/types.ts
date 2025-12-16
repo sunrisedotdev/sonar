@@ -14,13 +14,14 @@ export enum EntitySetupState {
     IN_REVIEW = "in-review",
     FAILURE = "failure",
     FAILURE_FINAL = "failure-final",
+    TECHNICAL_ISSUE = "technical-issue",
     COMPLETE = "complete",
 }
 
 export enum SaleEligibility {
     ELIGIBLE = "eligible",
     NOT_ELIGIBLE = "not-eligible",
-    UNKNOWN_INCOMPLETE_SETUP = "unknown-incomplete-setup",
+    UNKNOWN_SETUP_INCOMPLETE = "unknown-setup-incomplete",
 }
 
 // Deprecated in favor of BasicPermitV2
