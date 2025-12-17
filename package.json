@@ -6,7 +6,8 @@
         "lint": "eslint .",
         "changeset": "changeset",
         "version-packages": "changeset version",
-        "prepare-release": "./scripts/prepare-release.sh"
+        "prepare-release": "./scripts/prepare-release.sh",
+        "gen-abis": "./scripts/gen-abis.sh"
     },
     "devDependencies": {
         "@changesets/cli": "^2.29.7",

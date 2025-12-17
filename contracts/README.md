@@ -57,6 +57,20 @@ The `EnglishAuctionSale` contract is a reference implementation of a token sale 
 
 ---
 
+## Scripts
+
+This repo includes some node.js scripts in the `scripts` directory for conveniently interacting with deployed contracts.
+
+### bid-data-csv
+
+Fetches all bid data from a contract in CSV format.
+
+```
+pnpm bid-data-csv --sale-address <contract-address> --rpc-url <url>
+```
+
+---
+
 ## Testing
 
 ### Run All Tests
