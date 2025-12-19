@@ -1,5 +1,5 @@
 import { Command, InvalidArgumentError } from "commander";
-import { type Config, listCommitmentData, listEntityAllocationData } from "./utils.ts";
+import { type Config, listCommitmentDataWithAcceptedAmounts } from "./utils.ts";
 
 function parseAddress(value: string): `0x${string}` {
     if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
@@ -29,15 +29,18 @@ function parseCliArgs(): Config {
 async function run() {
     const config = parseCliArgs();
 
-    // Fetch commitment data and entity allocation data in parallel
-    const [commitments, entityAllocations] = await Promise.all([
-        listCommitmentData(config),
-        listEntityAllocationData(config),
-    ]);
+    const commitments = await listCommitmentDataWithAcceptedAmounts(config);
+
+    // Build accepted amounts lookup (entityID:wallet:token -> amount)
+    const acceptedAmounts = new Map(
+        commitments.flatMap((c) =>
+            c.acceptedAmounts.map((a) => [`${c.saleSpecificEntityID}:${a.wallet}:${a.token}`, a.amount] as const),
+        ),
+    );
 
     // Flatten commitments to rows
     const commitmentRows = commitments.flatMap((commitment) =>
-        commitment.amounts.map((c) => ({
+        commitment.committedAmounts.map((c) => ({
             entityId: commitment.saleSpecificEntityID,
             commitmentId: commitment.commitmentID,
             wallet: c.wallet,
@@ -48,15 +51,6 @@ async function run() {
             extraData: commitment.extraData,
             committed: c.amount,
         })),
-    );
-
-    // Build accepted amounts lookup (entityID:wallet:token -> amount)
-    const acceptedAmounts = new Map(
-        entityAllocations.flatMap((allocation) =>
-            allocation.acceptedAmounts.map(
-                (a) => [`${allocation.saleSpecificEntityID}:${a.wallet}:${a.token}`, a.amount] as const,
-            ),
-        ),
     );
 
     // CSV header
