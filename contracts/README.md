@@ -69,6 +69,16 @@ Fetches all bid data from a contract in CSV format.
 pnpm bid-data-csv --sale-address <contract-address> --rpc-url <url>
 ```
 
+### set-allocations
+
+Takes in a csv of entity allocations and submits this to the sale contract.
+
+Note that this does not actually finalize (process) the allocations.
+
+```
+PRIVATE_KEY=<key> pnpm set-allocations --allocations-csv <path> --sale-address <address> --rpc-url <url>
+```
+
 ---
 
 ## Testing

@@ -5,7 +5,8 @@
     "type": "module",
     "main": "index.js",
     "scripts": {
-        "bid-data-csv": "tsx bid-data-csv.ts"
+        "bid-data-csv": "tsx bid-data-csv.ts",
+        "set-allocations": "tsx set-allocations.ts"
     },
     "dependencies": {
         "commander": "^14.0.2",
