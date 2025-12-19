@@ -1,14 +1,5 @@
-import { Command, InvalidArgumentError } from "commander";
-import { type Config, listBidData } from "./utils.ts";
-
-function parseAddress(value: string): `0x${string}` {
-    if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
-        throw new InvalidArgumentError(
-            `Invalid address "${value}". Expected format: 0x followed by 40 hexadecimal characters.`,
-        );
-    }
-    return value as `0x${string}`;
-}
+import { Command } from "commander";
+import { type Config, listBidData, parseAddress } from "./utils.ts";
 
 function parseCliArgs(): Config {
     const program = new Command()
