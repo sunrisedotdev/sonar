@@ -1,7 +1,7 @@
-export const auctionBidDataReaderAbi = [
+export const commitmentDataReaderAbi = [
   {
     "type": "function",
-    "name": "numBids",
+    "name": "numCommitments",
     "inputs": [],
     "outputs": [
       {
@@ -14,7 +14,7 @@ export const auctionBidDataReaderAbi = [
   },
   {
     "type": "function",
-    "name": "readBidDataAt",
+    "name": "readCommitmentDataAt",
     "inputs": [
       {
         "name": "index",
@@ -26,17 +26,12 @@ export const auctionBidDataReaderAbi = [
       {
         "name": "",
         "type": "tuple",
-        "internalType": "struct IAuctionBidDataReader.BidData",
+        "internalType": "struct ICommitmentDataReader.CommitmentData",
         "components": [
           {
-            "name": "bidID",
+            "name": "commitmentID",
             "type": "bytes32",
             "internalType": "bytes32"
-          },
-          {
-            "name": "committer",
-            "type": "address",
-            "internalType": "address"
           },
           {
             "name": "saleSpecificEntityID",
@@ -54,14 +49,36 @@ export const auctionBidDataReaderAbi = [
             "internalType": "uint64"
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            "name": "lockup",
+            "type": "bool",
+            "internalType": "bool"
           },
           {
             "name": "refunded",
             "type": "bool",
             "internalType": "bool"
+          },
+          {
+            "name": "amounts",
+            "type": "tuple[]",
+            "internalType": "struct WalletTokenAmount[]",
+            "components": [
+              {
+                "name": "wallet",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "extraData",
@@ -75,7 +92,7 @@ export const auctionBidDataReaderAbi = [
   },
   {
     "type": "function",
-    "name": "readBidDataIn",
+    "name": "readCommitmentDataIn",
     "inputs": [
       {
         "name": "from",
@@ -92,17 +109,12 @@ export const auctionBidDataReaderAbi = [
       {
         "name": "",
         "type": "tuple[]",
-        "internalType": "struct IAuctionBidDataReader.BidData[]",
+        "internalType": "struct ICommitmentDataReader.CommitmentData[]",
         "components": [
           {
-            "name": "bidID",
+            "name": "commitmentID",
             "type": "bytes32",
             "internalType": "bytes32"
-          },
-          {
-            "name": "committer",
-            "type": "address",
-            "internalType": "address"
           },
           {
             "name": "saleSpecificEntityID",
@@ -120,14 +132,36 @@ export const auctionBidDataReaderAbi = [
             "internalType": "uint64"
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            "name": "lockup",
+            "type": "bool",
+            "internalType": "bool"
           },
           {
             "name": "refunded",
             "type": "bool",
             "internalType": "bool"
+          },
+          {
+            "name": "amounts",
+            "type": "tuple[]",
+            "internalType": "struct WalletTokenAmount[]",
+            "components": [
+              {
+                "name": "wallet",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
           },
           {
             "name": "extraData",

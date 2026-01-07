@@ -79,7 +79,7 @@ contract BaseTest is Test {
     EnumerableMap.Bytes32ToBytes32Map dealSlotsAfter;
 
     function assertStorageUnchanged(Vm.AccountAccess[] memory accountAccesses, address account) internal {
-        uint256 snap = vm.snapshot();
+        uint256 snap = vm.snapshotState();
 
         // find first value of each accessed slot
         for (uint256 i = accountAccesses.length; i > 0; --i) {
@@ -113,7 +113,7 @@ contract BaseTest is Test {
         }
 
         // to reset `dealSlots{Before,After}`
-        vm.revertTo(snap);
+        vm.revertToState(snap);
     }
 
     EnumerableMap.Bytes32ToBytes32Map slotsA;
@@ -126,7 +126,7 @@ contract BaseTest is Test {
         address accountB,
         Vm.AccountAccess[] memory accessesB
     ) internal {
-        uint256 snap = vm.snapshot();
+        uint256 snap = vm.snapshotState();
 
         // find last value of each accessed slot in A
         for (uint256 i; i < accessesA.length; ++i) {
@@ -164,6 +164,6 @@ contract BaseTest is Test {
         }
 
         // to reset `slotsA` and `slotsB`
-        vm.revertTo(snap);
+        vm.revertToState(snap);
     }
 }

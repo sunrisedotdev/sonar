@@ -6,10 +6,12 @@ pragma solidity ^0.8.23;
 /// @dev Implementing contracts should handle the full settlement lifecycle including allocation recording and finalization
 interface IOffchainSettlement {
     /// @notice Represents the final allocation of payment for a participant
-    /// @param committer The address of the participant in the sale
+    /// @param saleSpecificEntityID The Sonar ID of the entity in the sale
     /// @param acceptedAmount The amount of payment accepted from this participant.
     struct Allocation {
-        address committer;
+        bytes16 saleSpecificEntityID;
+        address wallet;
+        address token;
         uint256 acceptedAmount;
     }
 

@@ -31,28 +31,19 @@ This will install:
 
 ## Reference contracts
 
-```
-contracts/
-├── src/
-│   └── EnglishAuctionSale.sol
-├── test/
-│   └── EnglishAuctionSale.t.sol
-├── lib/                    # Dependencies (git submodules)
-```
+### ExampleSale
 
----
+The `ExampleSale` contract is a toy sale implementation demonstrating entity-based purchase tracking where purchases from multiple wallets belonging to the same entity are aggregated and validated against entity-level limits.
 
-## Examples
+### SettlementSale
 
-### EnglishAuctionSale
-
-The `EnglishAuctionSale` contract is a reference implementation of a token sale using an English-auction-style mechanism.
+The `SettlementSale` contract is a token sale implementation based on commitments and offchain settlement.
 
 **Key Features:**
 
 - Integration with Sonar's purchase permit system
-- Multi-stage sale process (PreOpen → Auction → Closed → Cancellation → Settlement → Done)
-- Offchain auction clearing with onchain settlement
+- Multi-stage sale process (PreOpen → Open → Closed → Cancellation → Settlement → Done)
+- Allocations are computed offchain and submitted to the contract
 - Built-in refund and withdrawal mechanisms
 
 ---
@@ -61,12 +52,12 @@ The `EnglishAuctionSale` contract is a reference implementation of a token sale 
 
 This repo includes some node.js scripts in the `scripts` directory for conveniently interacting with deployed contracts.
 
-### bid-data-csv
+### commitment-data-csv
 
-Fetches all bid data from a contract in CSV format.
+Fetches all commitment data from a contract in CSV format.
 
 ```
-pnpm bid-data-csv --sale-address <contract-address> --rpc-url <url>
+pnpm commitment-data-csv --sale-address <contract-address> --rpc-url <url>
 ```
 
 ---
