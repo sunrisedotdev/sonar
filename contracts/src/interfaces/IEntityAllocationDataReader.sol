@@ -39,8 +39,5 @@ interface IEntityAllocationDataReader {
     /// RPC response size limits. The range is inclusive of `from` and exclusive of `to`.
     /// @param from The starting index (inclusive, 0-based)
     /// @param to The ending index (exclusive)
-    function readEntityAllocationDataIn(uint256 from, uint256 to)
-        external
-        view
-        returns (EntityAllocationData[] memory);
+    function readEntityAllocationDataIn(uint256 from, uint256 to) external view returns (EntityAllocationData[] memory);
 }

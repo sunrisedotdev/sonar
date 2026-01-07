@@ -195,11 +195,10 @@ contract SettlementSaleBaseTest is BaseTest {
         });
     }
 
-    function makePurchasePermit(bytes16 saleSpecificEntityID, address wallet)
-        internal
-        view
-        returns (PurchasePermitV2 memory)
-    {
+    function makePurchasePermit(
+        bytes16 saleSpecificEntityID,
+        address wallet
+    ) internal view returns (PurchasePermitV2 memory) {
         return makePurchasePermit({
             saleSpecificEntityID: saleSpecificEntityID,
             saleUUID: TEST_SALE_UUID,
@@ -217,7 +216,9 @@ contract SettlementSaleBaseTest is BaseTest {
     }
 
     function doBid(address user, IERC20 token, uint256 amount, uint64 price) internal {
-        doBid({entityID: addressToEntityID(user), user: user, amount: amount, price: price, lockup: false, token: token});
+        doBid({
+            entityID: addressToEntityID(user), user: user, amount: amount, price: price, lockup: false, token: token
+        });
     }
 
     function doBid(address user, IERC20 token, uint256 amount, uint64 price, bool lockup) internal {
@@ -346,11 +347,13 @@ contract SettlementSaleBaseTest is BaseTest {
     }
 
     /// @notice Signs an ERC20 permit signature using an Account's private key.
-    function signERC20Permit(ERC20Permit token, address owner, address spender, uint256 value, uint256 deadline)
-        internal
-        view
-        returns (bytes memory)
-    {
+    function signERC20Permit(
+        ERC20Permit token,
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline
+    ) internal view returns (bytes memory) {
         uint256 nonce = token.nonces(owner);
         bytes32 structHash = keccak256(abi.encode(ERC20_PERMIT_TYPEHASH, owner, spender, value, nonce, deadline));
         bytes32 hash = MessageHashUtils.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
@@ -359,11 +362,11 @@ contract SettlementSaleBaseTest is BaseTest {
     }
 
     /// @notice Helper to get ERC20 permit signature for a bid increment.
-    function getERC20PermitSignature(IERC20 token, address owner, uint256 amountDelta)
-        internal
-        view
-        returns (bytes memory, uint256)
-    {
+    function getERC20PermitSignature(
+        IERC20 token,
+        address owner,
+        uint256 amountDelta
+    ) internal view returns (bytes memory, uint256) {
         ERC20Permit permitToken = ERC20Permit(address(token));
         uint256 deadline = block.timestamp + 1000;
         address spender = address(sale);
@@ -389,15 +392,16 @@ contract SettlementSaleBaseTest is BaseTest {
         });
     }
 
-    function doSetAllocation(bytes16 entityID, address wallet, IERC20 token, uint256 amount, bool allowOverwrite)
-        internal
-    {
+    function doSetAllocation(
+        bytes16 entityID,
+        address wallet,
+        IERC20 token,
+        uint256 amount,
+        bool allowOverwrite
+    ) internal {
         IOffchainSettlement.Allocation[] memory allocations = new IOffchainSettlement.Allocation[](1);
         allocations[0] = IOffchainSettlement.Allocation({
-            saleSpecificEntityID: entityID,
-            wallet: wallet,
-            token: address(token),
-            acceptedAmount: amount
+            saleSpecificEntityID: entityID, wallet: wallet, token: address(token), acceptedAmount: amount
         });
 
         vm.prank(settler);
@@ -448,10 +452,7 @@ contract SettlementSaleBaseTest is BaseTest {
         assertEq(a, b, "");
     }
 
-    function assertEq(WalletTokenAmount[] memory a, WalletTokenAmount[] memory b, string memory message)
-        internal
-        pure
-    {
+    function assertEq(WalletTokenAmount[] memory a, WalletTokenAmount[] memory b, string memory message) internal pure {
         assertEq(a.length, b.length, string.concat(message, ": length mismatch"));
         for (uint256 i = 0; i < a.length; i++) {
             assertEq(a[i], b[i], string.concat(message, ": [", Strings.toString(i), "]"));
@@ -496,10 +497,10 @@ contract SettlementSaleBaseTest is BaseTest {
         assertEq(a.committedAmountByToken, b.committedAmountByToken, string.concat(message, ": committedAmountByToken"));
     }
 
-    function assertEq(ICommitmentDataReader.CommitmentData memory a, ICommitmentDataReader.CommitmentData memory b)
-        internal
-        pure
-    {
+    function assertEq(
+        ICommitmentDataReader.CommitmentData memory a,
+        ICommitmentDataReader.CommitmentData memory b
+    ) internal pure {
         assertEq(a, b, "");
     }
 
@@ -589,10 +590,12 @@ contract SettlementSaleBaseTest is BaseTest {
         return result;
     }
 
-    function assertTokenBalances(address owner, uint256 usdcAmount, uint256 usdtAmount, string memory message)
-        internal
-        view
-    {
+    function assertTokenBalances(
+        address owner,
+        uint256 usdcAmount,
+        uint256 usdtAmount,
+        string memory message
+    ) internal view {
         assertEq(usdc.balanceOf(owner), usdcAmount, string.concat(message, ": usdc balance of owner"));
         assertEq(usdt.balanceOf(owner), usdtAmount, string.concat(message, ": usdt balance of owner"));
     }

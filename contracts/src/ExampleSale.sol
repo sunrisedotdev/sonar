@@ -97,9 +97,11 @@ contract ExampleSale is AccessControlEnumerable {
     /// @param amount The amount to purchase in this transaction
     /// @param purchasePermit The purchase permit authorizing this wallet to purchase for an entity
     /// @param purchasePermitSignature The signature of the purchase permit
-    function purchase(uint256 amount, PurchasePermitV2 calldata purchasePermit, bytes calldata purchasePermitSignature)
-        external
-    {
+    function purchase(
+        uint256 amount,
+        PurchasePermitV2 calldata purchasePermit,
+        bytes calldata purchasePermitSignature
+    ) external {
         // Validate the purchase permit issued by Sonar
         _validatePurchasePermit(purchasePermit, purchasePermitSignature);
 

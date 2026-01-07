@@ -566,7 +566,8 @@ contract SettlementSale is
                 r: bytes32(erc20PermitSignature[0:32]),
                 s: bytes32(erc20PermitSignature[32:64]),
                 v: uint8(bytes1(erc20PermitSignature[64]))
-            }) {} catch {}
+            }) {}
+                catch {}
 
             token.safeTransferFrom(msg.sender, address(this), amountDelta);
         }
@@ -736,11 +737,10 @@ contract SettlementSale is
     /// The settler provides a list of (entityID, walletAddress, tokenAddress, acceptedAmount) tuples, that specify how many tokens are accepted from any given wallet.
     /// Unset allocations are implicitly assumed to be 0.
     /// If a non-zero amount was already set for `entityID, walletAddress, tokenAddress`, the contract will revert unless `allowOverwrite` is true.
-    function setAllocations(Allocation[] calldata allocations, bool allowOverwrite)
-        external
-        onlyRole(SETTLER_ROLE)
-        onlyStage(Stage.Settlement)
-    {
+    function setAllocations(
+        Allocation[] calldata allocations,
+        bool allowOverwrite
+    ) external onlyRole(SETTLER_ROLE) onlyStage(Stage.Settlement) {
         for (uint256 i = 0; i < allocations.length; i++) {
             _setAllocation(allocations[i], allowOverwrite);
         }
@@ -822,11 +822,10 @@ contract SettlementSale is
     /// @dev This function can only be called by addresses with the REFUNDER_ROLE. Wallets can use `claimRefund` instead (if enabled).
     /// @param entityIDs The entity IDs to refund.
     /// @param skipAlreadyRefunded Whether to skip already refunded entities. If this is false and an entity is already refunded, the transaction will revert.
-    function processRefunds(bytes16[] calldata entityIDs, bool skipAlreadyRefunded)
-        external
-        onlyRole(REFUNDER_ROLE)
-        onlyStage(Stage.Done)
-    {
+    function processRefunds(
+        bytes16[] calldata entityIDs,
+        bool skipAlreadyRefunded
+    ) external onlyRole(REFUNDER_ROLE) onlyStage(Stage.Done) {
         for (uint256 i = 0; i < entityIDs.length; i++) {
             EntityState storage state = _entityStateByID[entityIDs[i]];
             if (skipAlreadyRefunded && state.refunded) {
@@ -904,11 +903,7 @@ contract SettlementSale is
     /// @dev This allows the admin to withdraw proceeds incrementally rather than all at once, e.g. to do a test withdrawal.
     /// @param token The payment token to withdraw.
     /// @param amount The amount to withdraw.
-    function withdrawPartial(IERC20 token, uint256 amount)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        onlyStage(Stage.Done)
-    {
+    function withdrawPartial(IERC20 token, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) onlyStage(Stage.Done) {
         _withdrawPartial(token, amount);
     }
 
@@ -1102,9 +1097,7 @@ contract SettlementSale is
             for (uint256 j = 0; j < numTokens; j++) {
                 IERC20 token = _paymentTokens[j];
                 committedAmounts[idx] = WalletTokenAmount({
-                    wallet: wallets[i],
-                    token: address(token),
-                    amount: walletState.committedAmountByToken[token]
+                    wallet: wallets[i], token: address(token), amount: walletState.committedAmountByToken[token]
                 });
                 idx++;
             }
