@@ -29,16 +29,10 @@ contract SettlementSaleEdgeCasesTest is SettlementSaleBaseTest {
         // Explicitly allocate {1000 USDC, 1500 USDT}
         IOffchainSettlement.Allocation[] memory allocations1 = new IOffchainSettlement.Allocation[](2);
         allocations1[0] = IOffchainSettlement.Allocation({
-            saleSpecificEntityID: aliceID,
-            wallet: alice,
-            token: address(usdc),
-            acceptedAmount: 1000e6
+            saleSpecificEntityID: aliceID, wallet: alice, token: address(usdc), acceptedAmount: 1000e6
         });
         allocations1[1] = IOffchainSettlement.Allocation({
-            saleSpecificEntityID: aliceID,
-            wallet: alice,
-            token: address(usdt),
-            acceptedAmount: 1500e6
+            saleSpecificEntityID: aliceID, wallet: alice, token: address(usdt), acceptedAmount: 1500e6
         });
 
         vm.prank(settler);
@@ -72,16 +66,10 @@ contract SettlementSaleEdgeCasesTest is SettlementSaleBaseTest {
 
         IOffchainSettlement.Allocation[] memory allocations2 = new IOffchainSettlement.Allocation[](2);
         allocations2[0] = IOffchainSettlement.Allocation({
-            saleSpecificEntityID: aliceID,
-            wallet: alice,
-            token: address(usdc),
-            acceptedAmount: 5000e6
+            saleSpecificEntityID: aliceID, wallet: alice, token: address(usdc), acceptedAmount: 5000e6
         });
         allocations2[1] = IOffchainSettlement.Allocation({
-            saleSpecificEntityID: aliceID,
-            wallet: alice,
-            token: address(usdt),
-            acceptedAmount: 0
+            saleSpecificEntityID: aliceID, wallet: alice, token: address(usdt), acceptedAmount: 0
         });
 
         vm.prank(settler);
