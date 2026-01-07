@@ -4,8 +4,8 @@ pragma solidity ^0.8.23;
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {ITotalCommitmentsReader} from "sales/interfaces/ITotalCommitmentsReader.sol";
-import {IEntityAllocationDataReader} from "sales/interfaces/IEntityAllocationDataReader.sol";
+import {IEntityAllocationDataReader} from "sonar/interfaces/IEntityAllocationDataReader.sol";
+import {ITotalCommitmentsReader} from "sonar/interfaces/ITotalCommitmentsReader.sol";
 
 import "./SettlementSaleBaseTest.sol";
 
@@ -226,12 +226,9 @@ contract SettlementSaleConstructorTest is BaseTest {
 }
 
 contract SettlementSaleVandalTest is SettlementSaleBaseTest {
-    function testRecoverTokens_ByUnauthorizedUser_Reverts(
-        address vandal,
-        IERC20 usdc,
-        uint256 amount,
-        address to
-    ) public {
+    function testRecoverTokens_ByUnauthorizedUser_Reverts(address vandal, IERC20 usdc, uint256 amount, address to)
+        public
+    {
         vm.assume(vandal != recoverer);
         vm.expectRevert(missingRoleError(vandal, sale.TOKEN_RECOVERER_ROLE()));
         vm.prank(vandal);
@@ -1075,7 +1072,10 @@ contract SettlementSaleSingleTokenTest is BaseTest {
 
         IOffchainSettlement.Allocation[] memory allocations = new IOffchainSettlement.Allocation[](1);
         allocations[0] = IOffchainSettlement.Allocation({
-            saleSpecificEntityID: aliceID, wallet: alice, token: address(usdc), acceptedAmount: 1500e6
+            saleSpecificEntityID: aliceID,
+            wallet: alice,
+            token: address(usdc),
+            acceptedAmount: 1500e6
         });
 
         vm.prank(settler);

@@ -8,15 +8,15 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {PurchasePermitV2, PurchasePermitV2Lib} from "sales/permits/PurchasePermitV2.sol";
+import {PurchasePermitV2, PurchasePermitV2Lib} from "./permits/PurchasePermitV2.sol";
 
-import {ICommitmentDataReader} from "sales/interfaces/ICommitmentDataReader.sol";
+import {ICommitmentDataReader} from "./interfaces/ICommitmentDataReader.sol";
 
-import {IEntityAllocationDataReader} from "sales/interfaces/IEntityAllocationDataReader.sol";
-import {IOffchainSettlement} from "sales/interfaces/IOffchainSettlement.sol";
-import {ITotalAllocationsReader} from "sales/interfaces/ITotalAllocationsReader.sol";
-import {ITotalCommitmentsReader} from "sales/interfaces/ITotalCommitmentsReader.sol";
-import {TokenAmount, WalletTokenAmount} from "sales/interfaces/types.sol";
+import {IEntityAllocationDataReader} from "./interfaces/IEntityAllocationDataReader.sol";
+import {IOffchainSettlement} from "./interfaces/IOffchainSettlement.sol";
+import {ITotalAllocationsReader} from "./interfaces/ITotalAllocationsReader.sol";
+import {ITotalCommitmentsReader} from "./interfaces/ITotalCommitmentsReader.sol";
+import {TokenAmount, WalletTokenAmount} from "./interfaces/types.sol";
 
 /// @title  SettlementSale
 /// @notice Public sale contract for a token offering with an English-auction-style mechanism.

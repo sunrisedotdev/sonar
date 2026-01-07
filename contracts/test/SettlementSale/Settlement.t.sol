@@ -29,7 +29,10 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
 
         IOffchainSettlement.Allocation[] memory allocations = new IOffchainSettlement.Allocation[](1);
         allocations[0] = IOffchainSettlement.Allocation({
-            saleSpecificEntityID: entityID, wallet: wallet, token: address(token), acceptedAmount: amount
+            saleSpecificEntityID: entityID,
+            wallet: wallet,
+            token: address(token),
+            acceptedAmount: amount
         });
 
         vm.expectEmit(true, true, true, true, address(sale));
@@ -45,17 +48,16 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         assertEq(stateAfter.userAllocatedForToken, amount);
     }
 
-    function setAllocationFail(
-        address wallet,
-        IERC20 token,
-        uint256 amount,
-        bool allowOverwrite,
-        bytes memory err
-    ) internal {
+    function setAllocationFail(address wallet, IERC20 token, uint256 amount, bool allowOverwrite, bytes memory err)
+        internal
+    {
         bytes16 entityID = addressToEntityID(wallet);
         IOffchainSettlement.Allocation[] memory allocations = new IOffchainSettlement.Allocation[](1);
         allocations[0] = IOffchainSettlement.Allocation({
-            saleSpecificEntityID: entityID, wallet: wallet, token: address(token), acceptedAmount: amount
+            saleSpecificEntityID: entityID,
+            wallet: wallet,
+            token: address(token),
+            acceptedAmount: amount
         });
 
         vm.expectRevert(err);
@@ -403,7 +405,10 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         // Setting 0 allocation for USDT should succeed (0 <= 0)
         IOffchainSettlement.Allocation[] memory allocations = new IOffchainSettlement.Allocation[](1);
         allocations[0] = IOffchainSettlement.Allocation({
-            saleSpecificEntityID: aliceID, wallet: alice, token: address(usdt), acceptedAmount: 0
+            saleSpecificEntityID: aliceID,
+            wallet: alice,
+            token: address(usdt),
+            acceptedAmount: 0
         });
 
         vm.prank(settler);
@@ -423,7 +428,10 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         // Try to set allocation for Alice's entity but with Bob's wallet
         IOffchainSettlement.Allocation[] memory allocations = new IOffchainSettlement.Allocation[](1);
         allocations[0] = IOffchainSettlement.Allocation({
-            saleSpecificEntityID: aliceID, wallet: bob, token: address(usdc), acceptedAmount: 500e6
+            saleSpecificEntityID: aliceID,
+            wallet: bob,
+            token: address(usdc),
+            acceptedAmount: 500e6
         });
 
         vm.expectRevert(abi.encodeWithSelector(SettlementSale.WalletNotAssociatedWithEntity.selector, bob, aliceID));
@@ -450,4 +458,3 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         });
     }
 }
-

@@ -45,9 +45,7 @@ contract SettlementSaleFullLifecycleFuzzTest is SettlementSaleBaseTest {
 
             uint256 amountDelta = bid.bid.amount - previousBid.amount;
             deal(address(token), bid.wallet, amountDelta);
-            doBid({
-                user: bid.wallet, token: token, price: bid.bid.price, amount: bid.bid.amount, lockup: bid.bid.lockup
-            });
+            doBid({user: bid.wallet, token: token, price: bid.bid.price, amount: bid.bid.amount, lockup: bid.bid.lockup});
 
             // update test counters
             totalCommittedAmountExpected += amountDelta;
@@ -180,7 +178,10 @@ contract SettlementSaleFullLifecycleFuzzTest is SettlementSaleBaseTest {
         // withdrawing funds
         // double checking that the initial receiver balance is 0 so the next check is valid
         assertTokenBalances({
-            owner: receiver, usdcAmount: 0, usdtAmount: 0, message: "receiver balance should be 0 before withdraw"
+            owner: receiver,
+            usdcAmount: 0,
+            usdtAmount: 0,
+            message: "receiver balance should be 0 before withdraw"
         });
 
         vm.prank(admin);
@@ -230,8 +231,8 @@ contract SettlementSaleFullLifecycleFuzzTest is SettlementSaleBaseTest {
             if (!entityStates[i].refunded) {
                 continue;
             }
-            sumRefundedAmounts += entityStates[i].currentBid.amount
-            - sum(entityStates[i].walletStates[0].acceptedAmountByToken);
+            sumRefundedAmounts +=
+                entityStates[i].currentBid.amount - sum(entityStates[i].walletStates[0].acceptedAmountByToken);
         }
         assertEq(sale.totalRefundedAmount(), sumRefundedAmounts, "total refunded amount");
 

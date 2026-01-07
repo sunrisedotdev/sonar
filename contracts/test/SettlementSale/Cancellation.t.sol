@@ -223,4 +223,3 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         assertTrue(sale.entityStateByID(aliceID).refunded, "should be refunded");
     }
 }
-

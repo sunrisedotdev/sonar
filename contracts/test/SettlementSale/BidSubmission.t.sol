@@ -63,7 +63,12 @@ contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
             maxPrice: maxPrice
         });
         bidSuccess({
-            user: user, price: price, amount: amount, lockup: lockup, token: token, purchasePermit: purchasePermit
+            user: user,
+            price: price,
+            amount: amount,
+            lockup: lockup,
+            token: token,
+            purchasePermit: purchasePermit
         });
     }
 
@@ -130,20 +135,19 @@ contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
     }
 
     function bidFail(address user, uint64 price, uint256 amount, IERC20 token, bytes memory err) internal {
-        return
-            bidFail({
-                entityID: addressToEntityID(user), user: user, price: price, amount: amount, token: token, err: err
-            });
+        return bidFail({
+            entityID: addressToEntityID(user),
+            user: user,
+            price: price,
+            amount: amount,
+            token: token,
+            err: err
+        });
     }
 
-    function bidFail(
-        bytes16 entityID,
-        address user,
-        uint64 price,
-        uint256 amount,
-        IERC20 token,
-        bytes memory err
-    ) internal {
+    function bidFail(bytes16 entityID, address user, uint64 price, uint256 amount, IERC20 token, bytes memory err)
+        internal
+    {
         PurchasePermitV2 memory purchasePermit = makePurchasePermit({saleSpecificEntityID: entityID, wallet: user});
         bytes memory purchasePermitSignature = signPurchasePermit(purchasePermit);
 
@@ -502,9 +506,7 @@ contract SettlementSaleBidAmountTest is SettlementSaleBidTestBase {
             price: 10,
             amount: SALE_MAX_AMOUNT + 1,
             token: usdc,
-            err: abi.encodeWithSelector(
-                SettlementSale.BidExceedsMaxAmount.selector, SALE_MAX_AMOUNT + 1, SALE_MAX_AMOUNT
-            )
+            err: abi.encodeWithSelector(SettlementSale.BidExceedsMaxAmount.selector, SALE_MAX_AMOUNT + 1, SALE_MAX_AMOUNT)
         });
         bidSuccess({user: alice, price: 10, amount: SALE_MAX_AMOUNT, token: usdc});
         assertEq(usdc.balanceOf(address(sale)), SALE_MAX_AMOUNT);
@@ -514,9 +516,7 @@ contract SettlementSaleBidAmountTest is SettlementSaleBidTestBase {
             price: 10,
             amount: SALE_MAX_AMOUNT + 1,
             token: usdc,
-            err: abi.encodeWithSelector(
-                SettlementSale.BidExceedsMaxAmount.selector, SALE_MAX_AMOUNT + 1, SALE_MAX_AMOUNT
-            )
+            err: abi.encodeWithSelector(SettlementSale.BidExceedsMaxAmount.selector, SALE_MAX_AMOUNT + 1, SALE_MAX_AMOUNT)
         });
         bidSuccess({user: bob, price: 10, amount: SALE_MAX_AMOUNT, token: usdc});
         assertEq(usdc.balanceOf(address(sale)), 2 * SALE_MAX_AMOUNT);

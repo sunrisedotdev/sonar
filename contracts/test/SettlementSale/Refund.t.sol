@@ -344,4 +344,3 @@ contract SettlementSaleRefundsTest is SettlementSaleBaseTest {
         assertEq(usdt.balanceOf(aliceWallet2), 1000e6, "alice wallet2 USDT refund");
     }
 }
-

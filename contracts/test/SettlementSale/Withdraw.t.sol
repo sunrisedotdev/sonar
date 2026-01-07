@@ -200,4 +200,3 @@ contract SettlementSaleWithdrawTest is SettlementSaleBaseTest {
         assertEq(withdrawn[1].amount, 500e6);
     }
 }
-
