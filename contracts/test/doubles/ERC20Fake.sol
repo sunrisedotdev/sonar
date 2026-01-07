@@ -10,3 +10,15 @@ contract ERC20Fake is ERC20Permit {
         _mint(to, amount);
     }
 }
+
+contract ERC20FakeWithDecimals is ERC20Fake {
+    uint8 internal immutable _decimals;
+
+    constructor(string memory name, string memory symbol, uint8 decimals_) ERC20Fake(name, symbol) {
+        _decimals = decimals_;
+    }
+
+    function decimals() public view virtual override returns (uint8) {
+        return _decimals;
+    }
+}
