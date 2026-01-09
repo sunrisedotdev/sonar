@@ -3,6 +3,7 @@ import {
     EntityDetails,
     EntityID,
     GeneratePurchasePermitResponse,
+    MyProfileResponse,
     PrePurchaseFailureReason,
     SonarClient,
 } from "@echoxyz/sonar-core";
@@ -301,4 +302,75 @@ export function useSonarPurchase(args: {
     }, [saleUUID, entityID, walletAddress, client, generatePurchasePermit]);
 
     return state;
+}
+
+export type UseSonarProfileResult = {
+    authenticated: boolean;
+    loading: boolean;
+    profile?: MyProfileResponse;
+    error?: Error;
+};
+
+export function useSonarProfile(): UseSonarProfileResult {
+    const { authenticated, ready } = useSonarAuth();
+    const client = useSonarClient();
+
+    const [state, setState] = useState<{
+        loading: boolean;
+        profile?: MyProfileResponse;
+        error?: Error;
+        hasFetched: boolean;
+    }>({
+        loading: false,
+        hasFetched: false,
+    });
+
+    const fullyConnected = ready && authenticated;
+
+    const refetch = useCallback(async () => {
+        if (!fullyConnected) {
+            return;
+        }
+        setState((s) => ({ ...s, loading: true }));
+        try {
+            const resp = await client.myProfile();
+            setState({
+                loading: false,
+                profile: resp,
+                error: undefined,
+                hasFetched: true,
+            });
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setState({ loading: false, profile: undefined, error, hasFetched: true });
+        }
+    }, [client, fullyConnected]);
+
+    const reset = useCallback(() => {
+        setState({
+            loading: false,
+            hasFetched: false,
+            profile: undefined,
+            error: undefined,
+        });
+    }, []);
+
+    useEffect(() => {
+        if (fullyConnected) {
+            refetch();
+        }
+    }, [fullyConnected, refetch]);
+
+    useEffect(() => {
+        if (ready && !authenticated) {
+            reset();
+        }
+    }, [ready, authenticated, reset]);
+
+    return {
+        authenticated,
+        loading: state.loading,
+        profile: state.profile,
+        error: state.error,
+    };
 }

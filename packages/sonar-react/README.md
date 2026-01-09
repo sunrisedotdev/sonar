@@ -77,7 +77,40 @@ export default function OAuthCallback() {
 }
 ```
 
-4. Load the Sonar entity associated with the user's wallet
+4. Load the authenticated user's profile
+
+```tsx
+import { useSonarProfile } from "@echoxyz/sonar-react";
+
+const UserProfilePanel = () => {
+    const { authenticated, loading, profile, error } = useSonarProfile();
+
+    if (!authenticated) {
+        return <p>Please sign in to view your profile</p>;
+    }
+
+    if (loading) {
+        return <p>Loading...</p>;
+    }
+
+    if (error) {
+        return <p>Error: {error.message}</p>;
+    }
+
+    if (!profile) {
+        return null;
+    }
+
+    return (
+        <div>
+            <span>Entity ID: {profile.EntityID}</span>
+            {profile.EmailAddress && <span>Email: {profile.EmailAddress}</span>}
+        </div>
+    );
+};
+```
+
+5. Load the Sonar entity associated with the user's wallet
 
 ```tsx
 import { useSonarEntity } from "./hooks/useSonarEntity";
@@ -118,7 +151,7 @@ const ExampleEntityPanel = () => {
 
 If you want to fetch all entities associated with the logged in user, you can use the `useSonarEntities` hook.
 
-5. Implement the purchase flow
+6. Implement the purchase flow
 
 ```tsx
 function Example({
@@ -203,8 +236,12 @@ function PurchaseButton({
 - `useSonarAuth()` → `{ authenticated, ready, token?, login(), completeOAuth({ code, state }), logout() }`
 
 - `useSonarClient()` → low-level `SonarClient` instance.
-  
+
+- `useSonarProfile()` → `{ authenticated, loading, profile?, error? }` high-level hook for fetching the authenticated user's profile (entity ID and email).
+
 - `useSonarEntity()` → `{ authenticated, loading, entity?, error? }` high-level convenience hook for fetching a Sonar entity by wallet address.
+
+- `useSonarEntities()` → `{ authenticated, loading, entities?, error? }` high-level hook for fetching all entities available to the authenticated user.
 
 ## Notes
 
