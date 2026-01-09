@@ -77,7 +77,7 @@ export default function OAuthCallback() {
 }
 ```
 
-4. Load the authenticated user's profile
+4. (Optional) Load the authenticated user's profile
 
 ```tsx
 import { useSonarProfile } from "@echoxyz/sonar-react";
@@ -104,6 +104,7 @@ const UserProfilePanel = () => {
     return (
         <div>
             <span>Entity ID: {profile.EntityID}</span>
+            {/* EmailAddress only present if authorized with contact:email scope */}
             {profile.EmailAddress && <span>Email: {profile.EmailAddress}</span>}
         </div>
     );

@@ -75,7 +75,9 @@ export async function exampleCalls() {
     // Get the authenticated user's profile information
     const profile = await client.myProfile();
     console.log(profile.EntityID); // Entity ID for the authenticated user
-    console.log(profile.EmailAddress); // Email address (if authorized with contact:email scope)
+    if (profile.EmailAddress) {
+        console.log(profile.EmailAddress); // Email address (only present if authorized with contact:email scope)
+    }
 
     // Read the entity for linked to the wallet for the configured sale.
     // If the authenticated user has not yet linked the wallet on Sonar, this will return a 404.
