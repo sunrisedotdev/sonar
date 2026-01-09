@@ -319,10 +319,8 @@ export function useSonarProfile(): UseSonarProfileResult {
         loading: boolean;
         profile?: MyProfileResponse;
         error?: Error;
-        hasFetched: boolean;
     }>({
         loading: false,
-        hasFetched: false,
     });
 
     const fullyConnected = ready && authenticated;
@@ -338,18 +336,16 @@ export function useSonarProfile(): UseSonarProfileResult {
                 loading: false,
                 profile: resp,
                 error: undefined,
-                hasFetched: true,
             });
         } catch (err) {
             const error = err instanceof Error ? err : new Error(String(err));
-            setState({ loading: false, profile: undefined, error, hasFetched: true });
+            setState({ loading: false, profile: undefined, error });
         }
     }, [client, fullyConnected]);
 
     const reset = useCallback(() => {
         setState({
             loading: false,
-            hasFetched: false,
             profile: undefined,
             error: undefined,
         });
