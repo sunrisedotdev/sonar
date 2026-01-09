@@ -1,6 +1,14 @@
 import { AuthSession } from "./auth";
 import { createWebStorage } from "./storage";
-import type { AllocationPermit, BasicPermit, BasicPermitV2, EntityDetails, EntityID, Hex } from "./types";
+import type {
+    AllocationPermit,
+    BasicPermit,
+    BasicPermitV2,
+    EntityDetails,
+    EntityID,
+    Hex,
+    MyProfileResponse,
+} from "./types";
 
 export type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -180,6 +188,10 @@ export class SonarClient {
         return this.postJSON<TokenResponse>("/oauth.RefreshAccessToken", {
             refresh_token: args.refreshToken,
         });
+    }
+
+    async myProfile(): Promise<MyProfileResponse> {
+        return this.postJSON<MyProfileResponse>("/externalapi.MyProfile", {});
     }
 
     async prePurchaseCheck(args: {

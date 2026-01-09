@@ -92,3 +92,8 @@ export type EntityDetails = {
     SaleEligibility: SaleEligibility;
     InvestingRegion: InvestingRegion;
 };
+
+export type MyProfileResponse = {
+    EntityID: string;
+    EmailAddress?: string;
+};

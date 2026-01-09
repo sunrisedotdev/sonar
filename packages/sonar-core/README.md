@@ -72,6 +72,11 @@ export async function completeOAuthFromCallback() {
 export async function exampleCalls() {
     const { walletAddress } = useWallet(); // User's connected wallet.
 
+    // Get the authenticated user's profile information
+    const profile = await client.myProfile();
+    console.log(profile.EntityID); // Entity ID for the authenticated user
+    console.log(profile.EmailAddress); // Email address (if authorized with contact:email scope)
+
     // Read the entity for linked to the wallet for the configured sale.
     // If the authenticated user has not yet linked the wallet on Sonar, this will return a 404.
     const { Entity } = await client.readEntity({ saleUUID, walletAddress });
