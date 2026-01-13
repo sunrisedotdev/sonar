@@ -6,28 +6,27 @@ import {
     createBatches,
     waitForTransactionReceipt,
     listCommitmentDataWithAcceptedAmounts,
-    findUnsetAllocations,
+    findAllocationsNeedingUpdate,
     calculateTotalByToken,
     createContractWriter,
     createContractReader,
+    tryGetPrivateKey,
 } from "./utils.ts";
-import { validateAllAllocations } from "./validation.ts";
+import { validateAllocations } from "./validation.ts";
 import type { Allocation } from "./types.ts";
 import { readFileSync } from "fs";
-import * as readline from "readline";
 import { offchainSettlementAbi } from "./abis/IOffchainSettlement.ts";
 import { totalCommitmentsReaderAbi } from "./abis/ITotalCommitmentsReader.ts";
 import { totalAllocationsReaderAbi } from "./abis/ITotalAllocationsReader.ts";
-
-const BATCH_SIZE = 500; // Adjust based on gas limits
 
 interface Config {
     allocationsCsv: string;
     saleAddress: `0x${string}`;
     rpcUrl: string;
     paymentTokenDecimals: number;
-    allowedOverwrites: boolean;
+    allowOverwrites: boolean;
     dryRun: boolean;
+    batchSize: number;
 }
 
 function parseCliArgs(): Config {
@@ -35,11 +34,17 @@ function parseCliArgs(): Config {
         .name("set-allocations")
         .description("Set allocations on the sale contract from a CSV file")
         .requiredOption("--allocations-csv <path>", "Path to the allocations CSV file")
-        .requiredOption("--allowed-overwrites <boolean>", "Whether to allow overwrites", parseBoolean, false)
+        .requiredOption("--allow-overwrites <boolean>", "Whether to allow overwrites", parseBoolean, false)
         .requiredOption("--sale-address <address>", "Ethereum address of the sale contract", parseAddress)
         .requiredOption("--rpc-url <url>", "RPC URL to connect to")
         .requiredOption("--payment-token-decimals <decimals>", "Payment token decimals", parseInt, 6)
         .option("--dry-run <boolean>", "Validate without submitting transactions (default: true)", parseBoolean, true)
+        .option(
+            "--batch-size <size>",
+            "Number of allocations per batch (default: 200)",
+            (val) => parseInt(val, 10),
+            200,
+        )
         .parse();
 
     const opts = program.opts<{
@@ -47,8 +52,9 @@ function parseCliArgs(): Config {
         saleAddress: `0x${string}`;
         rpcUrl: string;
         paymentTokenDecimals: number;
-        allowedOverwrites: boolean;
+        allowOverwrites: boolean;
         dryRun: boolean;
+        batchSize: number;
     }>();
 
     return {
@@ -56,47 +62,22 @@ function parseCliArgs(): Config {
         rpcUrl: opts.rpcUrl,
         allocationsCsv: opts.allocationsCsv,
         paymentTokenDecimals: opts.paymentTokenDecimals,
-        allowedOverwrites: opts.allowedOverwrites,
+        allowOverwrites: opts.allowOverwrites,
         dryRun: opts.dryRun,
+        batchSize: opts.batchSize,
     };
-}
-
-function getPrivateKey(): `0x${string}` {
-    const envKey = process.env.PRIVATE_KEY;
-    if (!envKey) {
-        throw new Error("PRIVATE_KEY environment variable is required");
-    }
-    if (!envKey.startsWith("0x")) {
-        return `0x${envKey}` as `0x${string}`;
-    }
-    return envKey as `0x${string}`;
-}
-
-async function promptConfirmation(message: string): Promise<boolean> {
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-    });
-
-    return new Promise((resolve) => {
-        rl.question(`${message} [y/N]: `, (answer) => {
-            rl.close();
-            resolve(answer.toLowerCase() === "y" || answer.toLowerCase() === "yes");
-        });
-    });
 }
 
 async function run() {
     const config = parseCliArgs();
-    const privateKey = getPrivateKey();
     const totalCommitmentsReader = createContractReader(config, totalCommitmentsReaderAbi);
     const totalAllocationsReader = createContractReader(config, totalAllocationsReaderAbi);
-    const offchainSettlement = createContractWriter(config, privateKey, offchainSettlementAbi);
 
     // Read allocations from allocations.csv
     const allocations = readAllocations(config.allocationsCsv);
     console.log(`\nRead ${allocations.length} allocations from CSV`);
 
+    // TODO: Make sure this is logged!
     const totalToAllocateInCSV = calculateTotalByToken(allocations);
 
     console.log("Loading total committed...");
@@ -111,12 +92,11 @@ async function run() {
     // Create commitment data map for lookups
     const commitmentDataMap = new Map(commitmentData.map((c) => [c.saleSpecificEntityID, c]));
 
-    // Find unset allocations
-    const unsetAllocations = findUnsetAllocations(allocations, commitmentDataMap);
-    const totalUnsetAllocationByToken = calculateTotalByToken(unsetAllocations);
+    // Find allocations that need updating (where contract accepted != CSV accepted)
+    const allocationsToUpdate = findAllocationsNeedingUpdate(allocations, commitmentDataMap);
 
     // Run all validations
-    const validationResult = validateAllAllocations(allocations, commitmentDataMap);
+    const validationResult = validateAllocations(allocations, commitmentDataMap);
     if (!validationResult.valid) {
         const errorMessages = validationResult.errors
             .map((e) => `  - [${e.type}] ${e.message}: ${JSON.stringify(e.details)}`)
@@ -124,8 +104,8 @@ async function run() {
         throw new Error(`Validation failed with ${validationResult.errors.length} error(s):\n${errorMessages}`);
     }
 
-    // Create batches of allocations
-    const batches = createBatches(allocations, BATCH_SIZE);
+    // Create batches of allocations (only those needing updates)
+    const batches = createBatches(allocationsToUpdate.allocations, config.batchSize);
 
     console.log("\n=== SUMMARY ===");
     console.log(`Sale contract: ${config.saleAddress}`);
@@ -139,19 +119,19 @@ async function run() {
         console.log(`  ${token}: ${formatAmount(amount, config.paymentTokenDecimals)}`);
     }
     console.log();
+    console.log(`Number of committers in CSV: ${allocations.length}`);
+    console.log(`  of which already have a matching accepted amount in contract: ${allocationsToUpdate.numCorrectCSV}`);
+    console.log();
+    console.log(`Number of committers in contract: ${commitmentData.length}`);
+    console.log(`  of which already have a matching accepted amount: ${allocationsToUpdate.numCorrectContract}`);
+    console.log(`  of which have no accepted amount in contract and need to be set: ${allocationsToUpdate.numUnset}`);
     console.log(
-        `Total unique entity,wallet,token in CSV: ${allocations.length} (not allocated in contract: ${unsetAllocations.length})`,
+        `  of which have an accepted amount in contract but need to be overwritten: ${allocationsToUpdate.numOverwritten}`,
     );
-    console.log(`Total accepted by token in CSV:`);
-    for (const [token, total] of totalToAllocateInCSV) {
-        console.log(`  ${token}: ${formatAmount(total, config.paymentTokenDecimals)}`);
-    }
-    console.log(`Total accepted by token in CSV, not allocated in contract:`);
-    for (const [token, total] of totalUnsetAllocationByToken) {
-        console.log(`  ${token}: ${formatAmount(total, config.paymentTokenDecimals)}`);
-    }
+    console.log();
+    console.log(`Total number of allocations to update: ${allocationsToUpdate.allocations.length}`);
     console.log(`Batches to submit: ${batches.length}`);
-    console.log(`Allow overwrites: ${config.allowedOverwrites}`);
+    console.log(`Allow overwrites: ${config.allowOverwrites}`);
     console.log();
 
     // If dry-run mode, print summary and exit
@@ -159,16 +139,23 @@ async function run() {
         console.log("\n=== DRY RUN MODE ===");
         console.log("Validation passed. No transactions will be submitted.");
         console.log("To submit transactions, run with --dry-run false\n");
-        return;
     }
 
-    const confirmed = await promptConfirmation("Do you want to submit these transactions?");
-    if (!confirmed) {
-        console.log("Aborted by user.");
-        return;
+    const privateKey = tryGetPrivateKey();
+    if (!privateKey) {
+        // in dry run mode it's fine not to have a private key, and we just skip the transaction simulation
+        if (config.dryRun) {
+            console.log("No PRIVATE_KEY environment variable found, skipping transaction simulation");
+            return;
+        }
+
+        throw new Error("PRIVATE_KEY environment variable is required");
     }
 
+    const offchainSettlement = createContractWriter(config, privateKey, offchainSettlementAbi);
     console.log();
+
+    let totalGasEstimate = 0n;
 
     // Post the batches to the contract with `setAllocations`
     for (let i = 0; i < batches.length; i++) {
@@ -182,19 +169,40 @@ async function run() {
         }));
 
         const gasEstimate = await offchainSettlement.estimateGas.setAllocations(
-            [contractAllocations, config.allowedOverwrites],
+            [contractAllocations, config.allowOverwrites],
             {},
         );
-        console.log(`Batch ${i + 1} gas estimate: ${gasEstimate}`);
+        console.log(`  Gas estimate: ${gasEstimate}`);
+        totalGasEstimate += gasEstimate;
 
-        const hash = await offchainSettlement.write.setAllocations([contractAllocations, config.allowedOverwrites]);
-        console.log(`Batch ${i + 1} transaction hash: ${hash}`);
+        // we don't want to submit transactions in dry run mode
+        if (config.dryRun) {
+            console.log("  Dry run mode, skipping transaction submission");
+            continue;
+        }
+
+        // TODO: add config to increase priority fee
+
+        const hash = await offchainSettlement.write.setAllocations([contractAllocations, config.allowOverwrites]);
+        console.log(`  Transaction hash: ${hash}`);
 
         // Wait for transaction to be included in a block
         // This ensures the transaction is mined before sending the next one,
         // which allows viem to automatically manage nonces correctly
         const receipt = await waitForTransactionReceipt(config, hash);
-        console.log(`Batch ${i + 1} confirmed in block ${receipt.blockNumber}`);
+
+        if (receipt.status === "reverted") {
+            throw new Error(
+                `Batch ${i + 1} transaction reverted in block ${receipt.blockNumber}. Transaction hash: ${hash}`,
+            );
+        }
+
+        console.log(`  Confirmed in block ${receipt.blockNumber}`);
+    }
+
+    if (config.dryRun) {
+        console.log(`Total gas estimate: ${totalGasEstimate}`);
+        return;
     }
 
     console.log("\nAll batches have been submitted successfully.\n");
@@ -206,11 +214,6 @@ async function run() {
         console.log(`  ${token}: ${formatAmount(amount, config.paymentTokenDecimals)}`);
     }
 
-    if (totalAcceptedAfter.length !== totalToAllocateInCSV.size) {
-        console.warn(
-            `⚠ Warning: Total accepted amount by token after does not match total to allocate by token in CSV`,
-        );
-    }
     for (const { token, amount } of totalAcceptedAfter) {
         const totalToAllocate = totalToAllocateInCSV.get(token) ?? 0n;
         if (amount !== totalToAllocate) {
@@ -221,6 +224,15 @@ async function run() {
     }
 }
 
+const EXPECTED_HEADER = ["SALE_SPECIFIC_ENTITY_ID", "WALLET", "TOKEN", "ACCEPTED_AMOUNT"];
+
+export function isHeaderRow(fields: string[]): boolean {
+    if (fields.length !== EXPECTED_HEADER.length) {
+        return false;
+    }
+    return fields.every((field, i) => field.trim().toUpperCase() === EXPECTED_HEADER[i]);
+}
+
 // expects a CSV file with the following format:
 // SALE_SPECIFIC_ENTITY_ID,WALLET,TOKEN,ACCEPTED_AMOUNT
 // 0x...,...
@@ -229,8 +241,9 @@ function readAllocations(csvPath: string): Allocation[] {
 
     const lines = csvContent.trim().split("\n");
 
-    // Check if first line is a header (doesn't start with 0x)
-    const startIndex = lines.length > 0 && !lines[0].trim().startsWith("0x") ? 1 : 0;
+    // Check if first line is the expected header row
+    const firstLineFields = lines.length > 0 ? lines[0].split(",") : [];
+    const startIndex = isHeaderRow(firstLineFields) ? 1 : 0;
 
     return lines
         .slice(startIndex)
@@ -243,7 +256,8 @@ function readAllocations(csvPath: string): Allocation[] {
                 token: `0x${token.replace(/^0x/, "")}` as `0x${string}`,
                 acceptedAmount: BigInt(acceptedAmount),
             };
-        });
+        })
+        .filter((allocation) => allocation.acceptedAmount > 0n); // ignoring zero allocations to avoid messing with stats
 }
 
 run().catch(console.error);

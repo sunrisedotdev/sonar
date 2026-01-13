@@ -1,5 +1,10 @@
 import { Command, InvalidArgumentError } from "commander";
 import { type Config, listCommitmentDataWithAcceptedAmounts } from "./utils.ts";
+import { writeFileSync } from "fs";
+
+interface CliConfig extends Config {
+    outputCsv?: string;
+}
 
 function parseAddress(value: string): `0x${string}` {
     if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
@@ -10,19 +15,21 @@ function parseAddress(value: string): `0x${string}` {
     return value as `0x${string}`;
 }
 
-function parseCliArgs(): Config {
+function parseCliArgs(): CliConfig {
     const program = new Command()
         .name("commitment-data-csv")
         .description("Export commitment data to CSV format")
         .requiredOption("--sale-address <address>", "Ethereum address of the sale contract", parseAddress)
         .requiredOption("--rpc-url <url>", "RPC URL to connect to")
+        .option("--output-csv <path>", "Path to write CSV output (defaults to stdout)")
         .parse();
 
-    const opts = program.opts<{ saleAddress: `0x${string}`; rpcUrl: string }>();
+    const opts = program.opts<{ saleAddress: `0x${string}`; rpcUrl: string; outputCsv?: string }>();
 
     return {
         saleAddress: opts.saleAddress,
         rpcUrl: opts.rpcUrl,
+        outputCsv: opts.outputCsv,
     };
 }
 
@@ -67,7 +74,7 @@ async function run() {
         "EXTRA_DATA",
     ].join(",");
 
-    // Generate CSV rows
+    // CSV rows
     const rows = commitmentRows.map((row) => {
         const accepted = acceptedAmounts.get(`${row.entityId}:${row.wallet}:${row.token}`) ?? 0n;
         return [
@@ -84,8 +91,14 @@ async function run() {
         ].join(",");
     });
 
-    console.log(header);
-    rows.forEach((row) => console.log(row));
+    const csvContent = [header, ...rows].join("\n") + "\n";
+
+    if (config.outputCsv) {
+        writeFileSync(config.outputCsv, csvContent);
+        console.log(`Wrote ${rows.length} rows to ${config.outputCsv}`);
+    } else {
+        process.stdout.write(csvContent);
+    }
 }
 
 run().catch(console.error);

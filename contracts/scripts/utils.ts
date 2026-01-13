@@ -132,6 +132,17 @@ export function createBatches<T>(items: T[], batchSize: number): T[][] {
     return batches;
 }
 
+export function tryGetPrivateKey(): `0x${string}` | undefined {
+    const envKey = process.env.PRIVATE_KEY;
+    if (!envKey) {
+        return undefined;
+    }
+    if (!envKey.startsWith("0x")) {
+        return `0x${envKey}` as `0x${string}`;
+    }
+    return envKey as `0x${string}`;
+}
+
 export function parseBoolean(value: string): boolean {
     if (value === "true") return true;
     if (value === "false") return false;
@@ -151,27 +162,71 @@ export const formatAmount = (amount: bigint, decimals: number) => {
     return `${intAmount.toLocaleString()}.${decimalAmount.toString().padStart(decimals, "0")}`;
 };
 
-export function findUnsetAllocations(
-    allocations: Allocation[],
-    commitmentDataMap: Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>,
-): Allocation[] {
-    return allocations.filter((allocation) => {
-        const commitment = commitmentDataMap.get(allocation.saleSpecificEntityID);
-        if (!commitment) {
-            return false; // Should already have been caught by validation
-        }
-
-        const accepted = commitment.acceptedAmounts.find(
-            (a) => a.wallet === allocation.wallet && a.token === allocation.token,
-        );
-        return accepted === undefined || accepted.amount === 0n;
-    });
-}
-
 export function calculateTotalByToken(allocations: Allocation[]): Map<`0x${string}`, bigint> {
     return allocations.reduce((acc, allocation) => {
         const current = acc.get(allocation.token) ?? 0n;
         acc.set(allocation.token, current + allocation.acceptedAmount);
         return acc;
     }, new Map<`0x${string}`, bigint>());
+}
+
+export function findAllocationsNeedingUpdate(
+    allocations: Allocation[],
+    commitmentDataMap: Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>,
+): {
+    allocations: Allocation[];
+    numCorrectContract: number;
+    numCorrectCSV: number;
+    numUnset: number;
+    numOverwritten: number;
+} {
+    const allocationsMap = new Map(allocations.map((a) => [`${a.saleSpecificEntityID}:${a.wallet}:${a.token}`, a]));
+
+    const allocationsToUpdate: Allocation[] = [];
+    let numCorrectContract = 0;
+    let numCorrectCSV = 0;
+    let numUnset = 0;
+    let numOverwritten = 0;
+    for (const [entityID, commitment] of commitmentDataMap) {
+        for (const committedAmount of commitment.committedAmounts) {
+            const key = `${entityID}:${committedAmount.wallet}:${committedAmount.token}`;
+            // if the allocation is not in the CSV, we assume that it should be zero
+            const allocation = allocationsMap.get(key) ?? {
+                saleSpecificEntityID: entityID,
+                wallet: committedAmount.wallet,
+                token: committedAmount.token,
+                acceptedAmount: 0n,
+            };
+            const inCSV = allocationsMap.has(key);
+
+            const acceptedInContract =
+                commitment.acceptedAmounts.find(
+                    (a) => a.wallet === committedAmount.wallet && a.token === committedAmount.token,
+                )?.amount ?? 0n;
+
+            if (acceptedInContract === allocation.acceptedAmount) {
+                numCorrectContract++;
+                if (inCSV) {
+                    numCorrectCSV++;
+                }
+                continue;
+            }
+
+            if (acceptedInContract === 0n) {
+                numUnset++;
+            } else {
+                numOverwritten++;
+            }
+
+            allocationsToUpdate.push(allocation);
+        }
+    }
+
+    return {
+        allocations: allocationsToUpdate,
+        numCorrectContract,
+        numCorrectCSV,
+        numUnset,
+        numOverwritten,
+    };
 }

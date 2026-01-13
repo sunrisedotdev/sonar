@@ -5,7 +5,7 @@ import {
     validateNoDuplicateCommitments,
     validateEntitiesExistAndNotRefunded,
     validateAllocationsWithinCommitments,
-    validateAllAllocations,
+    validateAllocations,
 } from "./validation.ts";
 import { findUnsetAllocations, calculateTotalByToken } from "./utils.ts";
 import type { Allocation, CommitmentDataWithAcceptedAmounts } from "./types.ts";
@@ -445,7 +445,7 @@ describe("validateAllAllocations", () => {
             ],
         ]);
 
-        const result = validateAllAllocations(allocations, commitmentDataMap);
+        const result = validateAllocations(allocations, commitmentDataMap);
 
         expect(result.valid).toBe(true);
         expect(result.errors).toHaveLength(0);
@@ -467,7 +467,7 @@ describe("validateAllAllocations", () => {
             ],
         ]);
 
-        const result = validateAllAllocations(allocations, commitmentDataMap);
+        const result = validateAllocations(allocations, commitmentDataMap);
 
         expect(result.valid).toBe(false);
         expect(result.errors.length).toBeGreaterThan(1);
@@ -477,7 +477,7 @@ describe("validateAllAllocations", () => {
         const allocations = [makeAllocation({ saleSpecificEntityID: ENTITY_1 })];
         const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>(); // No entities
 
-        const result = validateAllAllocations(allocations, commitmentDataMap);
+        const result = validateAllocations(allocations, commitmentDataMap);
 
         expect(result.valid).toBe(false);
         expect(result.errors.some((e) => e.type === "entity_not_found")).toBe(true);
@@ -496,7 +496,7 @@ describe("validateAllAllocations", () => {
             ],
         ]);
 
-        const result = validateAllAllocations(allocations, commitmentDataMap);
+        const result = validateAllocations(allocations, commitmentDataMap);
 
         expect(result.valid).toBe(false);
         expect(result.errors.some((e) => e.type === "entity_refunded")).toBe(true);
@@ -514,7 +514,7 @@ describe("validateAllAllocations", () => {
             ],
         ]);
 
-        const result = validateAllAllocations(allocations, commitmentDataMap);
+        const result = validateAllocations(allocations, commitmentDataMap);
 
         expect(result.valid).toBe(false);
         expect(result.errors.some((e) => e.type === "exceeds_commitment")).toBe(true);

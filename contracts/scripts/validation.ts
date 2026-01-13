@@ -169,7 +169,7 @@ export function validateAllocationsWithinCommitments(
     return { valid: errors.length === 0, errors };
 }
 
-export function validateAllAllocations(
+export function validateAllocations(
     allocations: Allocation[],
     commitmentDataMap: Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>,
 ): ValidationResult {
