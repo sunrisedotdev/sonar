@@ -72,7 +72,6 @@ export enum PrePurchaseFailureReason {
     WALLET_RISK = "wallet-risk",
     MAX_WALLETS_USED = "max-wallets-used",
     REQUIRES_LIVENESS = "requires-liveness",
-    NO_CUSTOM_COMMITMENT_AMOUNT_LIMIT = "no-custom-commitment-amount-limit",
     SALE_NOT_ACTIVE = "sale-not-active",
     WALLET_NOT_LINKED = "wallet-not-linked",
 }
