@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-    AllocationResponse,
+    LimitsResponse,
     APIError,
     GeneratePurchasePermitResponse,
     ListAvailableEntitiesResponse,
@@ -227,24 +227,28 @@ describe("SonarClient", () => {
         } satisfies GeneratePurchasePermitResponse);
     });
 
-    it("sends correct payload for fetchAllocation", async () => {
+    it("sends correct payload for fetchLimits", async () => {
         const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
             const url = input as URL;
-            expect(url.pathname).toBe("/externalapi.Allocation");
+            expect(url.pathname).toBe("/externalapi.Limits");
             return mockResponse({
                 status: 200,
-                json: { HasReservedAllocation: false, ReservedAmountUSD: "0", MaxAmountUSD: "0" },
+                json: {
+                    HasCustomCommitmentAmountLimit: false,
+                    MinCommitmentAmount: "0",
+                    MaxCommitmentAmount: "0",
+                },
             });
         });
 
         const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
-        const allocation = await client.fetchAllocation({ saleUUID: "s", walletAddress: "w" });
+        const limits = await client.fetchLimits({ saleUUID: "s", walletAddress: "w" });
 
-        expect(allocation).toEqual({
-            HasReservedAllocation: false,
-            ReservedAmountUSD: "0",
-            MaxAmountUSD: "0",
-        } satisfies AllocationResponse);
+        expect(limits).toEqual({
+            HasCustomCommitmentAmountLimit: false,
+            MinCommitmentAmount: "0",
+            MaxCommitmentAmount: "0",
+        } satisfies LimitsResponse);
     });
 
     it("sends correct payload for readEntity", async () => {

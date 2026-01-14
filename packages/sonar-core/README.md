@@ -103,9 +103,9 @@ export async function exampleCalls() {
         console.log(permit.Signature, permit.Permit);
     }
 
-    // Fetch allocation
-    const alloc = await client.fetchAllocation({ saleUUID, walletAddress });
-    console.log(alloc);
+    // Fetch limits
+    const limits = await client.fetchLimits({ saleUUID, walletAddress });
+    console.log(limits);
 }
 ```
 
