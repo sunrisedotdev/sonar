@@ -16,8 +16,6 @@ import { validateAllocations } from "./validation.ts";
 import type { Allocation } from "./types.ts";
 import { readFileSync } from "fs";
 import { settlementSaleAbi } from "./abis/SettlementSale.ts";
-import { totalCommitmentsReaderAbi } from "./abis/ITotalCommitmentsReader.ts";
-import { totalAllocationsReaderAbi } from "./abis/ITotalAllocationsReader.ts";
 import { getAddress } from "viem";
 
 interface Config {
@@ -79,8 +77,7 @@ function parseCliArgs(): Config {
 
 async function run() {
     const config = parseCliArgs();
-    const totalCommitmentsReader = createContractReader(config, totalCommitmentsReaderAbi);
-    const totalAllocationsReader = createContractReader(config, totalAllocationsReaderAbi);
+    const contractReader = createContractReader(config, settlementSaleAbi);
 
     // Read allocations from allocations.csv
     const allocations = readAllocations(config.allocationsCsv);
@@ -93,10 +90,10 @@ async function run() {
     }
 
     console.log("Loading total committed...");
-    const totalCommitted = await totalCommitmentsReader.read.totalCommittedAmountByToken();
+    const totalCommitted = await contractReader.read.totalCommittedAmountByToken();
 
     console.log("Loading total accepted...");
-    const totalAccepted = await totalAllocationsReader.read.totalAcceptedAmountByToken();
+    const totalAccepted = await contractReader.read.totalAcceptedAmountByToken();
 
     console.log("Loading commitment data...");
     const commitmentData = await listCommitmentDataWithAcceptedAmounts(config);
@@ -218,7 +215,7 @@ async function run() {
     console.log("\nAll batches have been submitted successfully.\n");
 
     // Check that all transactions are done and fetch the total allocated amount from the contract
-    const totalAcceptedAfter = await totalAllocationsReader.read.totalAcceptedAmountByToken();
+    const totalAcceptedAfter = await contractReader.read.totalAcceptedAmountByToken();
     console.log(`Total accept by token after:`);
     for (const { token, amount } of totalAcceptedAfter) {
         console.log(`  ${token}: ${formatAmount(amount, config.paymentTokenDecimals)}`);

@@ -1,8 +1,7 @@
 import { Abi, createPublicClient, createWalletClient, getContract, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { mainnet } from "viem/chains";
-import { commitmentDataReaderAbi } from "./abis/ICommitmentDataReader";
-import { entityAllocationDataReaderAbi } from "./abis/IEntityAllocationDataReader";
+import { settlementSaleAbi } from "./abis/SettlementSale.ts";
 import type { Allocation, CommitmentDataWithAcceptedAmounts } from "./types.ts";
 
 export interface Config {
@@ -65,7 +64,7 @@ async function listInBatches<T>(
 }
 
 async function listCommitmentData(config: Config) {
-    const reader = createContractReader(config, commitmentDataReaderAbi);
+    const reader = createContractReader(config, settlementSaleAbi);
 
     return listInBatches(
         () => reader.read.numCommitments(),
@@ -74,7 +73,7 @@ async function listCommitmentData(config: Config) {
 }
 
 async function listEntityAllocationData(config: Config) {
-    const reader = createContractReader(config, entityAllocationDataReaderAbi);
+    const reader = createContractReader(config, settlementSaleAbi);
 
     return listInBatches(
         () => reader.read.numEntityAllocations(),
