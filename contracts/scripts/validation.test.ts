@@ -7,7 +7,7 @@ import {
     validateAllocationsWithinCommitments,
     validateAllocations,
 } from "./validation.ts";
-import { findUnsetAllocations, calculateTotalByToken } from "./utils.ts";
+import { calculateTotalByToken } from "./utils.ts";
 import type { Allocation, CommitmentDataWithAcceptedAmounts } from "./types.ts";
 
 // Test fixtures
@@ -175,21 +175,21 @@ describe("validateEntitiesExistAndNotRefunded", () => {
             makeAllocation({ saleSpecificEntityID: ENTITY_1 }),
             makeAllocation({ saleSpecificEntityID: ENTITY_2 }),
         ];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [ENTITY_1, makeCommitmentData({ saleSpecificEntityID: ENTITY_1, refunded: false })],
-            [ENTITY_2, makeCommitmentData({ saleSpecificEntityID: ENTITY_2, refunded: false })],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({ saleSpecificEntityID: ENTITY_1, refunded: false }),
+            makeCommitmentData({ saleSpecificEntityID: ENTITY_2, refunded: false }),
+        ];
 
-        const result = validateEntitiesExistAndNotRefunded(allocations, commitmentDataMap);
+        const result = validateEntitiesExistAndNotRefunded(allocations, commitmentData);
 
         expect(result.valid).toBe(true);
     });
 
     it("returns error when entity does not exist", () => {
         const allocations = [makeAllocation({ saleSpecificEntityID: ENTITY_1 })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>();
+        const commitmentData: CommitmentDataWithAcceptedAmounts[] = [];
 
-        const result = validateEntitiesExistAndNotRefunded(allocations, commitmentDataMap);
+        const result = validateEntitiesExistAndNotRefunded(allocations, commitmentData);
 
         expect(result.valid).toBe(false);
         expect(result.errors[0].type).toBe("entity_not_found");
@@ -197,11 +197,9 @@ describe("validateEntitiesExistAndNotRefunded", () => {
 
     it("returns error when entity is refunded", () => {
         const allocations = [makeAllocation({ saleSpecificEntityID: ENTITY_1 })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [ENTITY_1, makeCommitmentData({ saleSpecificEntityID: ENTITY_1, refunded: true })],
-        ]);
+        const commitmentData = [makeCommitmentData({ saleSpecificEntityID: ENTITY_1, refunded: true })];
 
-        const result = validateEntitiesExistAndNotRefunded(allocations, commitmentDataMap);
+        const result = validateEntitiesExistAndNotRefunded(allocations, commitmentData);
 
         expect(result.valid).toBe(false);
         expect(result.errors[0].type).toBe("entity_refunded");
@@ -212,11 +210,9 @@ describe("validateEntitiesExistAndNotRefunded", () => {
             makeAllocation({ saleSpecificEntityID: ENTITY_1 }),
             makeAllocation({ saleSpecificEntityID: ENTITY_2 }),
         ];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [ENTITY_2, makeCommitmentData({ saleSpecificEntityID: ENTITY_2, refunded: true })],
-        ]);
+        const commitmentData = [makeCommitmentData({ saleSpecificEntityID: ENTITY_2, refunded: true })];
 
-        const result = validateEntitiesExistAndNotRefunded(allocations, commitmentDataMap);
+        const result = validateEntitiesExistAndNotRefunded(allocations, commitmentData);
 
         expect(result.valid).toBe(false);
         expect(result.errors).toHaveLength(2);
@@ -235,51 +231,42 @@ describe("validateAllocationsWithinCommitments", () => {
                 acceptedAmount: 1000n,
             }),
         ];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                saleSpecificEntityID: ENTITY_1,
+                committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+            }),
+        ];
 
-        const result = validateAllocationsWithinCommitments(allocations, commitmentDataMap);
+        const result = validateAllocationsWithinCommitments(allocations, commitmentData);
 
         expect(result.valid).toBe(true);
     });
 
     it("returns valid when allocation is less than committed amount", () => {
         const allocations = [makeAllocation({ acceptedAmount: 500n })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                saleSpecificEntityID: ENTITY_1,
+                committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+            }),
+        ];
 
-        const result = validateAllocationsWithinCommitments(allocations, commitmentDataMap);
+        const result = validateAllocationsWithinCommitments(allocations, commitmentData);
 
         expect(result.valid).toBe(true);
     });
 
     it("returns error when allocation exceeds committed amount", () => {
         const allocations = [makeAllocation({ acceptedAmount: 1500n })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                saleSpecificEntityID: ENTITY_1,
+                committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+            }),
+        ];
 
-        const result = validateAllocationsWithinCommitments(allocations, commitmentDataMap);
+        const result = validateAllocationsWithinCommitments(allocations, commitmentData);
 
         expect(result.valid).toBe(false);
         expect(result.errors[0].type).toBe("exceeds_commitment");
@@ -289,27 +276,24 @@ describe("validateAllocationsWithinCommitments", () => {
         const allocations = [
             makeAllocation({ wallet: WALLET_B }), // Different wallet
         ];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                saleSpecificEntityID: ENTITY_1,
+                committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+            }),
+        ];
 
-        const result = validateAllocationsWithinCommitments(allocations, commitmentDataMap);
+        const result = validateAllocationsWithinCommitments(allocations, commitmentData);
 
         expect(result.valid).toBe(false);
         expect(result.errors[0].type).toBe("no_matching_commitment");
     });
 
-    it("skips entities not in map (handled by other validation)", () => {
+    it("skips entities not in array (handled by other validation)", () => {
         const allocations = [makeAllocation({ saleSpecificEntityID: ENTITY_1 })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>();
+        const commitmentData: CommitmentDataWithAcceptedAmounts[] = [];
 
-        const result = validateAllocationsWithinCommitments(allocations, commitmentDataMap);
+        const result = validateAllocationsWithinCommitments(allocations, commitmentData);
 
         expect(result.valid).toBe(true); // This validation doesn't check for missing entities
     });
@@ -327,87 +311,6 @@ describe("createCommitmentDataMap", () => {
         expect(map.size).toBe(2);
         expect(map.get(ENTITY_1)?.saleSpecificEntityID).toBe(ENTITY_1);
         expect(map.get(ENTITY_2)?.saleSpecificEntityID).toBe(ENTITY_2);
-    });
-});
-
-describe("findUnsetAllocations", () => {
-    it("returns allocations that have no accepted amount", () => {
-        const allocations = [makeAllocation({ saleSpecificEntityID: ENTITY_1 })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    acceptedAmounts: [], // No accepted amounts
-                }),
-            ],
-        ]);
-
-        const unset = findUnsetAllocations(allocations, commitmentDataMap);
-
-        expect(unset).toHaveLength(1);
-    });
-
-    it("returns allocations where accepted amount is zero", () => {
-        const allocations = [makeAllocation({ saleSpecificEntityID: ENTITY_1 })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    acceptedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 0n }],
-                }),
-            ],
-        ]);
-
-        const unset = findUnsetAllocations(allocations, commitmentDataMap);
-
-        expect(unset).toHaveLength(1);
-    });
-
-    it("excludes allocations that have been set (non-zero accepted amount)", () => {
-        const allocations = [makeAllocation({ saleSpecificEntityID: ENTITY_1 })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    acceptedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-        ]);
-
-        const unset = findUnsetAllocations(allocations, commitmentDataMap);
-
-        expect(unset).toHaveLength(0);
-    });
-
-    it("handles mix of set and unset allocations", () => {
-        const allocations = [
-            makeAllocation({ saleSpecificEntityID: ENTITY_1, wallet: WALLET_A }),
-            makeAllocation({ saleSpecificEntityID: ENTITY_1, wallet: WALLET_B }),
-        ];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    committedAmounts: [
-                        { wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n },
-                        { wallet: WALLET_B, token: TOKEN_USDC, amount: 500n },
-                    ],
-                    acceptedAmounts: [
-                        { wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }, // Set
-                        // WALLET_B not set
-                    ],
-                }),
-            ],
-        ]);
-
-        const unset = findUnsetAllocations(allocations, commitmentDataMap);
-
-        expect(unset).toHaveLength(1);
-        expect(unset[0].wallet).toBe(WALLET_B);
     });
 });
 
@@ -435,17 +338,14 @@ describe("calculateTotalByToken", () => {
 describe("validateAllAllocations", () => {
     it("returns valid for correct allocations", () => {
         const allocations = [makeAllocation({ saleSpecificEntityID: ENTITY_1, acceptedAmount: 500n })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                saleSpecificEntityID: ENTITY_1,
+                committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+            }),
+        ];
 
-        const result = validateAllocations(allocations, commitmentDataMap);
+        const result = validateAllocations(allocations, commitmentData);
 
         expect(result.valid).toBe(true);
         expect(result.errors).toHaveLength(0);
@@ -457,17 +357,14 @@ describe("validateAllAllocations", () => {
             makeAllocation({ saleSpecificEntityID: ENTITY_1, acceptedAmount: 100n }), // duplicate entity
             makeAllocation({ saleSpecificEntityID: ENTITY_1, acceptedAmount: 100n }), // duplicate
         ];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                saleSpecificEntityID: ENTITY_1,
+                committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+            }),
+        ];
 
-        const result = validateAllocations(allocations, commitmentDataMap);
+        const result = validateAllocations(allocations, commitmentData);
 
         expect(result.valid).toBe(false);
         expect(result.errors.length).toBeGreaterThan(1);
@@ -475,9 +372,9 @@ describe("validateAllAllocations", () => {
 
     it("catches entity not found", () => {
         const allocations = [makeAllocation({ saleSpecificEntityID: ENTITY_1 })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>(); // No entities
+        const commitmentData: CommitmentDataWithAcceptedAmounts[] = []; // No entities
 
-        const result = validateAllocations(allocations, commitmentDataMap);
+        const result = validateAllocations(allocations, commitmentData);
 
         expect(result.valid).toBe(false);
         expect(result.errors.some((e) => e.type === "entity_not_found")).toBe(true);
@@ -485,18 +382,15 @@ describe("validateAllAllocations", () => {
 
     it("catches refunded entity", () => {
         const allocations = [makeAllocation({ saleSpecificEntityID: ENTITY_1 })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    refunded: true,
-                    committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                saleSpecificEntityID: ENTITY_1,
+                refunded: true,
+                committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+            }),
+        ];
 
-        const result = validateAllocations(allocations, commitmentDataMap);
+        const result = validateAllocations(allocations, commitmentData);
 
         expect(result.valid).toBe(false);
         expect(result.errors.some((e) => e.type === "entity_refunded")).toBe(true);
@@ -504,17 +398,14 @@ describe("validateAllAllocations", () => {
 
     it("catches allocation exceeding commitment", () => {
         const allocations = [makeAllocation({ saleSpecificEntityID: ENTITY_1, acceptedAmount: 2000n })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                saleSpecificEntityID: ENTITY_1,
+                committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+            }),
+        ];
 
-        const result = validateAllocations(allocations, commitmentDataMap);
+        const result = validateAllocations(allocations, commitmentData);
 
         expect(result.valid).toBe(false);
         expect(result.errors.some((e) => e.type === "exceeds_commitment")).toBe(true);

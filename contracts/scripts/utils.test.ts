@@ -38,16 +38,13 @@ function makeCommitmentData(
 describe("findAllocationsNeedingUpdate", () => {
     it("returns allocations where contract accepted differs from CSV accepted", () => {
         const allocations = [makeAllocation({ acceptedAmount: 500n })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    acceptedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                acceptedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+            }),
+        ];
 
-        const result = findAllocationsNeedingUpdate(allocations, commitmentDataMap);
+        const result = findAllocationsNeedingUpdate(allocations, commitmentData);
 
         expect(result.allocations).toHaveLength(1);
         expect(result.allocations[0].wallet).toBe(WALLET_A);
@@ -57,46 +54,40 @@ describe("findAllocationsNeedingUpdate", () => {
 
     it("excludes allocations that already match the contract", () => {
         const allocations = [makeAllocation({ acceptedAmount: 1000n })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    acceptedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                acceptedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+            }),
+        ];
 
-        const result = findAllocationsNeedingUpdate(allocations, commitmentDataMap);
+        const result = findAllocationsNeedingUpdate(allocations, commitmentData);
 
         expect(result.allocations).toHaveLength(0);
         expect(result.numCorrectContract).toBe(1);
         expect(result.numCorrectCSV).toBe(1);
     });
 
-    it("does not include allocations for wallets not in commitmentDataMap", () => {
-        // The function iterates over commitmentDataMap, so wallets only in CSV
-        // but not in commitmentDataMap are not returned
+    it("does not include allocations for wallets not in commitmentData", () => {
+        // The function iterates over commitmentData, so wallets only in CSV
+        // but not in commitmentData are not returned
         const allocations = [makeAllocation({ acceptedAmount: 1000n })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>();
+        const commitmentData: CommitmentDataWithAcceptedAmounts[] = [];
 
-        const result = findAllocationsNeedingUpdate(allocations, commitmentDataMap);
+        const result = findAllocationsNeedingUpdate(allocations, commitmentData);
 
         expect(result.allocations).toHaveLength(0);
     });
 
     it("returns zero-amount allocations for committed wallets with accepted amounts not in CSV", () => {
         const allocations: Allocation[] = []; // Empty CSV - no allocations
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                    acceptedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+                acceptedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+            }),
+        ];
 
-        const result = findAllocationsNeedingUpdate(allocations, commitmentDataMap);
+        const result = findAllocationsNeedingUpdate(allocations, commitmentData);
 
         expect(result.allocations).toHaveLength(1);
         expect(result.allocations[0].wallet).toBe(WALLET_A);
@@ -106,17 +97,14 @@ describe("findAllocationsNeedingUpdate", () => {
 
     it("ignores commitments with zero accepted amounts not in CSV", () => {
         const allocations: Allocation[] = [];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                    acceptedAmounts: [], // No accepted amounts
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+                acceptedAmounts: [], // No accepted amounts
+            }),
+        ];
 
-        const result = findAllocationsNeedingUpdate(allocations, commitmentDataMap);
+        const result = findAllocationsNeedingUpdate(allocations, commitmentData);
 
         expect(result.allocations).toHaveLength(0);
         expect(result.numCorrectContract).toBe(1);
@@ -128,32 +116,26 @@ describe("findAllocationsNeedingUpdate", () => {
             makeAllocation({ saleSpecificEntityID: ENTITY_2, wallet: WALLET_B, acceptedAmount: 200n }), // already correct
         ];
         const WALLET_C = "0x000000000000000000000000000000000000000c" as const;
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_1,
-                    committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                    acceptedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                }),
-            ],
-            [
-                ENTITY_2,
-                makeCommitmentData({
-                    saleSpecificEntityID: ENTITY_2,
-                    committedAmounts: [
-                        { wallet: WALLET_B, token: TOKEN_USDC, amount: 200n },
-                        { wallet: WALLET_C, token: TOKEN_USDC, amount: 300n },
-                    ],
-                    acceptedAmounts: [
-                        { wallet: WALLET_B, token: TOKEN_USDC, amount: 200n },
-                        { wallet: WALLET_C, token: TOKEN_USDC, amount: 300n }, // not in CSV, should be zeroed
-                    ],
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                saleSpecificEntityID: ENTITY_1,
+                committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+                acceptedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+            }),
+            makeCommitmentData({
+                saleSpecificEntityID: ENTITY_2,
+                committedAmounts: [
+                    { wallet: WALLET_B, token: TOKEN_USDC, amount: 200n },
+                    { wallet: WALLET_C, token: TOKEN_USDC, amount: 300n },
+                ],
+                acceptedAmounts: [
+                    { wallet: WALLET_B, token: TOKEN_USDC, amount: 200n },
+                    { wallet: WALLET_C, token: TOKEN_USDC, amount: 300n }, // not in CSV, should be zeroed
+                ],
+            }),
+        ];
 
-        const result = findAllocationsNeedingUpdate(allocations, commitmentDataMap);
+        const result = findAllocationsNeedingUpdate(allocations, commitmentData);
 
         expect(result.allocations).toHaveLength(2);
         const wallets = result.allocations.map((a) => a.wallet);
@@ -173,17 +155,14 @@ describe("findAllocationsNeedingUpdate", () => {
 
     it("tracks numUnset for allocations where contract has zero but CSV has non-zero", () => {
         const allocations = [makeAllocation({ acceptedAmount: 500n })];
-        const commitmentDataMap = new Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>([
-            [
-                ENTITY_1,
-                makeCommitmentData({
-                    committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
-                    acceptedAmounts: [], // No accepted amount in contract
-                }),
-            ],
-        ]);
+        const commitmentData = [
+            makeCommitmentData({
+                committedAmounts: [{ wallet: WALLET_A, token: TOKEN_USDC, amount: 1000n }],
+                acceptedAmounts: [], // No accepted amount in contract
+            }),
+        ];
 
-        const result = findAllocationsNeedingUpdate(allocations, commitmentDataMap);
+        const result = findAllocationsNeedingUpdate(allocations, commitmentData);
 
         expect(result.allocations).toHaveLength(1);
         expect(result.allocations[0].acceptedAmount).toBe(500n);
