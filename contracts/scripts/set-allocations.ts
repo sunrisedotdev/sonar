@@ -261,9 +261,9 @@ function readAllocations(csvPath: string): Allocation[] {
         .map((line) => {
             const [saleSpecificEntityID, wallet, token, acceptedAmount] = line.split(",").map((s) => s.trim());
             return {
-                saleSpecificEntityID: `0x${saleSpecificEntityID.replace(/^0x/, "")}` as `0x${string}`,
-                wallet: getAddress(`0x${wallet.replace(/^0x/, "")}`),
-                token: getAddress(`0x${token.replace(/^0x/, "")}`),
+                saleSpecificEntityID: saleSpecificEntityID as `0x${string}`,
+                wallet: getAddress(wallet),
+                token: getAddress(token),
                 acceptedAmount: BigInt(acceptedAmount),
             };
         });
