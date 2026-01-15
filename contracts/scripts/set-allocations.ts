@@ -131,7 +131,7 @@ async function run() {
     console.log(`  of which already have a matching accepted amount in contract: ${allocationsToUpdate.numCorrectCSV}`);
     console.log();
     console.log(
-        `Number of non-refunded, possible zero, commitments by entity,wallet,token in contract: ${allocationsToUpdate.numContract}`,
+        `Number of non-refunded, possibly zero, commitments by entity,wallet,token in contract: ${allocationsToUpdate.numContract}`,
     );
     console.log(`  of which already have a matching accepted amount: ${allocationsToUpdate.numCorrectContract}`);
     console.log(`  of which have no accepted amount in contract and need to be set: ${allocationsToUpdate.numUnset}`);
