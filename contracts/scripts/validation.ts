@@ -88,9 +88,11 @@ export function validateNoDuplicateCommitments(commitmentData: CommitmentDataWit
 
 export function validateEntitiesExistAndNotRefunded(
     allocations: Allocation[],
-    commitmentDataMap: Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>,
+    commitmentData: CommitmentDataWithAcceptedAmounts[],
 ): ValidationResult {
     const errors: ValidationError[] = [];
+
+    const commitmentDataMap = new Map(commitmentData.map((c) => [c.saleSpecificEntityID, c]));
 
     for (const allocation of allocations) {
         const commitment = commitmentDataMap.get(allocation.saleSpecificEntityID);
@@ -122,23 +124,21 @@ export function validateEntitiesExistAndNotRefunded(
 
 export function validateAllocationsWithinCommitments(
     allocations: Allocation[],
-    commitmentDataMap: Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>,
+    commitmentData: CommitmentDataWithAcceptedAmounts[],
 ): ValidationResult {
     const errors: ValidationError[] = [];
 
+    const committedAmountsMap = new Map(
+        commitmentData.flatMap((c) =>
+            c.committedAmounts.map((a) => [`${c.saleSpecificEntityID}:${a.wallet}:${a.token}`, a.amount]),
+        ),
+    );
+
     for (const allocation of allocations) {
-        const commitment = commitmentDataMap.get(allocation.saleSpecificEntityID);
+        const key = `${allocation.saleSpecificEntityID}:${allocation.wallet}:${allocation.token}`;
+        const committedAmount = committedAmountsMap.get(key);
 
-        if (!commitment) {
-            // This is handled by validateEntitiesExistAndNotRefunded
-            continue;
-        }
-
-        const matchingCommitted = commitment.committedAmounts.find(
-            (c) => c.wallet === allocation.wallet && c.token === allocation.token,
-        );
-
-        if (!matchingCommitted) {
+        if (!committedAmount) {
             errors.push({
                 type: "no_matching_commitment",
                 message: `No matching commitment found`,
@@ -151,7 +151,7 @@ export function validateAllocationsWithinCommitments(
             continue;
         }
 
-        if (allocation.acceptedAmount > matchingCommitted.amount) {
+        if (allocation.acceptedAmount > committedAmount) {
             errors.push({
                 type: "exceeds_commitment",
                 message: `Allocation exceeds committed amount`,
@@ -160,7 +160,7 @@ export function validateAllocationsWithinCommitments(
                     wallet: allocation.wallet,
                     token: allocation.token,
                     acceptedAmount: allocation.acceptedAmount.toString(),
-                    committedAmount: matchingCommitted.amount.toString(),
+                    committedAmount: committedAmount.toString(),
                 },
             });
         }
@@ -171,7 +171,7 @@ export function validateAllocationsWithinCommitments(
 
 export function validateAllocations(
     allocations: Allocation[],
-    commitmentDataMap: Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>,
+    commitmentData: CommitmentDataWithAcceptedAmounts[],
 ): ValidationResult {
     const allErrors: ValidationError[] = [];
 
@@ -183,15 +183,14 @@ export function validateAllocations(
     allErrors.push(...noDuplicateAlloc.errors);
 
     // Validate commitment data
-    const commitmentData = Array.from(commitmentDataMap.values());
     const noDuplicateCommit = validateNoDuplicateCommitments(commitmentData);
     allErrors.push(...noDuplicateCommit.errors);
 
     // Cross-validate allocations against commitments
-    const entitiesValid = validateEntitiesExistAndNotRefunded(allocations, commitmentDataMap);
+    const entitiesValid = validateEntitiesExistAndNotRefunded(allocations, commitmentData);
     allErrors.push(...entitiesValid.errors);
 
-    const withinCommitments = validateAllocationsWithinCommitments(allocations, commitmentDataMap);
+    const withinCommitments = validateAllocationsWithinCommitments(allocations, commitmentData);
     allErrors.push(...withinCommitments.errors);
 
     return { valid: allErrors.length === 0, errors: allErrors };

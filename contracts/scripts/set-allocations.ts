@@ -15,9 +15,10 @@ import {
 import { validateAllocations } from "./validation.ts";
 import type { Allocation } from "./types.ts";
 import { readFileSync } from "fs";
-import { offchainSettlementAbi } from "./abis/IOffchainSettlement.ts";
+import { settlementSaleAbi } from "./abis/SettlementSale.ts";
 import { totalCommitmentsReaderAbi } from "./abis/ITotalCommitmentsReader.ts";
 import { totalAllocationsReaderAbi } from "./abis/ITotalAllocationsReader.ts";
+import { getAddress } from "viem";
 
 interface Config {
     allocationsCsv: string;
@@ -27,6 +28,7 @@ interface Config {
     allowOverwrites: boolean;
     dryRun: boolean;
     batchSize: number;
+    maxPriorityFeePerGas: bigint | undefined;
 }
 
 function parseCliArgs(): Config {
@@ -45,6 +47,11 @@ function parseCliArgs(): Config {
             (val) => parseInt(val, 10),
             200,
         )
+        .option(
+            "--max-priority-fee-per-gas <wei>",
+            "Max priority fee per gas in wei (optional, for faster inclusion)",
+            (val) => BigInt(val),
+        )
         .parse();
 
     const opts = program.opts<{
@@ -55,6 +62,7 @@ function parseCliArgs(): Config {
         allowOverwrites: boolean;
         dryRun: boolean;
         batchSize: number;
+        maxPriorityFeePerGas: bigint | undefined;
     }>();
 
     return {
@@ -65,6 +73,7 @@ function parseCliArgs(): Config {
         allowOverwrites: opts.allowOverwrites,
         dryRun: opts.dryRun,
         batchSize: opts.batchSize,
+        maxPriorityFeePerGas: opts.maxPriorityFeePerGas,
     };
 }
 
@@ -77,8 +86,11 @@ async function run() {
     const allocations = readAllocations(config.allocationsCsv);
     console.log(`\nRead ${allocations.length} allocations from CSV`);
 
-    // TODO: Make sure this is logged!
     const totalToAllocateInCSV = calculateTotalByToken(allocations);
+    console.log(` with a total by token of:`);
+    for (const [token, amount] of totalToAllocateInCSV) {
+        console.log(`  ${token}: ${formatAmount(amount, config.paymentTokenDecimals)}`);
+    }
 
     console.log("Loading total committed...");
     const totalCommitted = await totalCommitmentsReader.read.totalCommittedAmountByToken();
@@ -89,14 +101,11 @@ async function run() {
     console.log("Loading commitment data...");
     const commitmentData = await listCommitmentDataWithAcceptedAmounts(config);
 
-    // Create commitment data map for lookups
-    const commitmentDataMap = new Map(commitmentData.map((c) => [c.saleSpecificEntityID, c]));
-
     // Find allocations that need updating (where contract accepted != CSV accepted)
-    const allocationsToUpdate = findAllocationsNeedingUpdate(allocations, commitmentDataMap);
+    const allocationsToUpdate = findAllocationsNeedingUpdate(allocations, commitmentData);
 
     // Run all validations
-    const validationResult = validateAllocations(allocations, commitmentDataMap);
+    const validationResult = validateAllocations(allocations, commitmentData);
     if (!validationResult.valid) {
         const errorMessages = validationResult.errors
             .map((e) => `  - [${e.type}] ${e.message}: ${JSON.stringify(e.details)}`)
@@ -109,8 +118,7 @@ async function run() {
 
     console.log("\n=== SUMMARY ===");
     console.log(`Sale contract: ${config.saleAddress}`);
-    console.log(`Committers in contract: ${commitmentData.length}`);
-    console.log(`Total committed by token in contract:`);
+    console.log(`Total committed by token in contract (including refunds):`);
     for (const { token, amount } of totalCommitted) {
         console.log(`  ${token}: ${formatAmount(amount, config.paymentTokenDecimals)}`);
     }
@@ -119,10 +127,12 @@ async function run() {
         console.log(`  ${token}: ${formatAmount(amount, config.paymentTokenDecimals)}`);
     }
     console.log();
-    console.log(`Number of committers in CSV: ${allocations.length}`);
+    console.log(`Number of allocations in CSV: ${allocations.length}`);
     console.log(`  of which already have a matching accepted amount in contract: ${allocationsToUpdate.numCorrectCSV}`);
     console.log();
-    console.log(`Number of committers in contract: ${commitmentData.length}`);
+    console.log(
+        `Number of non-refunded, possible zero, commitments by entity,wallet,token in contract: ${allocationsToUpdate.numContract}`,
+    );
     console.log(`  of which already have a matching accepted amount: ${allocationsToUpdate.numCorrectContract}`);
     console.log(`  of which have no accepted amount in contract and need to be set: ${allocationsToUpdate.numUnset}`);
     console.log(
@@ -152,7 +162,7 @@ async function run() {
         throw new Error("PRIVATE_KEY environment variable is required");
     }
 
-    const offchainSettlement = createContractWriter(config, privateKey, offchainSettlementAbi);
+    const offchainSettlement = createContractWriter(config, privateKey, settlementSaleAbi);
     console.log();
 
     let totalGasEstimate = 0n;
@@ -181,9 +191,9 @@ async function run() {
             continue;
         }
 
-        // TODO: add config to increase priority fee
-
-        const hash = await offchainSettlement.write.setAllocations([contractAllocations, config.allowOverwrites]);
+        const hash = await offchainSettlement.write.setAllocations([contractAllocations, config.allowOverwrites], {
+            maxPriorityFeePerGas: config.maxPriorityFeePerGas,
+        });
         console.log(`  Transaction hash: ${hash}`);
 
         // Wait for transaction to be included in a block
@@ -252,12 +262,11 @@ function readAllocations(csvPath: string): Allocation[] {
             const [saleSpecificEntityID, wallet, token, acceptedAmount] = line.split(",").map((s) => s.trim());
             return {
                 saleSpecificEntityID: `0x${saleSpecificEntityID.replace(/^0x/, "")}` as `0x${string}`,
-                wallet: `0x${wallet.replace(/^0x/, "")}` as `0x${string}`,
-                token: `0x${token.replace(/^0x/, "")}` as `0x${string}`,
+                wallet: getAddress(`0x${wallet.replace(/^0x/, "")}`),
+                token: getAddress(`0x${token.replace(/^0x/, "")}`),
                 acceptedAmount: BigInt(acceptedAmount),
             };
-        })
-        .filter((allocation) => allocation.acceptedAmount > 0n); // ignoring zero allocations to avoid messing with stats
+        });
 }
 
 run().catch(console.error);

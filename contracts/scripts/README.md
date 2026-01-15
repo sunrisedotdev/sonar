@@ -78,9 +78,9 @@ pnpm commitment-data-csv \
 **Output columns:**
 
 - `SALE_SPECIFIC_ENTITY_ID` - sale-specific entity identifier
-- `COMMITMENT_ID` - unique id for this commitment
 - `WALLET` - wallet address
 - `TOKEN` - payment token address
+- `COMMITMENT_ID` - unique id for this commitment
 - `TIMESTAMP` - commitment timestamp
 - `PRICE` - commitment price
 - `COMMITTED_AMOUNT` - committed amount for this wallet and token
@@ -95,6 +95,8 @@ Sets accepted allocations on the sale contract from a CSV file. Includes validat
 The script automatically skips allocations where the contract already has the correct accepted amount, reducing unnecessary transactions.
 To modify an existing allocation (change its accepted amount), you must pass `--allow-overwrites true`. Without this flag, the script will fail if it tries to set an allocation that already exists.
 
+0 allocations are set by not including the allocation in the CSV.
+
 ```bash
 pnpm set-allocations \
   --allocations-csv allocations.csv \
@@ -105,15 +107,16 @@ pnpm set-allocations \
 
 **Options:**
 
-| Option                     | Required | Default | Description                                 |
-| -------------------------- | -------- | ------- | ------------------------------------------- |
-| `--allocations-csv`        | Yes      | -       | Path to CSV file with allocations           |
-| `--sale-address`           | Yes      | -       | Sale contract address                       |
-| `--rpc-url`                | Yes      | -       | Ethereum RPC URL                            |
-| `--payment-token-decimals` | No       | 6       | Token decimals (USDC = 6)                   |
-| `--allow-overwrites`       | No       | false   | Allow overwriting existing allocations      |
-| `--dry-run`                | No       | true    | Validate without submitting transactions    |
-| `--batch-size`             | No       | 200     | Number of allocations per transaction batch |
+| Option                       | Required | Default | Description                                      |
+| ---------------------------- | -------- | ------- | ------------------------------------------------ |
+| `--allocations-csv`          | Yes      | -       | Path to CSV file with allocations                |
+| `--sale-address`             | Yes      | -       | Sale contract address                            |
+| `--rpc-url`                  | Yes      | -       | Ethereum RPC URL                                 |
+| `--payment-token-decimals`   | No       | 6       | Token decimals (USDC = 6)                        |
+| `--allow-overwrites`         | No       | false   | Allow overwriting existing allocations           |
+| `--dry-run`                  | No       | true    | Validate without submitting transactions         |
+| `--batch-size`               | No       | 200     | Number of allocations per transaction batch      |
+| `--max-priority-fee-per-gas` | No       | -       | Max priority fee per gas in wei (for faster txs) |
 
 **CSV format:**
 
@@ -140,13 +143,14 @@ pnpm process-refunds \
 
 **Options:**
 
-| Option                     | Required | Default | Description                              |
-| -------------------------- | -------- | ------- | ---------------------------------------- |
-| `--sale-address`           | Yes      | -       | Sale contract address                    |
-| `--rpc-url`                | Yes      | -       | Ethereum RPC URL                         |
-| `--payment-token-decimals` | No       | 6       | Token decimals (USDC = 6)                |
-| `--dry-run`                | No       | true    | Validate without submitting transactions |
-| `--batch-size`             | No       | 200     | Number of entities per transaction batch |
+| Option                       | Required | Default | Description                                      |
+| ---------------------------- | -------- | ------- | ------------------------------------------------ |
+| `--sale-address`             | Yes      | -       | Sale contract address                            |
+| `--rpc-url`                  | Yes      | -       | Ethereum RPC URL                                 |
+| `--payment-token-decimals`   | No       | 6       | Token decimals (USDC = 6)                        |
+| `--dry-run`                  | No       | true    | Validate without submitting transactions         |
+| `--batch-size`               | No       | 200     | Number of entities per transaction batch         |
+| `--max-priority-fee-per-gas` | No       | -       | Max priority fee per gas in wei (for faster txs) |
 
 ## Environment Variables
 

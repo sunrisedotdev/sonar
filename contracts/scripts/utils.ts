@@ -1,7 +1,6 @@
 import { Abi, createPublicClient, createWalletClient, getContract, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { mainnet } from "viem/chains";
-import { offchainSettlementAbi } from "./abis/IOffchainSettlement";
 import { commitmentDataReaderAbi } from "./abis/ICommitmentDataReader";
 import { entityAllocationDataReaderAbi } from "./abis/IEntityAllocationDataReader";
 import type { Allocation, CommitmentDataWithAcceptedAmounts } from "./types.ts";
@@ -39,7 +38,7 @@ export function createContractWriter<T extends Abi>(config: Config, privateKey: 
     });
     return getContract({
         address: config.saleAddress,
-        abi: offchainSettlementAbi,
+        abi: abi,
         client: { public: publicClient(config), wallet: walletClient },
     });
 }
@@ -172,11 +171,12 @@ export function calculateTotalByToken(allocations: Allocation[]): Map<`0x${strin
 
 export function findAllocationsNeedingUpdate(
     allocations: Allocation[],
-    commitmentDataMap: Map<`0x${string}`, CommitmentDataWithAcceptedAmounts>,
+    commitmentData: CommitmentDataWithAcceptedAmounts[],
 ): {
     allocations: Allocation[];
     numCorrectContract: number;
     numCorrectCSV: number;
+    numContract: number;
     numUnset: number;
     numOverwritten: number;
 } {
@@ -185,14 +185,20 @@ export function findAllocationsNeedingUpdate(
     const allocationsToUpdate: Allocation[] = [];
     let numCorrectContract = 0;
     let numCorrectCSV = 0;
+    let numContract = 0;
     let numUnset = 0;
     let numOverwritten = 0;
-    for (const [entityID, commitment] of commitmentDataMap) {
+    for (const commitment of commitmentData) {
         for (const committedAmount of commitment.committedAmounts) {
-            const key = `${entityID}:${committedAmount.wallet}:${committedAmount.token}`;
+            if (commitment.refunded) {
+                continue;
+            }
+            numContract++;
+
+            const key = `${commitment.saleSpecificEntityID}:${committedAmount.wallet}:${committedAmount.token}`;
             // if the allocation is not in the CSV, we assume that it should be zero
             const allocation = allocationsMap.get(key) ?? {
-                saleSpecificEntityID: entityID,
+                saleSpecificEntityID: commitment.saleSpecificEntityID,
                 wallet: committedAmount.wallet,
                 token: committedAmount.token,
                 acceptedAmount: 0n,
@@ -226,6 +232,7 @@ export function findAllocationsNeedingUpdate(
         allocations: allocationsToUpdate,
         numCorrectContract,
         numCorrectCSV,
+        numContract,
         numUnset,
         numOverwritten,
     };

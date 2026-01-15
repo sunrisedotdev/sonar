@@ -63,9 +63,9 @@ async function run() {
     // CSV header
     const header = [
         "SALE_SPECIFIC_ENTITY_ID",
-        "COMMITMENT_ID",
         "WALLET",
         "TOKEN",
+        "COMMITMENT_ID",
         "TIMESTAMP",
         "PRICE",
         "COMMITTED_AMOUNT",
@@ -79,9 +79,9 @@ async function run() {
         const accepted = acceptedAmounts.get(`${row.entityId}:${row.wallet}:${row.token}`) ?? 0n;
         return [
             row.entityId,
-            row.commitmentId,
             row.wallet,
             row.token,
+            row.commitmentId,
             row.timestamp.toString(),
             row.price.toString(),
             row.committed.toString(),

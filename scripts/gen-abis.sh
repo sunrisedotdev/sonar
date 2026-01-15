@@ -15,3 +15,6 @@ echo "export const totalCommitmentsReaderAbi = ${ABI} as const;" > ./contracts/s
 
 ABI=$(forge inspect --root ./contracts ITotalAllocationsReader abi --json)
 echo "export const totalAllocationsReaderAbi = ${ABI} as const;" > ./contracts/scripts/abis/ITotalAllocationsReader.ts
+
+ABI=$(forge inspect --root ./contracts SettlementSale abi --json)
+echo "export const settlementSaleAbi = ${ABI} as const;" > ./contracts/scripts/abis/SettlementSale.ts
