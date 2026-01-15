@@ -50,17 +50,7 @@ The `SettlementSale` contract is a token sale implementation based on commitment
 
 ## Scripts
 
-This repo includes some node.js scripts in the `scripts` directory for conveniently interacting with deployed contracts.
-
-### commitment-data-csv
-
-Fetches all commitment data from a contract in CSV format.
-
-```
-pnpm commitment-data-csv --sale-address <contract-address> --rpc-url <url>
-```
-
----
+This repo includes some node.js scripts in the `scripts` directory for conveniently interacting with deployed contracts. See the [scripts README](scripts/README.md) for more details.
 
 ## Testing
 
