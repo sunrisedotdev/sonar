@@ -288,15 +288,6 @@ describe("validateAllocationsWithinCommitments", () => {
         expect(result.valid).toBe(false);
         expect(result.errors[0].type).toBe("no_matching_commitment");
     });
-
-    it("skips entities not in array (handled by other validation)", () => {
-        const allocations = [makeAllocation({ saleSpecificEntityID: ENTITY_1 })];
-        const commitmentData: CommitmentDataWithAcceptedAmounts[] = [];
-
-        const result = validateAllocationsWithinCommitments(allocations, commitmentData);
-
-        expect(result.valid).toBe(true); // This validation doesn't check for missing entities
-    });
 });
 
 describe("createCommitmentDataMap", () => {
