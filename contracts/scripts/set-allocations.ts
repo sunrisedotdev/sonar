@@ -101,9 +101,6 @@ async function run() {
     console.log("Loading commitment data...");
     const commitmentData = await listCommitmentDataWithAcceptedAmounts(config);
 
-    // Find allocations that need updating (where contract accepted != CSV accepted)
-    const allocationsToUpdate = findAllocationsNeedingUpdate(allocations, commitmentData);
-
     // Run all validations
     const validationResult = validateAllocations(allocations, commitmentData);
     if (!validationResult.valid) {
@@ -112,6 +109,9 @@ async function run() {
             .join("\n");
         throw new Error(`Validation failed with ${validationResult.errors.length} error(s):\n${errorMessages}`);
     }
+
+    // Find allocations that need updating (where contract accepted != CSV accepted)
+    const allocationsToUpdate = findAllocationsNeedingUpdate(allocations, commitmentData);
 
     // Create batches of allocations (only those needing updates)
     const batches = createBatches(allocationsToUpdate.allocations, config.batchSize);
