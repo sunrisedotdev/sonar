@@ -124,13 +124,13 @@ async function run() {
         console.log(`  ${token}: ${formatAmount(amount, config.paymentTokenDecimals)}`);
     }
     console.log();
-    console.log(`Number of allocations in CSV: ${allocations.length}`);
+    console.log(`Number of non-zero allocations in CSV: ${allocations.length}`);
     console.log(`  of which already have a matching accepted amount in contract: ${allocationsToUpdate.numCorrectCSV}`);
     console.log();
     console.log(
-        `Number of non-refunded, possibly zero, commitments by entity,wallet,token in contract: ${allocationsToUpdate.numContract}`,
+        `Number of non-refunded, non-zero, commitments by entity,wallet,token in contract: ${allocationsToUpdate.numContract}`,
     );
-    console.log(`  of which already have a matching accepted amount: ${allocationsToUpdate.numCorrectContract}`);
+    console.log(`  of which already have a matching accepted amount in CSV: ${allocationsToUpdate.numCorrectContract}`);
     console.log(`  of which have no accepted amount in contract and need to be set: ${allocationsToUpdate.numUnset}`);
     console.log(
         `  of which have an accepted amount in contract but need to be overwritten: ${allocationsToUpdate.numOverwritten}`,
@@ -263,7 +263,8 @@ function readAllocations(csvPath: string): Allocation[] {
                 token: getAddress(token),
                 acceptedAmount: BigInt(acceptedAmount),
             };
-        });
+        })
+        .filter((allocation) => allocation.acceptedAmount > 0n); // ignoring zero allocations to avoid messing with stats
 }
 
 run().catch(console.error);

@@ -189,7 +189,7 @@ export function findAllocationsNeedingUpdate(
     let numOverwritten = 0;
     for (const commitment of commitmentData) {
         for (const committedAmount of commitment.committedAmounts) {
-            if (commitment.refunded) {
+            if (commitment.refunded || committedAmount.amount === 0n) {
                 continue;
             }
             numContract++;
