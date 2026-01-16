@@ -24,10 +24,10 @@ export type GeneratePurchasePermitResponse = {
     Signature: Hex;
 };
 
-export type AllocationResponse = {
-    HasReservedAllocation: boolean;
-    ReservedAmountUSD: string;
-    MaxAmountUSD: string;
+export type LimitsResponse = {
+    HasCustomCommitmentAmountLimit: boolean;
+    MinCommitmentAmount: string;
+    MaxCommitmentAmount: string;
 };
 
 export type ReadEntityResponse = {
@@ -218,8 +218,8 @@ export class SonarClient {
         });
     }
 
-    async fetchAllocation(args: { saleUUID: string; walletAddress: string }): Promise<AllocationResponse> {
-        return this.postJSON<AllocationResponse>("/externalapi.Allocation", {
+    async fetchLimits(args: { saleUUID: string; walletAddress: string }): Promise<LimitsResponse> {
+        return this.postJSON<LimitsResponse>("/externalapi.Limits", {
             SaleUUID: args.saleUUID,
             WalletAddress: args.walletAddress,
         });
