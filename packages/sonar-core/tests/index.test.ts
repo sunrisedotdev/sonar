@@ -13,7 +13,9 @@ describe("createClient", () => {
     it("creates client with default api url and token change wiring", async () => {
         const onTokenChange = vi.fn();
         const originalFetch = globalThis.fetch;
-        (globalThis as { fetch: unknown }).fetch = vi.fn(async () => new Response(JSON.stringify({ Entities: [] }), { status: 200 }));
+        (globalThis as { fetch: unknown }).fetch = vi.fn(
+            async () => new Response(JSON.stringify({ Entities: [] }), { status: 200 }),
+        );
         try {
             const client = createClient({ onTokenChange });
             await client.readEntity({ saleUUID: "sale", walletAddress: "w" });

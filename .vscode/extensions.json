@@ -7,6 +7,6 @@
         "christian-kohler.npm-intellisense",
 
         // Solidity
-        "JuanBlanco.solidity",
-    ],
+        "JuanBlanco.solidity"
+    ]
 }

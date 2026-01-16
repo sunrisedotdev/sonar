@@ -39,8 +39,8 @@ console.log(tmp);
 import { useSonar } from "sonar-react";
 
 function App() {
-  const tmp = useSonar();
-  return <div>{tmp}</div>;
+    const tmp = useSonar();
+    return <div>{tmp}</div>;
 }
 ```
 

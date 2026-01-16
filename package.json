@@ -4,6 +4,7 @@
         "dev": "pnpm -r dev",
         "test": "pnpm -r test",
         "lint": "eslint .",
+        "fmt": "prettier --write .",
         "changeset": "changeset",
         "version-packages": "changeset version",
         "prepare-release": "./scripts/prepare-release.sh",

@@ -155,73 +155,60 @@ If you want to fetch all entities associated with the logged in user, you can us
 6. Implement the purchase flow
 
 ```tsx
-function Example({
-  entityID,
-  walletAddress,
-}: {
-  entityID: string;
-  walletAddress: string;
-}) {
-  const sonarPurchaser = useSonarPurchase({
-    saleUUID: sonarConfig.saleUUID,
-    entityID,
-    entityType,
-    walletAddress,
-  });
+function Example({ entityID, walletAddress }: { entityID: string; walletAddress: string }) {
+    const sonarPurchaser = useSonarPurchase({
+        saleUUID: sonarConfig.saleUUID,
+        entityID,
+        entityType,
+        walletAddress,
+    });
 
-  if (sonarPurchaser.loading) {
-    return <p>Loading...</p>;
-  }
+    if (sonarPurchaser.loading) {
+        return <p>Loading...</p>;
+    }
 
-  if (sonarPurchaser.error) {
-    return <p>Error: {error.message}</p>;
-  }
+    if (sonarPurchaser.error) {
+        return <p>Error: {error.message}</p>;
+    }
 
-  return (
-    <div>
-      {sonarPurchaser.readyToPurchase && (
-        <PurchaseButton
-          generatePurchasePermit={sonarPurchaser.generatePurchasePermit}
-        />
-      )}
+    return (
+        <div>
+            {sonarPurchaser.readyToPurchase && (
+                <PurchaseButton generatePurchasePermit={sonarPurchaser.generatePurchasePermit} />
+            )}
 
-      {!sonarPurchaser.readyToPurchase &&
-        sonarPurchaser.failureReason ===
-          PrePurchaseFailureReason.REQUIRES_LIVENESS && (
-          <button
-            onClick={() => {
-              window.open(prePurchaseCheckResult.LivenessCheckURL, "_blank");
-            }}
-          >
-            Complete liveness check to purchase
-          </button>
-        )}
-    </div>
-  );
+            {!sonarPurchaser.readyToPurchase &&
+                sonarPurchaser.failureReason === PrePurchaseFailureReason.REQUIRES_LIVENESS && (
+                    <button
+                        onClick={() => {
+                            window.open(prePurchaseCheckResult.LivenessCheckURL, "_blank");
+                        }}
+                    >
+                        Complete liveness check to purchase
+                    </button>
+                )}
+        </div>
+    );
 }
 
 function PurchaseButton({
-  generatePurchasePermit,
+    generatePurchasePermit,
 }: {
-  generatePurchasePermit: () => Promise<GeneratePurchasePermitResponse>;
+    generatePurchasePermit: () => Promise<GeneratePurchasePermitResponse>;
 }) {
-  const purchase = async () => {
-    const response = await generatePurchasePermit();
-    const r = response as unknown as {
-      Signature: string;
-      PermitJSON: BasicPermitV2;
+    const purchase = async () => {
+        const response = await generatePurchasePermit();
+        const r = response as unknown as {
+            Signature: string;
+            PermitJSON: BasicPermitV2;
+        };
+        if (r.Signature && r.PermitJSON) {
+            console.log(permit.Signature, permit.Permit);
+            return;
+        }
     };
-    if (r.Signature && r.PermitJSON) {
-      console.log(permit.Signature, permit.Permit);
-      return;
-    }
-  };
 
-  return (
-    <button onClick={purchase}>
-      Purchase
-    </button>
-  );
+    return <button onClick={purchase}>Purchase</button>;
 }
 ```
 
