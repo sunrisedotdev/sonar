@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
-import {PurchasePermitV2, PurchasePermitV2Lib} from "./permits/PurchasePermitV2.sol";
 import {AccessControlEnumerable} from "@openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol";
+import {PurchasePermitV3, PurchasePermitV3Lib} from "./permits/PurchasePermitV3.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /// @title ExampleSale
@@ -42,6 +42,7 @@ contract ExampleSale is AccessControlEnumerable {
     error PurchasePermitExpired();
     error PurchasePermitSenderMismatch(address got, address want);
     error PurchasePermitUnauthorizedSigner(address signer);
+    error PurchaseOutsideAllowedWindow(uint64 opensAt, uint64 closesAt, uint256 currentTime);
     error AmountBelowMinimum(uint256 amount, uint256 minAmount);
     error AmountExceedsMaximum(uint256 amount, uint256 maxAmount);
     error ZeroAddress();
@@ -99,7 +100,7 @@ contract ExampleSale is AccessControlEnumerable {
     /// @param purchasePermitSignature The signature of the purchase permit
     function purchase(
         uint256 amount,
-        PurchasePermitV2 calldata purchasePermit,
+        PurchasePermitV3 calldata purchasePermit,
         bytes calldata purchasePermitSignature
     ) external {
         // Validate the purchase permit issued by Sonar
@@ -140,8 +141,8 @@ contract ExampleSale is AccessControlEnumerable {
 
     /// @notice Validates a purchase permit.
     /// @dev This ensures that the permit was issued for the right sale (preventing the use of permits issued for other sales),
-    /// is not expired, and is signed by the purchase permit signer.
-    function _validatePurchasePermit(PurchasePermitV2 memory permit, bytes calldata signature) internal view {
+    /// is not expired, is within the allowed time window, and is signed by the purchase permit signer.
+    function _validatePurchasePermit(PurchasePermitV3 memory permit, bytes calldata signature) internal view {
         if (permit.saleUUID != saleUUID) {
             revert PurchasePermitSaleUUIDMismatch(permit.saleUUID, saleUUID);
         }
@@ -150,11 +151,16 @@ contract ExampleSale is AccessControlEnumerable {
             revert PurchasePermitExpired();
         }
 
+        // Validate time window: [opensAt, closesAt)
+        if (block.timestamp < permit.opensAt || block.timestamp >= permit.closesAt) {
+            revert PurchaseOutsideAllowedWindow(permit.opensAt, permit.closesAt, block.timestamp);
+        }
+
         if (permit.wallet != msg.sender) {
             revert PurchasePermitSenderMismatch(msg.sender, permit.wallet);
         }
 
-        address recoveredSigner = PurchasePermitV2Lib.recoverSigner(permit, signature);
+        address recoveredSigner = PurchasePermitV3Lib.recoverSigner(permit, signature);
         if (!hasRole(PURCHASE_PERMIT_SIGNER_ROLE, recoveredSigner)) {
             revert PurchasePermitUnauthorizedSigner(recoveredSigner);
         }

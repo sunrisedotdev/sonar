@@ -59,20 +59,20 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
     }
 
     function testCancelBid_SingleUser_RefundsFullCommitment() public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeAuction();
+        closeCommitment();
         openCancellation();
 
         cancelBidSuccess(alice);
     }
 
     function testCancelBid_Twice_Reverts() public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeAuction();
+        closeCommitment();
         openCancellation();
 
         cancelBidSuccess(alice);
@@ -80,20 +80,18 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
     }
 
     function testCancelBid_AfterCancellationPhase_Reverts() public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeAuction();
+        closeCommitment();
         openCancellation();
         openSettlement();
 
-        cancelBidFail(
-            alice, abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.Settlement)
-        );
+        cancelBidFail(alice, encodeInvalidStage(SettlementSale.Stage.Settlement, SettlementSale.Stage.Cancellation));
     }
 
     function testCancelBid_DuringWrongStage_RevertsOrSucceeds(uint8 s) public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
         SettlementSale.Stage stage = SettlementSale.Stage(bound(s, 0, uint8(SettlementSale.Stage.Done)));
@@ -104,25 +102,25 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         if (stage == SettlementSale.Stage.Cancellation) {
             cancelBidSuccess(alice);
         } else {
-            cancelBidFail(alice, abi.encodeWithSelector(SettlementSale.InvalidStage.selector, stage));
+            cancelBidFail(alice, encodeInvalidStage(stage, SettlementSale.Stage.Cancellation));
         }
     }
 
     function testCancelBid_EntityWithoutBid_Reverts() public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeAuction();
+        closeCommitment();
         openCancellation();
 
         cancelBidFail(bob, abi.encodeWithSelector(SettlementSale.WalletNotInitialized.selector, bob));
     }
 
     function testCancelBid_WhilePaused_Reverts() public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeAuction();
+        closeCommitment();
         openCancellation();
 
         vm.prank(pauser);
@@ -137,23 +135,23 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
     }
 
     function testCancelBid_WithUSDT_Success() public {
-        openAuction();
+        openCommitment();
 
         // Alice bids with USDT
         doBid({user: alice, amount: 2000e6, price: 10, token: usdt});
 
-        closeAuction();
+        closeCommitment();
         openCancellation();
 
         cancelBidSuccess(alice);
     }
 
     function testCancelBid_MultipleUsersWithDifferentTokens_Success() public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
         doBid({user: bob, amount: 3000e6, price: 10, token: usdt});
 
-        closeAuction();
+        closeCommitment();
         openCancellation();
 
         cancelBidSuccess(alice);
@@ -168,7 +166,7 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
     function testCancelBid_FromSecondWallet_RefundsBothWallets() public {
         address aliceWallet2 = makeAddr("aliceWallet2");
 
-        openAuction();
+        openCommitment();
 
         // Alice bids with first wallet using USDC
         doBid({entityID: aliceID, user: alice, amount: 2000e6, price: 10, token: usdc});
@@ -176,7 +174,7 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         // Alice bids with second wallet using USDT (same entity)
         doBid({entityID: aliceID, user: aliceWallet2, amount: 5000e6, price: 10, token: usdt});
 
-        closeAuction();
+        closeCommitment();
         openCancellation();
 
         // Second wallet cancels the entire entity's bid
@@ -184,10 +182,10 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         emit SettlementSale.BidCancelled(aliceID, aliceWallet2, 5000e6);
 
         vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.WalletRefunded(aliceID, alice, usdc, 2000e6);
+        emit SettlementSale.WalletRefunded(aliceID, alice, address(usdc), 2000e6);
 
         vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.WalletRefunded(aliceID, aliceWallet2, usdt, 3000e6);
+        emit SettlementSale.WalletRefunded(aliceID, aliceWallet2, address(usdt), 3000e6);
 
         vm.expectEmit(true, true, true, true, address(sale));
         emit SettlementSale.EntityRefunded(aliceID, 5000e6);
@@ -205,13 +203,13 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
     function testCancelBid_WithLockup_StillRefunds() public {
         // Verify that lockup status doesn't affect cancellation - users can still cancel
         // and get full refunds even if they had lockup enabled on their bid
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, lockup: true, token: usdc});
 
         // Verify lockup is set
         assertTrue(sale.entityStateByID(aliceID).currentBid.lockup, "lockup should be enabled");
 
-        closeAuction();
+        closeCommitment();
         openCancellation();
 
         // Cancel should still work and refund full amount
@@ -223,3 +221,4 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         assertTrue(sale.entityStateByID(aliceID).refunded, "should be refunded");
     }
 }
+

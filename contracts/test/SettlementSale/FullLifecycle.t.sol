@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 import "./SettlementSaleBaseTest.sol";
 
 contract SettlementSaleFullLifecycleFuzzTest is SettlementSaleBaseTest {
-    struct FuzzedAuctionBids {
+    struct FuzzedCommitmentBids {
         address wallet;
         uint256 tokenIdx;
         SettlementSale.Bid bid;
@@ -14,18 +14,18 @@ contract SettlementSaleFullLifecycleFuzzTest is SettlementSaleBaseTest {
 
     bytes16[] entitiesToBeRefunded;
 
-    function test_Success_Fuzzed(FuzzedAuctionBids[] memory auctionBids, uint128 manuallySentUSDC) public {
+    function test_Success_Fuzzed(FuzzedCommitmentBids[] memory commitmentBids, uint128 manuallySentUSDC) public {
         deal(address(usdc), address(sale), manuallySentUSDC);
 
         // we're sending USDC manually to the contract to demonstrate that it doesn't throw off the internal book keeping.
         checkInvariants(manuallySentUSDC);
-        openAuction();
+        openCommitment();
 
         // Sending the bids according to the fuzzed input.
         // New bids are clamped to the previous bid's price and amount to ensure that the new bid is valid
         uint256 totalCommittedAmountExpected = 0;
-        for (uint256 i = 0; i < auctionBids.length; i++) {
-            FuzzedAuctionBids memory bid = auctionBids[i];
+        for (uint256 i = 0; i < commitmentBids.length; i++) {
+            FuzzedCommitmentBids memory bid = commitmentBids[i];
             if (isDisallowedAddress(bid.wallet)) {
                 continue;
             }
@@ -60,12 +60,12 @@ contract SettlementSaleFullLifecycleFuzzTest is SettlementSaleBaseTest {
 
         checkInvariants(manuallySentUSDC);
 
-        assertEq(sale.totalCommittedAmount(), totalCommittedAmountExpected, "total auction commitments after bids");
+        assertEq(sale.totalCommittedAmount(), totalCommittedAmountExpected, "total commitments after bids");
         assertEq(sale.totalAcceptedAmount(), 0, "total allocated usdc after bids");
 
-        // assume we have at least one commitment so the auction can be closed
+        // assume we have at least one commitment so the commitment phase can be closed
         vm.assume(sale.totalCommittedAmount() > 0);
-        closeAuction();
+        closeCommitment();
 
         // open the cancellation stage, so some users can cancel their bids
         openCancellation();
@@ -218,12 +218,12 @@ contract SettlementSaleFullLifecycleFuzzTest is SettlementSaleBaseTest {
         SettlementSale.EntityStateView[] memory entityStates = sale.allEntityStates();
         assertEq(entities.length, entityStates.length);
 
-        // sum of auction commitments == total auction commitments
-        uint256 sumAuctionCommitments = 0;
+        // sum of commitments == total commitments
+        uint256 sumCommitments = 0;
         for (uint256 i = 0; i < entityStates.length; i++) {
-            sumAuctionCommitments += entityStates[i].currentBid.amount;
+            sumCommitments += entityStates[i].currentBid.amount;
         }
-        assertEq(sale.totalCommittedAmount(), sumAuctionCommitments, "total auction commitments");
+        assertEq(sale.totalCommittedAmount(), sumCommitments, "total commitments");
 
         uint256 sumRefundedAmounts = 0;
         for (uint256 i = 0; i < entityStates.length; i++) {
@@ -237,7 +237,7 @@ contract SettlementSaleFullLifecycleFuzzTest is SettlementSaleBaseTest {
 
         assertEq(
             usdc.balanceOf(address(sale)) + usdt.balanceOf(address(sale)),
-            sumAuctionCommitments - sumRefundedAmounts + manuallySentUSDC,
+            sumCommitments - sumRefundedAmounts + manuallySentUSDC,
             "total balance of the sale"
         );
     }

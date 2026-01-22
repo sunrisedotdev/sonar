@@ -6,7 +6,7 @@ import "./SettlementSaleBaseTest.sol";
 contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
     function setUp() public override {
         super.setUp();
-        openAuction();
+        openCommitment();
     }
 
     struct State {
@@ -54,7 +54,7 @@ contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
         uint64 minPrice,
         uint64 maxPrice
     ) internal {
-        PurchasePermitV2 memory purchasePermit = makePurchasePermit({
+        PurchasePermitV3 memory purchasePermit = makePurchasePermit({
             saleSpecificEntityID: addressToEntityID(user),
             wallet: user,
             minAmount: minAmount,
@@ -72,7 +72,7 @@ contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
         uint64 price,
         uint256 amount,
         IERC20 token,
-        PurchasePermitV2 memory purchasePermit
+        PurchasePermitV3 memory purchasePermit
     ) internal {
         bidSuccess(user, price, amount, false, token, purchasePermit);
     }
@@ -83,7 +83,7 @@ contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
         uint256 amount,
         bool lockup,
         IERC20 token,
-        PurchasePermitV2 memory purchasePermit
+        PurchasePermitV3 memory purchasePermit
     ) internal {
         bytes16 entityID = purchasePermit.saleSpecificEntityID;
         State memory stateBefore = getState(entityID, token);
@@ -144,7 +144,7 @@ contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
         IERC20 token,
         bytes memory err
     ) internal {
-        PurchasePermitV2 memory purchasePermit = makePurchasePermit({saleSpecificEntityID: entityID, wallet: user});
+        PurchasePermitV3 memory purchasePermit = makePurchasePermit({saleSpecificEntityID: entityID, wallet: user});
         bytes memory purchasePermitSignature = signPurchasePermit(purchasePermit);
 
         deal(address(token), user, amount);
@@ -163,7 +163,7 @@ contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
         uint64 price,
         uint256 amount,
         IERC20 token,
-        PurchasePermitV2 memory purchasePermit,
+        PurchasePermitV3 memory purchasePermit,
         bytes memory err
     ) internal {
         bidFail({
@@ -183,7 +183,7 @@ contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
         uint256 amount,
         bool lockup,
         IERC20 token,
-        PurchasePermitV2 memory purchasePermit,
+        PurchasePermitV3 memory purchasePermit,
         bytes memory err
     ) internal {
         bytes memory purchasePermitSignature = signPurchasePermit(purchasePermit);
@@ -204,7 +204,7 @@ contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
         uint64 price,
         uint256 amount,
         IERC20 token,
-        PurchasePermitV2 memory purchasePermit,
+        PurchasePermitV3 memory purchasePermit,
         bytes memory purchasePermitSignature,
         bytes memory err
     ) internal {
@@ -226,7 +226,7 @@ contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
         uint256 amount,
         bool lockup,
         IERC20 token,
-        PurchasePermitV2 memory purchasePermit,
+        PurchasePermitV3 memory purchasePermit,
         bytes memory purchasePermitSignature,
         bytes memory err
     ) internal {
@@ -244,7 +244,7 @@ contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
 
 contract SettlementSalePurchasePermitValidationTest is SettlementSaleBidTestBase {
     function testBid_WithInvalidSaleUUID_Reverts() public {
-        PurchasePermitV2 memory permit = makePurchasePermit({wallet: alice});
+        PurchasePermitV3 memory permit = makePurchasePermit({wallet: alice});
 
         bytes16 wrongUUID = bytes16(uint128(1234567890));
         permit.saleUUID = wrongUUID;
@@ -260,7 +260,7 @@ contract SettlementSalePurchasePermitValidationTest is SettlementSaleBidTestBase
     }
 
     function testBid_WithExpiredPermit_Reverts() public {
-        PurchasePermitV2 memory permit = makePurchasePermit({wallet: alice});
+        PurchasePermitV3 memory permit = makePurchasePermit({wallet: alice});
         permit.expiresAt = uint64(block.timestamp - 1); // expired
         bidFail({
             user: alice,
@@ -268,12 +268,14 @@ contract SettlementSalePurchasePermitValidationTest is SettlementSaleBidTestBase
             price: 10,
             amount: 1000e6,
             purchasePermit: permit,
-            err: abi.encodeWithSelector(SettlementSale.PurchasePermitExpired.selector)
+            err: abi.encodeWithSelector(
+                SettlementSale.PurchasePermitExpired.selector, permit.expiresAt, block.timestamp
+            )
         });
     }
 
     function testBid_WithPermitForDifferentWallet_Reverts() public {
-        PurchasePermitV2 memory permit = makePurchasePermit({wallet: alice});
+        PurchasePermitV3 memory permit = makePurchasePermit({wallet: alice});
         bidFail({
             user: bob,
             token: usdc,
@@ -285,7 +287,7 @@ contract SettlementSalePurchasePermitValidationTest is SettlementSaleBidTestBase
     }
 
     function testBid_WithUnauthorizedSigner_Reverts() public {
-        PurchasePermitV2 memory permit = makePurchasePermit({wallet: alice});
+        PurchasePermitV3 memory permit = makePurchasePermit({wallet: alice});
 
         // Sign with wrong private key (bob's instead of purchasePermitSigner's)
         bytes memory wrongSignature = signPurchasePermit(permit, addressToAccount[bob].key);
@@ -302,7 +304,7 @@ contract SettlementSalePurchasePermitValidationTest is SettlementSaleBidTestBase
     }
 
     function testBid_WithZeroAddress_Reverts() public {
-        PurchasePermitV2 memory permit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: address(0)});
+        PurchasePermitV3 memory permit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: address(0)});
 
         vm.expectRevert(abi.encodeWithSelector(SettlementSale.ZeroAddress.selector));
         vm.prank(address(0));
@@ -312,7 +314,7 @@ contract SettlementSalePurchasePermitValidationTest is SettlementSaleBidTestBase
     }
 
     function testBid_WithZeroEntityID_Reverts() public {
-        PurchasePermitV2 memory permit = makePurchasePermit({saleSpecificEntityID: bytes16(0), wallet: alice});
+        PurchasePermitV3 memory permit = makePurchasePermit({saleSpecificEntityID: bytes16(0), wallet: alice});
         bidFail({
             user: alice,
             price: 10,
@@ -320,6 +322,177 @@ contract SettlementSalePurchasePermitValidationTest is SettlementSaleBidTestBase
             token: usdc,
             purchasePermit: permit,
             err: abi.encodeWithSelector(SettlementSale.ZeroEntityID.selector)
+        });
+    }
+
+    // Time window tests
+
+    function testBid_WithinTimeWindow_Succeeds() public {
+        PurchasePermitV3 memory permit = makePurchasePermit({
+            saleSpecificEntityID: aliceID,
+            wallet: alice,
+            opensAt: uint64(block.timestamp),
+            closesAt: uint64(block.timestamp + 1 hours)
+        });
+        bidSuccess({user: alice, price: 10, amount: 1000e6, token: usdc, purchasePermit: permit});
+    }
+
+    function testBid_BeforeOpensAt_Reverts() public {
+        uint64 opensAt = uint64(block.timestamp + 1 hours);
+        uint64 closesAt = uint64(block.timestamp + 2 hours);
+
+        PurchasePermitV3 memory permit =
+            makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice, opensAt: opensAt, closesAt: closesAt});
+        bidFail({
+            user: alice,
+            price: 10,
+            amount: 1000e6,
+            token: usdc,
+            purchasePermit: permit,
+            err: abi.encodeWithSelector(
+                SettlementSale.BidOutsideAllowedWindow.selector, opensAt, closesAt, block.timestamp
+            )
+        });
+    }
+
+    function testBid_AtOpensAt_Succeeds() public {
+        uint64 opensAt = uint64(block.timestamp + 1 hours);
+        uint64 closesAt = uint64(block.timestamp + 2 hours);
+
+        PurchasePermitV3 memory permit = makePurchasePermit({
+            saleSpecificEntityID: aliceID,
+            wallet: alice,
+            expiresAt: uint64(block.timestamp + 3 hours),
+            opensAt: opensAt,
+            closesAt: closesAt
+        });
+
+        vm.warp(opensAt);
+        bidSuccess({user: alice, price: 10, amount: 1000e6, token: usdc, purchasePermit: permit});
+    }
+
+    function testBid_JustBeforeClosesAt_Succeeds() public {
+        uint64 closesAt = uint64(block.timestamp + 1 hours);
+
+        PurchasePermitV3 memory permit = makePurchasePermit({
+            saleSpecificEntityID: aliceID,
+            wallet: alice,
+            expiresAt: uint64(block.timestamp + 2 hours),
+            opensAt: uint64(block.timestamp),
+            closesAt: closesAt
+        });
+
+        vm.warp(closesAt - 1);
+        bidSuccess({user: alice, price: 10, amount: 1000e6, token: usdc, purchasePermit: permit});
+    }
+
+    function testBid_AtClosesAt_Reverts() public {
+        uint64 opensAt = uint64(block.timestamp);
+        uint64 closesAt = uint64(block.timestamp + 1 hours);
+
+        PurchasePermitV3 memory permit = makePurchasePermit({
+            saleSpecificEntityID: aliceID,
+            wallet: alice,
+            expiresAt: uint64(block.timestamp + 2 hours),
+            opensAt: opensAt,
+            closesAt: closesAt
+        });
+
+        vm.warp(closesAt);
+        bidFail({
+            user: alice,
+            price: 10,
+            amount: 1000e6,
+            token: usdc,
+            purchasePermit: permit,
+            err: abi.encodeWithSelector(
+                SettlementSale.BidOutsideAllowedWindow.selector, opensAt, closesAt, block.timestamp
+            )
+        });
+    }
+
+    function testBid_AfterClosesAt_Reverts() public {
+        uint64 opensAt = uint64(block.timestamp);
+        uint64 closesAt = uint64(block.timestamp + 1 hours);
+
+        PurchasePermitV3 memory permit = makePurchasePermit({
+            saleSpecificEntityID: aliceID,
+            wallet: alice,
+            expiresAt: uint64(block.timestamp + 2 hours),
+            opensAt: opensAt,
+            closesAt: closesAt
+        });
+
+        vm.warp(closesAt + 1);
+        bidFail({
+            user: alice,
+            price: 10,
+            amount: 1000e6,
+            token: usdc,
+            purchasePermit: permit,
+            err: abi.encodeWithSelector(
+                SettlementSale.BidOutsideAllowedWindow.selector, opensAt, closesAt, block.timestamp
+            )
+        });
+    }
+
+    function testBid_ZeroOpensAt_ValidFromEpoch() public {
+        PurchasePermitV3 memory permit = makePurchasePermit({
+            saleSpecificEntityID: aliceID, wallet: alice, opensAt: 0, closesAt: uint64(block.timestamp + 1 hours)
+        });
+        bidSuccess({user: alice, price: 10, amount: 1000e6, token: usdc, purchasePermit: permit});
+    }
+
+    function testBid_ZeroClosesAt_AlwaysExpired() public {
+        PurchasePermitV3 memory permit =
+            makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice, opensAt: 0, closesAt: 0});
+        bidFail({
+            user: alice,
+            price: 10,
+            amount: 1000e6,
+            token: usdc,
+            purchasePermit: permit,
+            err: abi.encodeWithSelector(SettlementSale.BidOutsideAllowedWindow.selector, 0, 0, block.timestamp)
+        });
+    }
+
+    function testBid_OpensAtGreaterThanClosesAt_NeverValid() public {
+        uint64 opensAt = uint64(block.timestamp + 2 hours);
+        uint64 closesAt = uint64(block.timestamp + 1 hours);
+
+        PurchasePermitV3 memory permit =
+            makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice, opensAt: opensAt, closesAt: closesAt});
+        bidFail({
+            user: alice,
+            price: 10,
+            amount: 1000e6,
+            token: usdc,
+            purchasePermit: permit,
+            err: abi.encodeWithSelector(
+                SettlementSale.BidOutsideAllowedWindow.selector, opensAt, closesAt, block.timestamp
+            )
+        });
+    }
+
+    function testBid_ExpiresAtCheckedWithinWindow() public {
+        uint64 expiresAt = uint64(block.timestamp + 30 minutes);
+
+        PurchasePermitV3 memory permit = makePurchasePermit({
+            saleSpecificEntityID: aliceID,
+            wallet: alice,
+            expiresAt: expiresAt,
+            opensAt: uint64(block.timestamp),
+            closesAt: uint64(block.timestamp + 2 hours)
+        });
+
+        vm.warp(expiresAt + 1);
+        bidFail({
+            user: alice,
+            price: 10,
+            amount: 1000e6,
+            token: usdc,
+            purchasePermit: permit,
+            err: abi.encodeWithSelector(SettlementSale.PurchasePermitExpired.selector, expiresAt, block.timestamp)
         });
     }
 }
@@ -375,7 +548,7 @@ contract SettlementSaleBidTest is SettlementSaleBidTestBase {
     function testBid_AfterClose_Reverts() public {
         bidSuccess({user: alice, price: 10, amount: 1000e6, token: usdc});
 
-        closeAuction();
+        closeCommitment();
         assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Closed));
 
         bidFail({
@@ -383,7 +556,7 @@ contract SettlementSaleBidTest is SettlementSaleBidTestBase {
             price: 10,
             amount: 1000e6,
             token: usdc,
-            err: abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.Closed)
+            err: encodeInvalidStage(SettlementSale.Stage.Closed, SettlementSale.Stage.Commitment)
         });
     }
 
@@ -396,7 +569,7 @@ contract SettlementSaleBidTest is SettlementSaleBidTestBase {
             price: 10,
             amount: 1000e6,
             token: usdc,
-            err: abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.PreOpen)
+            err: encodeInvalidStage(SettlementSale.Stage.PreOpen, SettlementSale.Stage.Commitment)
         });
     }
 
@@ -437,7 +610,7 @@ contract SettlementSaleBidTest is SettlementSaleBidTestBase {
     function testBid_WithDifferentEntity_Reverts() public {
         bidSuccess({user: alice, price: 10, amount: 1000e6, token: usdc});
 
-        PurchasePermitV2 memory permitForBob = makePurchasePermit({saleSpecificEntityID: bobID, wallet: alice});
+        PurchasePermitV3 memory permitForBob = makePurchasePermit({saleSpecificEntityID: bobID, wallet: alice});
         bidFail({
             user: alice,
             price: 10,
@@ -598,7 +771,7 @@ contract SettlementSaleBidAfterRefundTest is SettlementSaleBidTestBase {
         // Alice places a bid
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeAuction();
+        closeCommitment();
         openCancellation();
 
         // Alice cancels (gets refunded)
@@ -607,14 +780,14 @@ contract SettlementSaleBidAfterRefundTest is SettlementSaleBidTestBase {
 
         assertTrue(sale.entityStateByID(aliceID).refunded, "alice should be refunded");
 
-        // Admin manually sets stage back to Auction (simulating reopening after refunds)
+        // Admin manually sets stage back to Commitment (simulating reopening after refunds)
         vm.prank(admin);
-        sale.unsafeSetStage(SettlementSale.Stage.Auction);
+        sale.unsafeSetStage(SettlementSale.Stage.Commitment);
 
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Auction), "should be in auction stage");
+        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Commitment), "should be in commitment stage");
 
         // Try to bid again - should fail because alice was already refunded
-        PurchasePermitV2 memory permit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
+        PurchasePermitV3 memory permit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
         bidFail({
             user: alice,
             token: usdc,
@@ -629,12 +802,12 @@ contract SettlementSaleBidAfterRefundTest is SettlementSaleBidTestBase {
 contract SettlementSalePermitBidTest is SettlementSaleBaseTest {
     function setUp() public override {
         super.setUp();
-        openAuction();
+        openCommitment();
     }
 
     function doBidWithPermitSuccess(address user, uint256 amount, uint64 price, IERC20 token) internal {
         bytes16 entityID = addressToEntityID(user);
-        PurchasePermitV2 memory purchasePermit = makePurchasePermit(entityID, user);
+        PurchasePermitV3 memory purchasePermit = makePurchasePermit(entityID, user);
         bytes memory purchasePermitSignature = signPurchasePermit(purchasePermit);
 
         bytes memory erc20PermitSignature;
@@ -730,7 +903,7 @@ contract SettlementSalePermitBidTest is SettlementSaleBaseTest {
     {
         Account memory user = makeAccount(fuzz.userName);
 
-        PurchasePermitV2 memory purchasePermit =
+        PurchasePermitV3 memory purchasePermit =
             makePurchasePermit({saleSpecificEntityID: addressToEntityID(user.addr), wallet: user.addr});
         bytes memory purchasePermitSignature = signPurchasePermit(purchasePermit);
 
@@ -788,7 +961,7 @@ contract SettlementSalePermitBidTest is SettlementSaleBaseTest {
 
         deal(address(usdc), alice, bidAmount);
 
-        PurchasePermitV2 memory purchasePermit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
+        PurchasePermitV3 memory purchasePermit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
         bytes memory purchasePermitSignature = signPurchasePermit(purchasePermit);
 
         // Get ERC20 permit signature
@@ -819,7 +992,7 @@ contract SettlementSalePermitBidTest is SettlementSaleBaseTest {
         vm.prank(alice);
         usdc.approve(address(sale), bidAmount);
 
-        PurchasePermitV2 memory purchasePermit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
+        PurchasePermitV3 memory purchasePermit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
         bytes memory purchasePermitSignature = signPurchasePermit(purchasePermit);
 
         // Use garbage ERC20 permit signature
@@ -839,7 +1012,7 @@ contract SettlementSalePermitBidTest is SettlementSaleBaseTest {
 contract SettlementSalePriceOnlyIncreaseTest is SettlementSaleBaseTest {
     function setUp() public override {
         super.setUp();
-        openAuction();
+        openCommitment();
     }
 
     function testBid_OnlyPriceIncrease_Success() public {
@@ -850,7 +1023,7 @@ contract SettlementSalePriceOnlyIncreaseTest is SettlementSaleBaseTest {
         assertEq(usdc.balanceOf(address(sale)), 1000e6);
 
         // Second bid: same amount, higher price (amountDelta = 0)
-        PurchasePermitV2 memory permit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
+        PurchasePermitV3 memory permit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
         bytes memory sig = signPurchasePermit(permit);
 
         SettlementSale.Bid memory bid = SettlementSale.Bid({lockup: false, price: 15, amount: 1000e6});
@@ -869,7 +1042,7 @@ contract SettlementSalePriceOnlyIncreaseTest is SettlementSaleBaseTest {
     function testBid_OnlyPriceIncreaseWithPermit_Success() public {
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
 
-        PurchasePermitV2 memory purchasePermit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
+        PurchasePermitV3 memory purchasePermit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
         bytes memory purchasePermitSignature = signPurchasePermit(purchasePermit);
 
         // ERC20 permit for 0 amount delta
@@ -888,12 +1061,12 @@ contract SettlementSalePriceOnlyIncreaseTest is SettlementSaleBaseTest {
 contract SettlementSaleWalletEventTest is SettlementSaleBaseTest {
     function setUp() public override {
         super.setUp();
-        openAuction();
+        openCommitment();
     }
 
     function testBid_SubsequentBids_NoWalletInitializedEvent() public {
         // First bid - should emit both EntityInitialized and WalletInitialized
-        PurchasePermitV2 memory permit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
+        PurchasePermitV3 memory permit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
         bytes memory sig = signPurchasePermit(permit);
 
         deal(address(usdc), alice, 1000e6);
@@ -974,7 +1147,7 @@ contract SettlementSaleBidLockupTest is SettlementSaleBidTestBase {
         assertTrue(sale.entityStateByID(aliceID).currentBid.lockup, "lockup should be true");
 
         // Try to update to non-lockup bid - should revert
-        PurchasePermitV2 memory permit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
+        PurchasePermitV3 memory permit = makePurchasePermit({saleSpecificEntityID: aliceID, wallet: alice});
         bidFail({
             user: alice,
             price: 11,
@@ -987,7 +1160,7 @@ contract SettlementSaleBidLockupTest is SettlementSaleBidTestBase {
     }
 
     function testBid_WithForcedLockupButWithoutLockup_Reverts() public {
-        PurchasePermitV2 memory permit = makePurchasePermit({
+        PurchasePermitV3 memory permit = makePurchasePermit({
             saleSpecificEntityID: aliceID,
             saleUUID: TEST_SALE_UUID,
             wallet: alice,

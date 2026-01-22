@@ -6,7 +6,7 @@ import "./SettlementSaleBaseTest.sol";
 contract SettlementSaleRefundsTest is SettlementSaleBaseTest {
     function setUp() public override {
         super.setUp();
-        openAuction();
+        openCommitment();
     }
 
     function _defaultSetup() internal {
@@ -15,7 +15,7 @@ contract SettlementSaleRefundsTest is SettlementSaleBaseTest {
         doBid({user: bob, amount: 10000e6, price: 10, token: usdt});
         doBid({user: charlie, amount: 10000e6, price: 10, token: usdt});
 
-        closeAuction();
+        closeCommitment();
         openSettlement();
 
         // alice    committed 5k USDC           -> allocated 2k USDC
@@ -74,7 +74,7 @@ contract SettlementSaleRefundsTest is SettlementSaleBaseTest {
         entityIDs[1] = bobID; // repeated
 
         vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.WalletRefunded(charlieID, charlie, usdt, 10000e6);
+        emit SettlementSale.WalletRefunded(charlieID, charlie, address(usdt), 10000e6);
 
         vm.expectEmit(true, true, true, true, address(sale));
         emit SettlementSale.EntityRefunded(charlieID, 10000e6);
@@ -92,13 +92,13 @@ contract SettlementSaleRefundsTest is SettlementSaleBaseTest {
     }
 
     function testProcessRefunds_WrongStage_Reverts() public {
-        closeAuction();
+        closeCommitment();
         openSettlement();
 
         bytes16[] memory entityIDs = new bytes16[](1);
         entityIDs[0] = aliceID;
 
-        vm.expectRevert(abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.Settlement));
+        vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.Settlement, SettlementSale.Stage.Done));
         vm.prank(refunder);
         sale.processRefunds(entityIDs, false);
     }
@@ -313,7 +313,7 @@ contract SettlementSaleRefundsTest is SettlementSaleBaseTest {
         // Alice bids additional 3000 USDT with her second wallet (bringing her total commitment to 5000 USD)
         doBid({entityID: aliceID, user: aliceWallet2, token: usdt, amount: 5000e6, price: 10});
 
-        closeAuction();
+        closeCommitment();
         openSettlement();
 
         // Set allocations per wallet/token
@@ -327,10 +327,10 @@ contract SettlementSaleRefundsTest is SettlementSaleBaseTest {
         entityIDs[0] = aliceID;
 
         vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.WalletRefunded(aliceID, alice, usdc, 1000e6);
+        emit SettlementSale.WalletRefunded(aliceID, alice, address(usdc), 1000e6);
 
         vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.WalletRefunded(aliceID, aliceWallet2, usdt, 1000e6);
+        emit SettlementSale.WalletRefunded(aliceID, aliceWallet2, address(usdt), 1000e6);
 
         vm.expectEmit(true, true, true, true, address(sale));
         emit SettlementSale.EntityRefunded(aliceID, 2000e6);
@@ -344,3 +344,4 @@ contract SettlementSaleRefundsTest is SettlementSaleBaseTest {
         assertEq(usdt.balanceOf(aliceWallet2), 1000e6, "alice wallet2 USDT refund");
     }
 }
+

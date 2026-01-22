@@ -7,13 +7,13 @@ contract SettlementSaleWithdrawTest is SettlementSaleBaseTest {
     function setUp() public override {
         super.setUp();
 
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 5000e6, price: 10, token: usdc});
         doBid({user: bob, amount: 5000e6, price: 10, token: usdc});
         doBid({user: bob, amount: 10000e6, price: 10, token: usdt});
         doBid({user: charlie, amount: 10000e6, price: 10, token: usdt});
 
-        closeAuction();
+        closeCommitment();
         openCancellation();
         openSettlement();
 
@@ -36,13 +36,13 @@ contract SettlementSaleWithdrawTest is SettlementSaleBaseTest {
         finalizeSettlement();
 
         vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.WalletRefunded(aliceID, alice, usdc, 3000e6);
+        emit SettlementSale.WalletRefunded(aliceID, alice, address(usdc), 3000e6);
 
         vm.expectEmit(true, true, true, true, address(sale));
         emit SettlementSale.EntityRefunded(aliceID, 3000e6);
 
         vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.WalletRefunded(charlieID, charlie, usdt, 10000e6);
+        emit SettlementSale.WalletRefunded(charlieID, charlie, address(usdt), 10000e6);
 
         vm.expectEmit(true, true, true, true, address(sale));
         emit SettlementSale.EntityRefunded(charlieID, 10000e6);
@@ -58,7 +58,7 @@ contract SettlementSaleWithdrawTest is SettlementSaleBaseTest {
         sale.withdraw();
 
         vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.WalletRefunded(bobID, bob, usdt, 4000e6);
+        emit SettlementSale.WalletRefunded(bobID, bob, address(usdt), 4000e6);
 
         vm.expectEmit(true, true, true, true, address(sale));
         emit SettlementSale.EntityRefunded(bobID, 4000e6);
@@ -106,7 +106,7 @@ contract SettlementSaleWithdrawTest is SettlementSaleBaseTest {
     }
 
     function testWithdraw_WrongStage_Reverts() public {
-        vm.expectRevert(abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.Settlement));
+        vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.Settlement, SettlementSale.Stage.Done));
         vm.prank(admin);
         sale.withdraw();
     }
@@ -115,7 +115,7 @@ contract SettlementSaleWithdrawTest is SettlementSaleBaseTest {
         finalizeSettlement();
 
         vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.ProceedsWithdrawn(receiver, usdc, 3000e6);
+        emit SettlementSale.ProceedsWithdrawn(receiver, address(usdc), 3000e6);
 
         vm.prank(admin);
         sale.withdrawPartial(usdc, 3000e6);
@@ -155,7 +155,7 @@ contract SettlementSaleWithdrawTest is SettlementSaleBaseTest {
 
         vm.prank(admin);
         vm.expectRevert(
-            abi.encodeWithSelector(SettlementSale.WithdrawalExceedsAvailable.selector, usdc, 10000e6, 7000e6)
+            abi.encodeWithSelector(SettlementSale.WithdrawalExceedsAvailable.selector, address(usdc), 10000e6, 7000e6)
         );
         sale.withdrawPartial(usdc, 10000e6);
     }
@@ -171,7 +171,7 @@ contract SettlementSaleWithdrawTest is SettlementSaleBaseTest {
     }
 
     function testwithdrawPartial_WrongStage_Reverts() public {
-        vm.expectRevert(abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.Settlement));
+        vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.Settlement, SettlementSale.Stage.Done));
         vm.prank(admin);
         sale.withdrawPartial(usdc, 1000e6);
     }
@@ -200,3 +200,4 @@ contract SettlementSaleWithdrawTest is SettlementSaleBaseTest {
         assertEq(withdrawn[1].amount, 500e6);
     }
 }
+

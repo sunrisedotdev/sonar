@@ -4,6 +4,7 @@ import type {
     AllocationPermit,
     BasicPermit,
     BasicPermitV2,
+    BasicPermitV3,
     EntityDetails,
     EntityID,
     EntityInvestmentHistoryResponse,
@@ -21,7 +22,7 @@ export type PrePurchaseCheckResponse = {
 
 export type GeneratePurchasePermitResponse = {
     // TODO: Add 'type' field to the permit
-    PermitJSON: BasicPermit | BasicPermitV2 | AllocationPermit;
+    PermitJSON: BasicPermit | BasicPermitV2 | BasicPermitV3 | AllocationPermit;
     Signature: Hex;
 };
 

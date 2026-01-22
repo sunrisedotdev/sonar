@@ -14,7 +14,7 @@ import {IEntityAllocationDataReader} from "sonar/interfaces/IEntityAllocationDat
 import {IOffchainSettlement} from "sonar/interfaces/IOffchainSettlement.sol";
 import {TokenAmount, WalletTokenAmount} from "sonar/interfaces/types.sol";
 
-import {PurchasePermitV2, PurchasePermitV2Lib} from "sonar/permits/PurchasePermitV2.sol";
+import {PurchasePermitV3, PurchasePermitV3Lib} from "sonar/permits/PurchasePermitV3.sol";
 
 import {BaseTest, console} from "../BaseTest.sol";
 import {ERC20FakeWithDecimals, ERC20Permit} from "../doubles/ERC20Fake.sol";
@@ -106,8 +106,8 @@ contract SettlementSaleBaseTest is BaseTest {
             extraPausers: extraPausers,
             extraSettler: settler,
             extraRefunder: refunder,
-            closeAuctionAtTimestamp: uint64(block.timestamp + 24 hours),
             claimRefundEnabled: true,
+            maxWalletsPerEntity: 50,
             paymentTokens: paymentTokens,
             expectedPaymentTokenDecimals: 6
         });
@@ -118,16 +118,124 @@ contract SettlementSaleBaseTest is BaseTest {
         vm.stopPrank();
     }
 
-    function signPurchasePermit(PurchasePermitV2 memory permit, uint256 pk) internal pure returns (bytes memory) {
-        bytes32 digest = PurchasePermitV2Lib.digest(permit);
+    function signPurchasePermit(PurchasePermitV3 memory permit, uint256 pk) internal pure returns (bytes memory) {
+        bytes32 digest = PurchasePermitV3Lib.digest(permit);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
         return abi.encodePacked(r, s, v);
     }
 
-    function signPurchasePermit(PurchasePermitV2 memory permit) internal view returns (bytes memory) {
+    function signPurchasePermit(PurchasePermitV3 memory permit) internal view returns (bytes memory) {
         return signPurchasePermit(permit, permitSigner.key);
     }
 
+    /// @notice Creates a purchase permit with all parameters including time window.
+    function makePurchasePermit(
+        bytes16 saleSpecificEntityID,
+        bytes16 saleUUID,
+        address wallet,
+        uint256 minAmount,
+        uint256 maxAmount,
+        uint64 minPrice,
+        uint64 maxPrice,
+        bool forcedLockup,
+        uint64 expiresAt,
+        uint64 opensAt,
+        uint64 closesAt
+    ) internal pure returns (PurchasePermitV3 memory) {
+        return PurchasePermitV3({
+            saleSpecificEntityID: saleSpecificEntityID,
+            saleUUID: saleUUID,
+            wallet: wallet,
+            expiresAt: expiresAt,
+            minAmount: minAmount,
+            maxAmount: maxAmount,
+            minPrice: minPrice,
+            maxPrice: maxPrice,
+            opensAt: opensAt,
+            closesAt: closesAt,
+            payload: abi.encode(SettlementSale.PurchasePermitPayload({forcedLockup: forcedLockup}))
+        });
+    }
+
+    /// @notice Creates a purchase permit with specific time window.
+    function makePurchasePermit(
+        bytes16 saleSpecificEntityID,
+        address wallet,
+        uint64 opensAt,
+        uint64 closesAt
+    ) internal view returns (PurchasePermitV3 memory) {
+        return makePurchasePermit({
+            saleSpecificEntityID: saleSpecificEntityID,
+            wallet: wallet,
+            expiresAt: uint64(block.timestamp + 1000),
+            opensAt: opensAt,
+            closesAt: closesAt
+        });
+    }
+
+    /// @notice Creates a purchase permit with specific time window and custom expiry.
+    function makePurchasePermit(
+        bytes16 saleSpecificEntityID,
+        address wallet,
+        uint64 expiresAt,
+        uint64 opensAt,
+        uint64 closesAt
+    ) internal pure returns (PurchasePermitV3 memory) {
+        return makePurchasePermit({
+            saleSpecificEntityID: saleSpecificEntityID,
+            saleUUID: TEST_SALE_UUID,
+            wallet: wallet,
+            minAmount: SALE_MIN_AMOUNT,
+            maxAmount: SALE_MAX_AMOUNT,
+            minPrice: SALE_MIN_PRICE,
+            maxPrice: SALE_MAX_PRICE,
+            forcedLockup: false,
+            expiresAt: expiresAt,
+            opensAt: opensAt,
+            closesAt: closesAt
+        });
+    }
+
+    /// @notice Creates a purchase permit with always-valid time window (opensAt=0, closesAt=max).
+    function makePurchasePermit(
+        bytes16 saleSpecificEntityID,
+        address wallet
+    ) internal view returns (PurchasePermitV3 memory) {
+        return makePurchasePermit({
+            saleSpecificEntityID: saleSpecificEntityID, wallet: wallet, opensAt: 0, closesAt: type(uint64).max
+        });
+    }
+
+    /// @notice Creates a purchase permit with always-valid time window, deriving entityID from wallet.
+    function makePurchasePermit(address wallet) internal view returns (PurchasePermitV3 memory) {
+        return makePurchasePermit({saleSpecificEntityID: addressToEntityID(wallet), wallet: wallet});
+    }
+
+    /// @notice Creates a purchase permit with custom limits and always-valid time window.
+    function makePurchasePermit(
+        bytes16 saleSpecificEntityID,
+        address wallet,
+        uint256 minAmount,
+        uint256 maxAmount,
+        uint64 minPrice,
+        uint64 maxPrice
+    ) internal view returns (PurchasePermitV3 memory) {
+        return makePurchasePermit({
+            saleSpecificEntityID: saleSpecificEntityID,
+            saleUUID: TEST_SALE_UUID,
+            wallet: wallet,
+            minAmount: minAmount,
+            maxAmount: maxAmount,
+            minPrice: minPrice,
+            maxPrice: maxPrice,
+            forcedLockup: false,
+            expiresAt: uint64(block.timestamp + 1000),
+            opensAt: 0,
+            closesAt: type(uint64).max
+        });
+    }
+
+    /// @notice Creates a purchase permit with custom limits, lockup, expiry, and always-valid time window.
     function makePurchasePermit(
         bytes16 saleSpecificEntityID,
         bytes16 saleUUID,
@@ -138,81 +246,20 @@ contract SettlementSaleBaseTest is BaseTest {
         uint64 maxPrice,
         bool forcedLockup,
         uint64 expiresAt
-    ) internal pure returns (PurchasePermitV2 memory) {
-        return PurchasePermitV2({
+    ) internal pure returns (PurchasePermitV3 memory) {
+        return makePurchasePermit({
             saleSpecificEntityID: saleSpecificEntityID,
             saleUUID: saleUUID,
             wallet: wallet,
+            minAmount: minAmount,
+            maxAmount: maxAmount,
+            minPrice: minPrice,
+            maxPrice: maxPrice,
+            forcedLockup: forcedLockup,
             expiresAt: expiresAt,
-            minAmount: minAmount,
-            maxAmount: maxAmount,
-            minPrice: minPrice,
-            maxPrice: maxPrice,
-            payload: abi.encode(SettlementSale.PurchasePermitPayload({forcedLockup: forcedLockup}))
+            opensAt: 0,
+            closesAt: type(uint64).max
         });
-    }
-
-    function makePurchasePermit(
-        bytes16 saleSpecificEntityID,
-        bytes16 saleUUID,
-        address wallet,
-        uint256 minAmount,
-        uint256 maxAmount,
-        uint64 minPrice,
-        uint64 maxPrice,
-        uint64 expiresAt
-    ) internal pure returns (PurchasePermitV2 memory) {
-        return makePurchasePermit({
-            saleSpecificEntityID: saleSpecificEntityID,
-            saleUUID: saleUUID,
-            wallet: wallet,
-            minAmount: minAmount,
-            maxAmount: maxAmount,
-            minPrice: minPrice,
-            maxPrice: maxPrice,
-            forcedLockup: false,
-            expiresAt: expiresAt
-        });
-    }
-
-    function makePurchasePermit(
-        bytes16 saleSpecificEntityID,
-        address wallet,
-        uint256 minAmount,
-        uint256 maxAmount,
-        uint64 minPrice,
-        uint64 maxPrice
-    ) internal view returns (PurchasePermitV2 memory) {
-        return makePurchasePermit({
-            saleSpecificEntityID: saleSpecificEntityID,
-            saleUUID: TEST_SALE_UUID,
-            wallet: wallet,
-            expiresAt: uint64(block.timestamp + 1000),
-            minAmount: minAmount,
-            maxAmount: maxAmount,
-            minPrice: minPrice,
-            maxPrice: maxPrice
-        });
-    }
-
-    function makePurchasePermit(
-        bytes16 saleSpecificEntityID,
-        address wallet
-    ) internal view returns (PurchasePermitV2 memory) {
-        return makePurchasePermit({
-            saleSpecificEntityID: saleSpecificEntityID,
-            saleUUID: TEST_SALE_UUID,
-            wallet: wallet,
-            expiresAt: uint64(block.timestamp + 1000),
-            minAmount: SALE_MIN_AMOUNT,
-            maxAmount: SALE_MAX_AMOUNT,
-            minPrice: SALE_MIN_PRICE,
-            maxPrice: SALE_MAX_PRICE
-        });
-    }
-
-    function makePurchasePermit(address wallet) internal view returns (PurchasePermitV2 memory) {
-        return makePurchasePermit({saleSpecificEntityID: addressToEntityID(wallet), wallet: wallet});
     }
 
     function doBid(address user, IERC20 token, uint256 amount, uint64 price) internal {
@@ -314,7 +361,7 @@ contract SettlementSaleBaseTest is BaseTest {
     }
 
     function _doBidWithParams(DoBidParams memory params) internal {
-        PurchasePermitV2 memory purchasePermit = makePurchasePermit({
+        PurchasePermitV3 memory purchasePermit = makePurchasePermit({
             saleSpecificEntityID: params.entityID,
             saleUUID: TEST_SALE_UUID,
             wallet: params.user,
@@ -323,7 +370,9 @@ contract SettlementSaleBaseTest is BaseTest {
             minPrice: params.minPrice,
             maxPrice: params.maxPrice,
             forcedLockup: params.forcedLockup,
-            expiresAt: uint64(block.timestamp + 1000)
+            expiresAt: uint64(block.timestamp + 1000),
+            opensAt: 0,
+            closesAt: type(uint64).max
         });
         bytes memory purchasePermitSignature = signPurchasePermit(purchasePermit);
 
@@ -520,14 +569,14 @@ contract SettlementSaleBaseTest is BaseTest {
         assertEq(a.extraData, b.extraData, string.concat(message, ": extraData"));
     }
 
-    function openAuction() public {
+    function openCommitment() public {
         vm.prank(manager);
-        sale.openAuction();
+        sale.openCommitment();
     }
 
-    function closeAuction() internal {
+    function closeCommitment() internal {
         vm.prank(manager);
-        sale.closeAuction();
+        sale.closeCommitment();
     }
 
     function openCancellation() public {
@@ -609,5 +658,27 @@ contract SettlementSaleBaseTest is BaseTest {
         balances[0] = TokenAmount({token: address(usdc), amount: usdc.balanceOf(owner)});
         balances[1] = TokenAmount({token: address(usdt), amount: usdt.balanceOf(owner)});
         return balances;
+    }
+
+    /// @notice Helper to encode InvalidStage error with a single expected stage.
+    function encodeInvalidStage(
+        SettlementSale.Stage got,
+        SettlementSale.Stage want
+    ) internal pure returns (bytes memory) {
+        SettlementSale.Stage[] memory wanted = new SettlementSale.Stage[](1);
+        wanted[0] = want;
+        return abi.encodeWithSelector(SettlementSale.InvalidStage.selector, got, wanted);
+    }
+
+    /// @notice Helper to encode InvalidStage error with two expected stages.
+    function encodeInvalidStage(
+        SettlementSale.Stage got,
+        SettlementSale.Stage want1,
+        SettlementSale.Stage want2
+    ) internal pure returns (bytes memory) {
+        SettlementSale.Stage[] memory wanted = new SettlementSale.Stage[](2);
+        wanted[0] = want1;
+        wanted[1] = want2;
+        return abi.encodeWithSelector(SettlementSale.InvalidStage.selector, got, wanted);
     }
 }
