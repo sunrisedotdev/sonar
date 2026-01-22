@@ -1,5 +1,27 @@
 # @echoxyz/sonar-core
 
+## 0.13.0
+
+### Minor Changes
+
+- c551d7c: Add BasicPermitV3 type with OpensAt and ClosesAt fields for time-gated commitment windows:
+    - Add `BasicPermitV3` type with new `OpensAt` and `ClosesAt` fields
+    - Add `BASIC_V3` to `PurchasePermitType` enum
+    - Update `PurchasePermit` conditional type to handle V3
+    - Update `GeneratePurchasePermitResponse` to include `BasicPermitV3`
+    - Mark `BasicPermitV2` as deprecated
+
+- b2cd697: Rename Allocation API to Limits API to match backend changes:
+    - `fetchAllocation` → `fetchLimits`
+    - `AllocationResponse` → `LimitsResponse`
+    - Response fields renamed: `HasReservedAllocation` → `HasCustomCommitmentAmountLimit`, `ReservedAmountUSD` removed, `MaxAmountUSD` → `MaxCommitmentAmount`, added `MinCommitmentAmount`
+    - `PrePurchaseFailureReason.NO_RESERVED_ALLOCATION` → `PrePurchaseFailureReason.NO_CUSTOM_COMMITMENT_AMOUNT_LIMIT`
+
+### Patch Changes
+
+- e276112: Add `pnpm fmt` script for running prettier and format check to CI
+- 171a0db: Added support for ReadEntityInvestmentHistory API
+
 ## 0.12.0
 
 ### Minor Changes

@@ -1,5 +1,16 @@
 # @echoxyz/sonar-react
 
+## 0.12.2
+
+### Patch Changes
+
+- 171a0db: Added support for ReadEntityInvestmentHistory API
+- Updated dependencies [c551d7c]
+- Updated dependencies [e276112]
+- Updated dependencies [171a0db]
+- Updated dependencies [b2cd697]
+    - @echoxyz/sonar-core@0.13.0
+
 ## 0.12.1
 
 ### Patch Changes
