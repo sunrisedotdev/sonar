@@ -41,6 +41,7 @@ export type AllocationPermit = {
     MinAmount: string;
 };
 
+// Deprecated in favor of BasicPermitV3
 export type BasicPermitV2 = {
     SaleSpecificEntityID: Hex;
     SaleUUID: Hex;
@@ -53,9 +54,24 @@ export type BasicPermitV2 = {
     Payload: Hex;
 };
 
+export type BasicPermitV3 = {
+    SaleSpecificEntityID: Hex;
+    SaleUUID: Hex;
+    Wallet: Hex;
+    ExpiresAt: number;
+    MinAmount: string;
+    MaxAmount: string;
+    MinPrice: number;
+    MaxPrice: number;
+    OpensAt: number;
+    ClosesAt: number;
+    Payload: Hex;
+};
+
 export enum PurchasePermitType {
     BASIC = "basic",
     BASIC_V2 = "basic-v2",
+    BASIC_V3 = "basic-v3",
     ALLOCATION = "allocation",
 }
 
@@ -63,9 +79,11 @@ export type PurchasePermit<T extends PurchasePermitType> = T extends PurchasePer
     ? BasicPermit
     : T extends PurchasePermitType.BASIC_V2
       ? BasicPermitV2
-      : T extends PurchasePermitType.ALLOCATION
-        ? AllocationPermit
-        : never;
+      : T extends PurchasePermitType.BASIC_V3
+        ? BasicPermitV3
+        : T extends PurchasePermitType.ALLOCATION
+          ? AllocationPermit
+          : never;
 
 export enum PrePurchaseFailureReason {
     UNKNOWN = "unknown",

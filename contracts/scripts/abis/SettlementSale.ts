@@ -48,14 +48,14 @@ export const settlementSaleAbi = [
             "internalType": "address"
           },
           {
-            "name": "closeAuctionAtTimestamp",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
             "name": "claimRefundEnabled",
             "type": "bool",
             "internalType": "bool"
+          },
+          {
+            "name": "maxWalletsPerEntity",
+            "type": "uint8",
+            "internalType": "uint8"
           },
           {
             "name": "paymentTokens",
@@ -218,23 +218,10 @@ export const settlementSaleAbi = [
   },
   {
     "type": "function",
-    "name": "closeAuction",
+    "name": "closeCommitment",
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "closeAuctionAtTimestamp",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -745,13 +732,13 @@ export const settlementSaleAbi = [
   },
   {
     "type": "function",
-    "name": "manualStage",
+    "name": "maxWalletsPerEntity",
     "inputs": [],
     "outputs": [
       {
         "name": "",
         "type": "uint8",
-        "internalType": "enum SettlementSale.Stage"
+        "internalType": "uint8"
       }
     ],
     "stateMutability": "view"
@@ -797,14 +784,14 @@ export const settlementSaleAbi = [
   },
   {
     "type": "function",
-    "name": "openAuction",
+    "name": "openCancellation",
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "openCancellation",
+    "name": "openCommitment",
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -1185,19 +1172,6 @@ export const settlementSaleAbi = [
   },
   {
     "type": "function",
-    "name": "reopenAuction",
-    "inputs": [
-      {
-        "name": "newCloseAuctionAtTimestamp",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "replaceBidWithApproval",
     "inputs": [
       {
@@ -1230,7 +1204,7 @@ export const settlementSaleAbi = [
       {
         "name": "purchasePermit",
         "type": "tuple",
-        "internalType": "struct PurchasePermitV2",
+        "internalType": "struct PurchasePermitV3",
         "components": [
           {
             "name": "saleSpecificEntityID",
@@ -1269,6 +1243,16 @@ export const settlementSaleAbi = [
           },
           {
             "name": "maxPrice",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "opensAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "closesAt",
             "type": "uint64",
             "internalType": "uint64"
           },
@@ -1322,7 +1306,7 @@ export const settlementSaleAbi = [
       {
         "name": "purchasePermit",
         "type": "tuple",
-        "internalType": "struct PurchasePermitV2",
+        "internalType": "struct PurchasePermitV3",
         "components": [
           {
             "name": "saleSpecificEntityID",
@@ -1361,6 +1345,16 @@ export const settlementSaleAbi = [
           },
           {
             "name": "maxPrice",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "opensAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "closesAt",
             "type": "uint64",
             "internalType": "uint64"
           },
@@ -1463,12 +1457,12 @@ export const settlementSaleAbi = [
   },
   {
     "type": "function",
-    "name": "setCloseAuctionAtTimestamp",
+    "name": "setMaxWalletsPerEntity",
     "inputs": [
       {
-        "name": "timestamp",
-        "type": "uint64",
-        "internalType": "uint64"
+        "name": "max",
+        "type": "uint8",
+        "internalType": "uint8"
       }
     ],
     "outputs": [],
@@ -1872,7 +1866,7 @@ export const settlementSaleAbi = [
         "name": "token",
         "type": "address",
         "indexed": true,
-        "internalType": "contract IERC20"
+        "internalType": "address"
       },
       {
         "name": "acceptedAmount",
@@ -1894,7 +1888,7 @@ export const settlementSaleAbi = [
         "internalType": "bytes16"
       },
       {
-        "name": "addr",
+        "name": "wallet",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -1919,7 +1913,7 @@ export const settlementSaleAbi = [
         "internalType": "bytes16"
       },
       {
-        "name": "addr",
+        "name": "wallet",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -1952,6 +1946,19 @@ export const settlementSaleAbi = [
   },
   {
     "type": "event",
+    "name": "ClaimRefundEnabledChanged",
+    "inputs": [
+      {
+        "name": "enabled",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "EntityInitialized",
     "inputs": [
       {
@@ -1961,7 +1968,7 @@ export const settlementSaleAbi = [
         "internalType": "bytes16"
       },
       {
-        "name": "addr",
+        "name": "wallet",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -1990,6 +1997,57 @@ export const settlementSaleAbi = [
   },
   {
     "type": "event",
+    "name": "MaxWalletsPerEntityChanged",
+    "inputs": [
+      {
+        "name": "previousMax",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "newMax",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PausedStateChanged",
+    "inputs": [
+      {
+        "name": "paused",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ProceedsReceiverChanged",
+    "inputs": [
+      {
+        "name": "previousReceiver",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newReceiver",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "ProceedsWithdrawn",
     "inputs": [
       {
@@ -2002,7 +2060,7 @@ export const settlementSaleAbi = [
         "name": "token",
         "type": "address",
         "indexed": true,
-        "internalType": "contract IERC20"
+        "internalType": "address"
       },
       {
         "name": "amount",
@@ -2103,6 +2161,50 @@ export const settlementSaleAbi = [
   },
   {
     "type": "event",
+    "name": "StageChanged",
+    "inputs": [
+      {
+        "name": "previousStage",
+        "type": "uint8",
+        "indexed": true,
+        "internalType": "enum SettlementSale.Stage"
+      },
+      {
+        "name": "newStage",
+        "type": "uint8",
+        "indexed": true,
+        "internalType": "enum SettlementSale.Stage"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TokensRecovered",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "WalletInitialized",
     "inputs": [
       {
@@ -2112,7 +2214,7 @@ export const settlementSaleAbi = [
         "internalType": "bytes16"
       },
       {
-        "name": "addr",
+        "name": "wallet",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -2140,7 +2242,7 @@ export const settlementSaleAbi = [
         "name": "token",
         "type": "address",
         "indexed": true,
-        "internalType": "contract IERC20"
+        "internalType": "address"
       },
       {
         "name": "amount",
@@ -2227,7 +2329,7 @@ export const settlementSaleAbi = [
       {
         "name": "token",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       },
       {
         "name": "allocation",
@@ -2268,12 +2370,12 @@ export const settlementSaleAbi = [
     "name": "BidAmountCannotBeLowered",
     "inputs": [
       {
-        "name": "newAmount",
+        "name": "got",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "previousAmount",
+        "name": "want",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2284,12 +2386,12 @@ export const settlementSaleAbi = [
     "name": "BidBelowMinAmount",
     "inputs": [
       {
-        "name": "newBidAmount",
+        "name": "amount",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "minAmount",
+        "name": "min",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2300,12 +2402,12 @@ export const settlementSaleAbi = [
     "name": "BidExceedsMaxAmount",
     "inputs": [
       {
-        "name": "newBidAmount",
+        "name": "amount",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "maxAmount",
+        "name": "max",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2323,15 +2425,36 @@ export const settlementSaleAbi = [
   },
   {
     "type": "error",
+    "name": "BidOutsideAllowedWindow",
+    "inputs": [
+      {
+        "name": "opensAt",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "closesAt",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "currentTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "BidPriceBelowMinPrice",
     "inputs": [
       {
-        "name": "bidPrice",
+        "name": "price",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "minPrice",
+        "name": "min",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2342,12 +2465,12 @@ export const settlementSaleAbi = [
     "name": "BidPriceCannotBeLowered",
     "inputs": [
       {
-        "name": "newPrice",
+        "name": "got",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "previousPrice",
+        "name": "want",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2358,12 +2481,12 @@ export const settlementSaleAbi = [
     "name": "BidPriceExceedsMaxPrice",
     "inputs": [
       {
-        "name": "bidPrice",
+        "name": "price",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "maxPrice",
+        "name": "max",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2381,7 +2504,7 @@ export const settlementSaleAbi = [
       {
         "name": "token",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       }
     ]
   },
@@ -2446,7 +2569,17 @@ export const settlementSaleAbi = [
       {
         "name": "token",
         "type": "address",
-        "internalType": "contract IERC20Metadata"
+        "internalType": "address"
+      },
+      {
+        "name": "got",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "want",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ]
   },
@@ -2487,9 +2620,35 @@ export const settlementSaleAbi = [
     "name": "InvalidStage",
     "inputs": [
       {
-        "name": "",
+        "name": "got",
         "type": "uint8",
         "internalType": "enum SettlementSale.Stage"
+      },
+      {
+        "name": "want",
+        "type": "uint8[]",
+        "internalType": "enum SettlementSale.Stage[]"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "MaxWalletsPerEntityExceeded",
+    "inputs": [
+      {
+        "name": "entityID",
+        "type": "bytes16",
+        "internalType": "bytes16"
+      },
+      {
+        "name": "count",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "max",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ]
   },
@@ -2501,7 +2660,18 @@ export const settlementSaleAbi = [
   {
     "type": "error",
     "name": "PurchasePermitExpired",
-    "inputs": []
+    "inputs": [
+      {
+        "name": "expiresAt",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "currentTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
     "type": "error",
@@ -2535,12 +2705,12 @@ export const settlementSaleAbi = [
     "name": "UnexpectedTotalAcceptedAmount",
     "inputs": [
       {
-        "name": "expected",
+        "name": "got",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "actual",
+        "name": "want",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -2567,7 +2737,7 @@ export const settlementSaleAbi = [
     "name": "WalletNotInitialized",
     "inputs": [
       {
-        "name": "",
+        "name": "wallet",
         "type": "address",
         "internalType": "address"
       }
@@ -2583,12 +2753,12 @@ export const settlementSaleAbi = [
         "internalType": "bytes16"
       },
       {
-        "name": "existing",
+        "name": "want",
         "type": "bytes16",
         "internalType": "bytes16"
       },
       {
-        "name": "addr",
+        "name": "wallet",
         "type": "address",
         "internalType": "address"
       }
@@ -2601,7 +2771,7 @@ export const settlementSaleAbi = [
       {
         "name": "token",
         "type": "address",
-        "internalType": "contract IERC20"
+        "internalType": "address"
       },
       {
         "name": "requested",
@@ -2628,6 +2798,11 @@ export const settlementSaleAbi = [
   {
     "type": "error",
     "name": "ZeroEntityID",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroMaxWalletsPerEntity",
     "inputs": []
   }
 ] as const;
