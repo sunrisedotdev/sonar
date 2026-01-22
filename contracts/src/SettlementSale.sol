@@ -8,43 +8,43 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {PurchasePermitV2, PurchasePermitV2Lib} from "./permits/PurchasePermitV2.sol";
+import {PurchasePermitV3, PurchasePermitV3Lib} from "./permits/PurchasePermitV3.sol";
 
 import {ICommitmentDataReader} from "./interfaces/ICommitmentDataReader.sol";
-
-import {IEntityAllocationDataReader} from "./interfaces/IEntityAllocationDataReader.sol";
 import {IOffchainSettlement} from "./interfaces/IOffchainSettlement.sol";
-import {ITotalAllocationsReader} from "./interfaces/ITotalAllocationsReader.sol";
 import {ITotalCommitmentsReader} from "./interfaces/ITotalCommitmentsReader.sol";
+import {IEntityAllocationDataReader} from "./interfaces/IEntityAllocationDataReader.sol";
+import {ITotalAllocationsReader} from "./interfaces/ITotalAllocationsReader.sol";
 import {TokenAmount, WalletTokenAmount} from "./interfaces/types.sol";
 
 /// @title  SettlementSale
-/// @notice Public sale contract for a token offering with an English-auction-style mechanism.
+/// @notice Public sale contract for a token offering with various clearing mechanisms.
 ///
 /// @dev
-/// This contract raises funds in multiple payment tokens through a competitive English auction.
-/// The contract acts as an escrow that records bids, enforces limits, and handles refunds and withdrawals.
-/// Auction mechanics (clearing price determination and token allocations) are computed offchain, with final results recorded onchain during settlement.
+/// This contract raises funds in multiple payment tokens.
+/// Supports various pricing mechanisms including fixed price, English auction, etc.
+/// The contract acts as an escrow that records commitments, enforces limits, and handles refunds and withdrawals.
+/// Clearing mechanics (price determination and token allocations) are computed offchain, with final results recorded onchain during settlement.
 ///
 /// # Sale Stages
 ///
 /// The sale progresses through the following stages:
 ///
 /// 1. **PreOpen**: Initial state, no commitments allowed
-/// 2. **Auction**: Users submit bids with price and amount
-/// 3. **Closed**: Auction automatically closes at a specified timestamp
+/// 2. **Commitment**: Users submit bids with price and amount
+/// 3. **Closed**: Commitment stage closes at a specified timestamp
 /// 4. **Cancellation**: Participants can cancel their bids and receive refunds
 /// 5. **Settlement**: Final allocations computed offchain are recorded onchain
 /// 6. **Done**: Refunds processed and proceeds withdrawn
 ///
-/// ## PreOpen Phase
+/// ## PreOpen Stage
 ///
 /// The sale begins in the PreOpen stage, where no bids or commitments are accepted.
-/// This is the initial setup phase before the auction begins, allowing the sale manager to configure parameters and prepare for the auction.
+/// This is the initial setup stage before the commitment stage begins, allowing the sale manager to configure parameters and prepare for the commitment stage.
 ///
-/// Transitions to: Auction
+/// Transitions to: Commitment
 ///
-/// ## Auction Phase
+/// ## Commitment Stage
 ///
 /// Entities with valid purchase permits (issued by Sonar) can participate by submitting bids specifying price, amount, and lockup preferences.
 /// Each new bid replaces the previous bid for the same entity.
@@ -54,33 +54,32 @@ import {TokenAmount, WalletTokenAmount} from "./interfaces/types.sol";
 /// Total commitment per entity cannot exceed the maximum amount specified in their purchase permit.
 /// Bid prices must fall within the minimum and maximum price bounds specified in the purchase permit.
 /// These price bounds are determined offchain and can change dynamically.
-/// The auction automatically closes at a specified timestamp, though admins can manually override if needed.
+/// The commitment stage closes at a specified timestamp, though admins can manually override if needed.
 ///
 /// Transitions to: Closed
 ///
-/// ## Closed Phase
+/// ## Closed Stage
 ///
-/// After the auction closes (either automatically at the scheduled timestamp or manually by the sale manager), the sale enters the Closed stage.
-/// In this stage, no new bids can be submitted. The sale manager can reopen the auction, proceed directly to settlement, or proceed to the cancellation or settlement phase.
-/// Note: Once the sale moves from Closed to Cancellation or Settlement, the auction cannot be reopened.
+/// No new commitments can be submitted in this stage. The sale manager can reopen the commitment stage, proceed directly to settlement, or proceed to the cancellation or settlement stage.
+/// Note: Once the sale moves from Closed to Cancellation or Settlement, the commitment stage cannot be reopened.
 ///
-/// Transitions to: Auction, Cancellation, Settlement
+/// Transitions to: Commitment, Cancellation, Settlement
 ///
-/// ## Cancellation Phase
+/// ## Cancellation Stage
 ///
-/// After the auction closes, preliminary allocations are computed offchain and communicated to participants.
-/// During this phase, participants can cancel their bids at any time, which triggers an immediate refund of their committed amount.
+/// After the commitment stage closes, preliminary allocations are computed offchain and communicated to participants.
+/// During this stage, participants can cancel their bids at any time, which triggers an immediate refund of their committed amount.
 ///
 /// Transitions to: Settlement
 ///
-/// ## Settlement Phase
+/// ## Settlement Stage
 ///
 /// Final allocations are computed offchain based on the project's requirements.
 /// The settler role records non-zero allocations onchain via the settlement function.
 ///
 /// Transitions to: Done
 ///
-/// ## Done Phase (Refund and Withdrawal)
+/// ## Done Stage (Refund and Withdrawal)
 ///
 /// After settlement is finalized, the sale enters the Done stage where refunds can be processed and proceeds can be withdrawn.
 /// Refunds equal the difference between an entity's total commitment and their accepted allocation amount, calculated separately for each payment token.
@@ -93,7 +92,7 @@ import {TokenAmount, WalletTokenAmount} from "./interfaces/types.sol";
 ///
 /// # Technical Notes
 ///
-/// All prices are denominated in the auction's price tick units, as defined by the project.
+/// All prices are denominated in the sale's price tick units, as defined by the project.
 /// Minimum/maximum bid prices and maximum bid amounts are specified offchain and passed to the contract via purchase permits.
 ///
 /// The `entityID` refers to an entity in the Sonar system, which can be either a legal entity or an individual.
@@ -108,8 +107,10 @@ import {TokenAmount, WalletTokenAmount} from "./interfaces/types.sol";
 /// # Multi-Token Support
 ///
 /// This contract accepts multiple payment tokens (e.g. USDC and USDT) and tracks commitments, allocations, and refunds separately for each token.
-/// All amounts in bids and allocations represent the total value across all tokens, and the contract uses amounts interchangeably
-/// under the assumption that all tokens have the same value (e.g. all are USD stablecoins with 6 decimals).
+/// All amounts in bids and allocations represent the total value across all tokens, and the contract uses amounts interchangeably.
+/// CRITICAL ASSUMPTION: All payment tokens MUST maintain 1:1 value parity throughout the sale lifecycle (e.g. USD stablecoins).
+/// If a token depegs or loses parity, the sale SHOULD be paused immediately using the `pause()` function for further assessment.
+///
 /// When processing bids, the contract accepts a single payment token per transaction, tracking the breakdown by token internally.
 /// During refunds and withdrawals, each token is transferred separately based on the accepted amounts recorded per-token amounts during settlement.
 ///
@@ -142,7 +143,7 @@ contract SettlementSale is
     /// @notice The role allowed to manage the operational aspects of the sale.
     bytes32 public constant SALE_MANAGER_ROLE = keccak256("SALE_MANAGER_ROLE");
 
-    /// @notice The role allowed to set allocations for auction clearing.
+    /// @notice The role allowed to set allocations for sale clearing.
     bytes32 public constant SETTLER_ROLE = keccak256("SETTLER_ROLE");
 
     /// @notice The role allowed to finalize the settlement.
@@ -155,25 +156,27 @@ contract SettlementSale is
     bytes32 public constant REFUNDER_ROLE = keccak256("REFUNDER_ROLE");
 
     // Initialization errors
-    error InvalidPaymentTokenDecimals(IERC20Metadata token);
-    error DuplicatePaymentToken(IERC20 token);
+    error InvalidPaymentTokenDecimals(address token, uint256 got, uint256 want);
+    error DuplicatePaymentToken(address token);
     error NoPaymentTokens();
 
     // Purchase permit validation errors
     error InvalidSaleUUID(bytes16 got, bytes16 want);
-    error PurchasePermitExpired();
+    error PurchasePermitExpired(uint256 expiresAt, uint256 currentTime);
+    error BidOutsideAllowedWindow(uint64 opensAt, uint64 closesAt, uint256 currentTime);
     error InvalidSender(address got, address want);
     error UnauthorizedSigner(address signer);
 
     // Commitment submission errors
-    error BidBelowMinAmount(uint256 newBidAmount, uint256 minAmount);
-    error BidExceedsMaxAmount(uint256 newBidAmount, uint256 maxAmount);
-    error WalletTiedToAnotherEntity(bytes16 got, bytes16 existing, address addr);
+    error BidBelowMinAmount(uint256 amount, uint256 min);
+    error BidExceedsMaxAmount(uint256 amount, uint256 max);
+    error WalletTiedToAnotherEntity(bytes16 got, bytes16 want, address wallet);
+    error MaxWalletsPerEntityExceeded(bytes16 entityID, uint256 count, uint256 max);
     error ZeroAmount();
-    error BidAmountCannotBeLowered(uint256 newAmount, uint256 previousAmount);
-    error BidPriceCannotBeLowered(uint256 newPrice, uint256 previousPrice);
-    error BidPriceExceedsMaxPrice(uint256 bidPrice, uint256 maxPrice);
-    error BidPriceBelowMinPrice(uint256 bidPrice, uint256 minPrice);
+    error BidAmountCannotBeLowered(uint256 got, uint256 want);
+    error BidPriceCannotBeLowered(uint256 got, uint256 want);
+    error BidPriceExceedsMaxPrice(uint256 price, uint256 max);
+    error BidPriceBelowMinPrice(uint256 price, uint256 min);
     error BidMustHaveLockup();
     error BidLockupCannotBeUndone();
     error InvalidPaymentToken(address token);
@@ -181,10 +184,10 @@ contract SettlementSale is
     // Settlement errors
     error AllocationAlreadySet(bytes16 entityID, uint256 acceptedAmount);
     error AllocationExceedsCommitment(
-        bytes16 entityID, address wallet, IERC20 token, uint256 allocation, uint256 commitment
+        bytes16 entityID, address wallet, address token, uint256 allocation, uint256 commitment
     );
     error WalletNotAssociatedWithEntity(address wallet, bytes16 entityID);
-    error UnexpectedTotalAcceptedAmount(uint256 expected, uint256 actual);
+    error UnexpectedTotalAcceptedAmount(uint256 got, uint256 want);
 
     // Refund errors
     error AlreadyRefunded(bytes16 entityID);
@@ -192,30 +195,39 @@ contract SettlementSale is
     error ClaimRefundDisabled();
 
     // Withdrawal errors
-    error WithdrawalExceedsAvailable(IERC20 token, uint256 requested, uint256 available);
+    error WithdrawalExceedsAvailable(address token, uint256 requested, uint256 available);
 
     // Generic errors
-    error InvalidStage(Stage);
+    error InvalidStage(Stage got, Stage[] want);
     error ZeroAddress();
     error ZeroEntityID();
+    error ZeroMaxWalletsPerEntity();
     error SalePaused();
     error EntityNotInitialized(bytes16 entityID);
-    error WalletNotInitialized(address);
+    error WalletNotInitialized(address wallet);
 
-    event EntityInitialized(bytes16 indexed entityID, address indexed addr);
-    event WalletInitialized(bytes16 indexed entityID, address indexed addr);
-    event BidPlaced(bytes16 indexed entityID, address indexed addr, Bid bid);
-    event BidCancelled(bytes16 indexed entityID, address indexed addr, uint256 amount);
-    event AllocationSet(bytes16 indexed entityID, address indexed wallet, IERC20 indexed token, uint256 acceptedAmount);
+    event StageChanged(Stage indexed previousStage, Stage indexed newStage);
+    event EntityInitialized(bytes16 indexed entityID, address indexed wallet);
+    event WalletInitialized(bytes16 indexed entityID, address indexed wallet);
+    event BidPlaced(bytes16 indexed entityID, address indexed wallet, Bid bid);
+    event BidCancelled(bytes16 indexed entityID, address indexed wallet, uint256 amount);
+    event AllocationSet(
+        bytes16 indexed entityID, address indexed wallet, address indexed token, uint256 acceptedAmount
+    );
     event EntityRefunded(bytes16 indexed entityID, uint256 amount);
-    event WalletRefunded(bytes16 indexed entityID, address indexed wallet, IERC20 indexed token, uint256 amount);
+    event WalletRefunded(bytes16 indexed entityID, address indexed wallet, address indexed token, uint256 amount);
     event RefundedEntitySkipped(bytes16 indexed entityID);
-    event ProceedsWithdrawn(address indexed receiver, IERC20 indexed token, uint256 amount);
+    event ProceedsWithdrawn(address indexed receiver, address indexed token, uint256 amount);
+    event ProceedsReceiverChanged(address indexed previousReceiver, address indexed newReceiver);
+    event ClaimRefundEnabledChanged(bool enabled);
+    event MaxWalletsPerEntityChanged(uint8 previousMax, uint8 newMax);
+    event PausedStateChanged(bool paused);
+    event TokensRecovered(address indexed token, uint256 amount, address indexed to);
 
     /// @notice The state of a wallet in the sale.
     /// @dev This tracks the wallet's committed and accepted amounts for each payment token.
     struct WalletState {
-        /// The amount of each payment token that has been committed to the auction part of the sale, tracked separately by token.
+        /// The amount of each payment token that has been committed to the commitment stage of the sale, tracked separately by token.
         mapping(IERC20 => uint256) committedAmountByToken;
         /// The amount of each payment token that has been accepted from the wallet to purchase tokens after clearing the sale.
         /// The accepted amounts will be withdrawn as proceeds at the end of the sale.
@@ -232,7 +244,7 @@ contract SettlementSale is
         bool cancelled;
         /// Whether the entity was refunded.
         bool refunded;
-        /// The active bid of the entity in the auction part of the sale, including price, total amount, and lockup preference.
+        /// The active bid of the entity in the commitment stage of the sale, including price, total amount, and lockup preference.
         Bid currentBid;
         /// The set of wallets that the entity has used to commit funds to the sale.
         EnumerableSet.AddressSet wallets;
@@ -240,8 +252,8 @@ contract SettlementSale is
         mapping(address => WalletState) walletStates;
     }
 
-    /// @notice A bid in the auction.
-    /// @param price The price the entity is willing to pay, normalized to the price tick of the English auction.
+    /// @notice A bid in the commitment stage.
+    /// @param price The price the entity is willing to pay, normalized to the price tick of the sale.
     /// @param amount The total amount across all payment tokens that the entity is willing to spend.
     /// @param lockup Whether the entity opts to lock up the purchased tokens. Once enabled, this cannot be disabled in subsequent bids.
     struct Bid {
@@ -260,7 +272,7 @@ contract SettlementSale is
     /// @dev See the header comment for allowed stage transitions.
     enum Stage {
         PreOpen,
-        Auction,
+        Commitment,
         Closed,
         Cancellation,
         Settlement,
@@ -288,18 +300,16 @@ contract SettlementSale is
     /// @dev This is intended to be used in emergency situations and will disable the main external functions of the contract.
     bool public paused;
 
-    /// @notice The manually set stage of the sale.
-    /// @dev This can differ from the actual stage of the sale (as returned by `stage()`) if this is set to `Auction`
-    /// and `closeAuctionAtTimestamp` are set.
-    Stage public manualStage;
+    /// @notice The maximum number of wallets that can be associated with a single entity.
+    /// @dev This is used to prevent unbounded gas costs in _refund(). Must be > 0.
+    uint8 public maxWalletsPerEntity;
 
-    /// @notice The timestamp at which the auction will be closed automatically.
-    /// @dev Automatic closing based on timestamp is disabled if set to 0
-    uint64 public closeAuctionAtTimestamp;
+    /// @notice The current stage of the sale.
+    Stage public stage;
 
     /// @notice The amount of each payment token that has been committed to the sale, across all entities, tracked separately by token.
     /// @dev This is the sum of all `_entityStateByID[entityID].walletStates[wallet].committedAmountByToken[token]` over all entities and wallets.
-    /// Note: It is monotonically increasing during the auction stage and will not decrease on refunds/cancellations. Those are tracked separately by `totalRefundedAmountByToken`.
+    /// Note: It is monotonically increasing during the commitment stage and will not decrease on refunds/cancellations. Those are tracked separately by `totalRefundedAmountByToken`.
     mapping(IERC20 => uint256) internal _totalCommittedAmountByToken;
 
     /// @notice Returns the total committed amount for each payment token across all entities.
@@ -391,17 +401,30 @@ contract SettlementSale is
         address extraRefunder;
         address purchasePermitSigner;
         address proceedsReceiver;
-        uint64 closeAuctionAtTimestamp;
         bool claimRefundEnabled;
+        uint8 maxWalletsPerEntity;
         IERC20Metadata[] paymentTokens;
         uint256 expectedPaymentTokenDecimals;
     }
 
     constructor(Init memory init) {
+        if (init.admin == address(0)) {
+            revert ZeroAddress();
+        }
+        if (init.purchasePermitSigner == address(0)) {
+            revert ZeroAddress();
+        }
+        if (init.proceedsReceiver == address(0)) {
+            revert ZeroAddress();
+        }
+        if (init.maxWalletsPerEntity == 0) {
+            revert ZeroMaxWalletsPerEntity();
+        }
+
         SALE_UUID = init.saleUUID;
         proceedsReceiver = init.proceedsReceiver;
-        closeAuctionAtTimestamp = init.closeAuctionAtTimestamp;
         claimRefundEnabled = init.claimRefundEnabled;
+        maxWalletsPerEntity = init.maxWalletsPerEntity;
 
         if (init.paymentTokens.length == 0) {
             revert NoPaymentTokens();
@@ -411,11 +434,13 @@ contract SettlementSale is
             // additional sanity check to ensure that all payment tokens have the same number of decimals,
             // so we can use amounts interchangeably (assuming they all have the same value, e.g. all are USD stablecoins)
             if (init.paymentTokens[i].decimals() != init.expectedPaymentTokenDecimals) {
-                revert InvalidPaymentTokenDecimals(init.paymentTokens[i]);
+                revert InvalidPaymentTokenDecimals(
+                    address(init.paymentTokens[i]), init.paymentTokens[i].decimals(), init.expectedPaymentTokenDecimals
+                );
             }
 
             if (_isValidPaymentToken[init.paymentTokens[i]]) {
-                revert DuplicatePaymentToken(init.paymentTokens[i]);
+                revert DuplicatePaymentToken(address(init.paymentTokens[i]));
             }
 
             _paymentTokens.push(init.paymentTokens[i]);
@@ -450,48 +475,19 @@ contract SettlementSale is
         }
     }
 
-    /// @notice Returns the current stage of the sale.
-    /// @dev The stage is either computed automatically if `manualStage` is set to `Auction`,
-    /// or just returns the `manualStage` otherwise. This allows the contract to automatically
-    /// move between active sale stages, while still allowing the admin to manually override
-    /// the stage if needed.
-    function stage() public view returns (Stage) {
-        if (manualStage != Stage.Auction) {
-            return manualStage;
-        }
-
-        if (closeAuctionAtTimestamp > 0 && block.timestamp >= closeAuctionAtTimestamp) {
-            return Stage.Closed;
-        }
-
-        return Stage.Auction;
-    }
-
-    /// @notice Moves the sale to the `Auction` stage, allowing participants to submit bids.
-    function openAuction() external onlyRole(SALE_MANAGER_ROLE) onlyStage(Stage.PreOpen) {
-        manualStage = Stage.Auction;
+    /// @notice Moves the sale to the `Commitment` stage, allowing participants to submit bids.
+    /// @dev Can be called from `PreOpen` (first open) or `Closed` (reopen after closing).
+    function openCommitment() external onlyRole(SALE_MANAGER_ROLE) onlyStages(Stage.PreOpen, Stage.Closed) {
+        _setStage(Stage.Commitment);
     }
 
     /// @notice Moves the sale to the `Closed` stage, preventing any new bids from being submitted.
-    function closeAuction() external onlyRole(SALE_MANAGER_ROLE) onlyStage(Stage.Auction) {
-        manualStage = Stage.Closed;
-    }
-
-    /// @notice Moves the sale to the `Auction` stage, allowing participants to submit bids again.
-    /// @param newCloseAuctionAtTimestamp The new timestamp at which the auction will be closed automatically.
-    /// @dev If set to 0, automatic closing based on timestamp is disabled.
-    /// NB: if the newCloseAuctionAtTimestamp is in the past, the auction will be closed again immediately.
-    function reopenAuction(uint64 newCloseAuctionAtTimestamp)
-        external
-        onlyRole(SALE_MANAGER_ROLE)
-        onlyStage(Stage.Closed)
-    {
-        closeAuctionAtTimestamp = newCloseAuctionAtTimestamp;
-        manualStage = Stage.Auction;
+    function closeCommitment() external onlyRole(SALE_MANAGER_ROLE) onlyStage(Stage.Commitment) {
+        _setStage(Stage.Closed);
     }
 
     /// @notice Tracks entities that placed bids in the sale.
-    /// @dev Ensures that each address can only be tied to a single entityID. An entity can use multiple addresses (up to `maxAddressesPerEntity`).
+    /// @dev Ensures that each address can only be tied to a single entityID. An entity can use multiple addresses (up to `maxWalletsPerEntity`).
     function _trackEntity(bytes16 entityID, address addr) internal {
         if (entityID == bytes16(0)) {
             revert ZeroEntityID();
@@ -525,10 +521,17 @@ contract SettlementSale is
 
         // add wallet to entity's wallet set
         state.wallets.add(addr);
+
+        // check max wallets per entity limit
+        uint8 maxWallets = maxWalletsPerEntity;
+        if (state.wallets.length() > maxWallets) {
+            revert MaxWalletsPerEntityExceeded(entityID, state.wallets.length(), maxWallets);
+        }
+
         emit WalletInitialized(entityID, addr);
     }
 
-    /// @notice Allows any wallet to bid during the `Auction` stage using a valid purchase permit.
+    /// @notice Allows any wallet to bid during the `Commitment` stage using a valid purchase permit and ERC20 permit signature.
     /// @dev When a new bid is submitted, it fully replaces any previous bid for the same entity.
     /// Only the difference in bid amount (if positive) is transferred from the bidder to the sale contract in the specified payment token.
     ///
@@ -545,11 +548,11 @@ contract SettlementSale is
     function replaceBidWithPermit(
         IERC20 token,
         Bid calldata bid,
-        PurchasePermitV2 calldata purchasePermit,
+        PurchasePermitV3 calldata purchasePermit,
         bytes calldata purchasePermitSignature,
         uint256 erc20PermitDeadline,
         bytes calldata erc20PermitSignature
-    ) external onlyStage(Stage.Auction) onlyUnpaused {
+    ) external onlyStage(Stage.Commitment) onlyUnpaused {
         uint256 amountDelta = _processBid(token, bid, purchasePermit, purchasePermitSignature);
         if (amountDelta > 0) {
             // Permit signatures can be grabbed from the mempool, allowing attackers to execute them before the actual bid is placed,
@@ -573,7 +576,7 @@ contract SettlementSale is
         }
     }
 
-    /// @notice Allows any wallet to bid during the `Auction` stage using a valid purchase permit.
+    /// @notice Allows any wallet to bid during the `Commitment` stage using a valid purchase permit.
     /// @dev When a new bid is submitted, it fully replaces any previous bid for the same entity.
     /// Only the difference in bid amount (if positive) is transferred from the bidder to the sale contract in the specified payment token.
     ///
@@ -592,27 +595,31 @@ contract SettlementSale is
     function replaceBidWithApproval(
         IERC20 token,
         Bid calldata bid,
-        PurchasePermitV2 calldata purchasePermit,
+        PurchasePermitV3 calldata purchasePermit,
         bytes calldata purchasePermitSignature
-    ) external onlyStage(Stage.Auction) onlyUnpaused {
+    ) external onlyStage(Stage.Commitment) onlyUnpaused {
         uint256 amountDelta = _processBid(token, bid, purchasePermit, purchasePermitSignature);
         if (amountDelta > 0) {
             token.safeTransferFrom(msg.sender, address(this), amountDelta);
         }
     }
 
-    /// @notice Processes a bid during the `Auction` stage, validating the purchase permit and updating the bid.
+    /// @notice Processes a bid during the `Commitment` stage, validating the purchase permit, any constraints specified on the permit, and updating the bid.
     /// @dev The minimum and maximum total bid amount and the minimum and maximum price are specified on the purchase permit (`minAmount`, `maxAmount`, `minPrice`, and `maxPrice`, respectively).
     function _processBid(
         IERC20 token,
         Bid calldata newBid,
-        PurchasePermitV2 calldata purchasePermit,
+        PurchasePermitV3 calldata purchasePermit,
         bytes calldata purchasePermitSignature
     ) internal returns (uint256) {
         _validatePurchasePermit(purchasePermit, purchasePermitSignature);
 
         if (!_isValidPaymentToken[token]) {
             revert InvalidPaymentToken(address(token));
+        }
+
+        if (block.timestamp < purchasePermit.opensAt || block.timestamp >= purchasePermit.closesAt) {
+            revert BidOutsideAllowedWindow(purchasePermit.opensAt, purchasePermit.closesAt, block.timestamp);
         }
 
         if (newBid.amount == 0) {
@@ -642,7 +649,7 @@ contract SettlementSale is
 
         EntityState storage state = _entityStateByID[purchasePermit.saleSpecificEntityID];
         // additional safety check: to avoid any bookkeeping issues, we disallow new bids for entities that have already been refunded.
-        // this can theoretically happen if the auction was reopened after already refunding some entities.
+        // this can theoretically happen if the commitment stage was reopened after already refunding some entities.
         if (state.refunded) {
             revert AlreadyRefunded(purchasePermit.saleSpecificEntityID);
         }
@@ -683,20 +690,20 @@ contract SettlementSale is
     /// @notice Validates a purchase permit.
     /// @dev This ensures that the permit was issued for the right sale (preventing the reuse of the same permit across sales),
     /// is not expired, and is signed by the purchase permit signer.
-    function _validatePurchasePermit(PurchasePermitV2 memory permit, bytes calldata signature) internal view {
+    function _validatePurchasePermit(PurchasePermitV3 memory permit, bytes calldata signature) internal view {
         if (permit.saleUUID != SALE_UUID) {
             revert InvalidSaleUUID(permit.saleUUID, SALE_UUID);
         }
 
         if (permit.expiresAt <= block.timestamp) {
-            revert PurchasePermitExpired();
+            revert PurchasePermitExpired(permit.expiresAt, block.timestamp);
         }
 
         if (permit.wallet != msg.sender) {
             revert InvalidSender(msg.sender, permit.wallet);
         }
 
-        address recoveredSigner = PurchasePermitV2Lib.recoverSigner(permit, signature);
+        address recoveredSigner = PurchasePermitV3Lib.recoverSigner(permit, signature);
         if (!hasRole(PURCHASE_PERMIT_SIGNER_ROLE, recoveredSigner)) {
             revert UnauthorizedSigner(recoveredSigner);
         }
@@ -704,7 +711,7 @@ contract SettlementSale is
 
     /// @notice Moves the sale to the `Cancellation` stage, allowing participants to cancel their bids and receive refunds.
     function openCancellation() external onlyRole(SALE_MANAGER_ROLE) onlyStage(Stage.Closed) {
-        manualStage = Stage.Cancellation;
+        _setStage(Stage.Cancellation);
     }
 
     /// @notice Cancels a bid during the `Cancellation` stage, allowing participants to cancel their bids and receive refunds.
@@ -727,9 +734,9 @@ contract SettlementSale is
     }
 
     /// @notice Moves the sale to the `Settlement` stage, allowing the settler to set allocations.
-    /// @dev Can be called during the `Closed` stage (skipping the cancellation phase) or the `Cancellation` stage.
+    /// @dev Can be called during the `Closed` stage (skipping the cancellation stage) or the `Cancellation` stage.
     function openSettlement() external onlyRole(SALE_MANAGER_ROLE) onlyStages(Stage.Closed, Stage.Cancellation) {
-        manualStage = Stage.Settlement;
+        _setStage(Stage.Settlement);
     }
 
     /// @notice Allows the settler to set allocations for each entity that participated in the sale.
@@ -775,7 +782,7 @@ contract SettlementSale is
             revert AllocationExceedsCommitment(
                 allocation.saleSpecificEntityID,
                 allocation.wallet,
-                token,
+                address(token),
                 allocation.acceptedAmount,
                 walletState.committedAmountByToken[token]
             );
@@ -800,7 +807,9 @@ contract SettlementSale is
         // set wallet state
         walletState.acceptedAmountByToken[token] = allocation.acceptedAmount;
 
-        emit AllocationSet(allocation.saleSpecificEntityID, allocation.wallet, token, allocation.acceptedAmount);
+        emit AllocationSet(
+            allocation.saleSpecificEntityID, allocation.wallet, address(token), allocation.acceptedAmount
+        );
     }
 
     /// @notice Moves the sale to the `Done` stage, allowing participants to claim refunds and the admin to withdraw the proceeds.
@@ -811,10 +820,10 @@ contract SettlementSale is
         onlyStage(Stage.Settlement)
     {
         if (totalAcceptedAmount() != expectedTotalAcceptedAmount) {
-            revert UnexpectedTotalAcceptedAmount(expectedTotalAcceptedAmount, totalAcceptedAmount());
+            revert UnexpectedTotalAcceptedAmount(totalAcceptedAmount(), expectedTotalAcceptedAmount);
         }
 
-        manualStage = Stage.Done;
+        _setStage(Stage.Done);
     }
 
     /// @notice Refunds entities their unallocated payment tokens.
@@ -885,7 +894,7 @@ contract SettlementSale is
                 // increment global counters
                 entityTotalRefundAmount += refundAmount;
                 _totalRefundedAmountByToken[token] += refundAmount;
-                emit WalletRefunded(entityID, wallets[i], token, refundAmount);
+                emit WalletRefunded(entityID, wallets[i], address(token), refundAmount);
 
                 // Note: We transfer tokens within the same loop that updates state, to avoid having to recompute
                 // or store the amounts to be refunded.
@@ -929,19 +938,13 @@ contract SettlementSale is
 
         uint256 available = _totalAcceptedAmountByToken[token] - _withdrawnAmountByToken[token];
         if (amount > available) {
-            revert WithdrawalExceedsAvailable(token, amount, available);
+            revert WithdrawalExceedsAvailable(address(token), amount, available);
         }
 
         _withdrawnAmountByToken[token] += amount;
-        emit ProceedsWithdrawn(proceedsReceiver, token, amount);
+        emit ProceedsWithdrawn(proceedsReceiver, address(token), amount);
 
         token.safeTransfer(proceedsReceiver, amount);
-    }
-
-    /// @notice Sets the timestamp at which the auction will be closed automatically.
-    /// @dev Setting this to 0 will disable the automatic closing of the auction at a specific timestamp.
-    function setCloseAuctionAtTimestamp(uint64 timestamp) external onlyRole(SALE_MANAGER_ROLE) {
-        closeAuctionAtTimestamp = timestamp;
     }
 
     /// @notice Sets the address that will receive the proceeds of the sale.
@@ -950,31 +953,54 @@ contract SettlementSale is
             revert ZeroAddress();
         }
 
+        address previousReceiver = proceedsReceiver;
         proceedsReceiver = newProceedsReceiver;
+        emit ProceedsReceiverChanged(previousReceiver, newProceedsReceiver);
     }
 
     /// @notice Sets whether wallets can claim their own refunds during the `Done` stage.
     function setClaimRefundEnabled(bool enabled) external onlyRole(SALE_MANAGER_ROLE) {
         claimRefundEnabled = enabled;
+        emit ClaimRefundEnabledChanged(enabled);
+    }
+
+    /// @notice Sets the maximum number of wallets that can be associated with a single entity.
+    /// @param max The new maximum. Must be > 0.
+    function setMaxWalletsPerEntity(uint8 max) external onlyRole(SALE_MANAGER_ROLE) {
+        if (max == 0) {
+            revert ZeroMaxWalletsPerEntity();
+        }
+        uint8 previousMax = maxWalletsPerEntity;
+        maxWalletsPerEntity = max;
+        emit MaxWalletsPerEntityChanged(previousMax, max);
     }
 
     /// @notice Pauses the sale.
     /// @dev This is intended to be used in emergency situations.
     function pause() external onlyRole(PAUSER_ROLE) {
         paused = true;
+        emit PausedStateChanged(true);
     }
 
     /// @notice Sets whether the sale is paused.
     /// @dev This is intended to unpause the sale after a pause.
     function setPaused(bool isPaused) external onlyRole(SALE_MANAGER_ROLE) {
         paused = isPaused;
+        emit PausedStateChanged(isPaused);
+    }
+
+    /// @notice Internal function to set the stage of the sale.
+    /// @dev Emits a StageChanged event and updates the stage.
+    function _setStage(Stage newStage) internal {
+        emit StageChanged(stage, newStage);
+        stage = newStage;
     }
 
     /// @notice Sets the stage of the sale.
     /// @dev This is only intended to be used in exceptional circumstances.
     /// Use with caution and consult with the Sonar team before using this function.
     function unsafeSetStage(Stage newStage) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        manualStage = newStage;
+        _setStage(newStage);
     }
 
     /// @notice Returns the number of entities that have participated in the sale.
@@ -1071,7 +1097,7 @@ contract SettlementSale is
     /// @notice Returns the total number of entities that have participated in the sale.
     /// @dev Implementation of ICommitmentDataReader.numCommitments().
     /// Returns the size of the internal _entityIDs array, which tracks all unique entities
-    /// that have placed at least one bid in the auction. This count remains constant even after
+    /// that have placed at least one bid in the sale. This count remains constant even after
     /// refunds are processed, as entities are never removed from the array.
     function numCommitments() external view returns (uint256) {
         return _entityIDs.length;
@@ -1185,17 +1211,12 @@ contract SettlementSale is
     /// @notice Recovers any ERC20 tokens that are sent to the contract.
     /// @dev This can be used to recover any tokens that are sent to the contract by mistake.
     function recoverTokens(IERC20 token, uint256 amount, address to) external onlyRole(TOKEN_RECOVERER_ROLE) {
+        emit TokensRecovered(address(token), amount, to);
         token.safeTransfer(to, amount);
     }
 
     /// @notice Checks if the contract supports an interface.
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(AccessControlEnumerable)
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view override(AccessControlEnumerable) returns (bool) {
         return interfaceId == type(ICommitmentDataReader).interfaceId
             || interfaceId == type(ITotalCommitmentsReader).interfaceId
             || interfaceId == type(IEntityAllocationDataReader).interfaceId
@@ -1210,9 +1231,11 @@ contract SettlementSale is
     }
 
     function _onlyStage(Stage want) private view {
-        Stage s = stage();
+        Stage s = stage;
         if (s != want) {
-            revert InvalidStage(s);
+            Stage[] memory wanted = new Stage[](1);
+            wanted[0] = want;
+            revert InvalidStage(s, wanted);
         }
     }
 
@@ -1223,9 +1246,12 @@ contract SettlementSale is
     }
 
     function _onlyStages(Stage want1, Stage want2) private view {
-        Stage s = stage();
+        Stage s = stage;
         if (s != want1 && s != want2) {
-            revert InvalidStage(s);
+            Stage[] memory wanted = new Stage[](2);
+            wanted[0] = want1;
+            wanted[1] = want2;
+            revert InvalidStage(s, wanted);
         }
     }
 

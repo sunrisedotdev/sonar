@@ -4,8 +4,8 @@ pragma solidity ^0.8.23;
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {IEntityAllocationDataReader} from "sonar/interfaces/IEntityAllocationDataReader.sol";
 import {ITotalCommitmentsReader} from "sonar/interfaces/ITotalCommitmentsReader.sol";
+import {IEntityAllocationDataReader} from "sonar/interfaces/IEntityAllocationDataReader.sol";
 
 import "./SettlementSaleBaseTest.sol";
 
@@ -53,8 +53,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraPausers: defaultPausers,
             extraSettler: settler,
             extraRefunder: refunder,
-            closeAuctionAtTimestamp: 0,
             claimRefundEnabled: true,
+            maxWalletsPerEntity: 50,
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
         });
@@ -92,8 +92,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraPausers: new address[](0),
             extraSettler: address(0),
             extraRefunder: address(0),
-            closeAuctionAtTimestamp: 0,
             claimRefundEnabled: true,
+            maxWalletsPerEntity: 50,
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
         });
@@ -128,8 +128,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraPausers: extraPausers,
             extraSettler: admin,
             extraRefunder: admin,
-            closeAuctionAtTimestamp: 0,
             claimRefundEnabled: true,
+            maxWalletsPerEntity: 50,
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
         });
@@ -164,16 +164,14 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraPausers: defaultPausers,
             extraSettler: settler,
             extraRefunder: refunder,
-            closeAuctionAtTimestamp: 0,
             claimRefundEnabled: true,
+            maxWalletsPerEntity: 50,
             paymentTokens: invalidTokens,
             expectedPaymentTokenDecimals: 6
         });
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                SettlementSale.InvalidPaymentTokenDecimals.selector, IERC20Metadata(address(invalidToken))
-            )
+            abi.encodeWithSelector(SettlementSale.InvalidPaymentTokenDecimals.selector, address(invalidToken), 18, 6)
         );
         new TestableSettlementSale(init);
     }
@@ -192,8 +190,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraPausers: defaultPausers,
             extraSettler: settler,
             extraRefunder: refunder,
-            closeAuctionAtTimestamp: 0,
             claimRefundEnabled: true,
+            maxWalletsPerEntity: 50,
             paymentTokens: duplicateTokens,
             expectedPaymentTokenDecimals: 6
         });
@@ -214,14 +212,261 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraPausers: defaultPausers,
             extraSettler: settler,
             extraRefunder: refunder,
-            closeAuctionAtTimestamp: 0,
             claimRefundEnabled: true,
+            maxWalletsPerEntity: 50,
             paymentTokens: emptyTokens,
             expectedPaymentTokenDecimals: 6
         });
 
         vm.expectRevert(abi.encodeWithSelector(SettlementSale.NoPaymentTokens.selector));
         new TestableSettlementSale(init);
+    }
+
+    function testConstructor_ZeroAdmin_Reverts() public {
+        SettlementSale.Init memory init = SettlementSale.Init({
+            saleUUID: TEST_SALE_UUID,
+            admin: address(0),
+            extraManagers: defaultExtraManagers,
+            purchasePermitSigner: permitSigner.addr,
+            proceedsReceiver: receiver,
+            extraPausers: defaultPausers,
+            extraSettler: settler,
+            extraRefunder: refunder,
+            claimRefundEnabled: true,
+            maxWalletsPerEntity: 50,
+            paymentTokens: _defaultPaymentTokens(),
+            expectedPaymentTokenDecimals: 6
+        });
+
+        vm.expectRevert(abi.encodeWithSelector(SettlementSale.ZeroAddress.selector));
+        new TestableSettlementSale(init);
+    }
+
+    function testConstructor_ZeroPurchasePermitSigner_Reverts() public {
+        SettlementSale.Init memory init = SettlementSale.Init({
+            saleUUID: TEST_SALE_UUID,
+            admin: admin,
+            extraManagers: defaultExtraManagers,
+            purchasePermitSigner: address(0),
+            proceedsReceiver: receiver,
+            extraPausers: defaultPausers,
+            extraSettler: settler,
+            extraRefunder: refunder,
+            claimRefundEnabled: true,
+            maxWalletsPerEntity: 50,
+            paymentTokens: _defaultPaymentTokens(),
+            expectedPaymentTokenDecimals: 6
+        });
+
+        vm.expectRevert(abi.encodeWithSelector(SettlementSale.ZeroAddress.selector));
+        new TestableSettlementSale(init);
+    }
+
+    function testConstructor_ZeroProceedsReceiver_Reverts() public {
+        SettlementSale.Init memory init = SettlementSale.Init({
+            saleUUID: TEST_SALE_UUID,
+            admin: admin,
+            extraManagers: defaultExtraManagers,
+            purchasePermitSigner: permitSigner.addr,
+            proceedsReceiver: address(0),
+            extraPausers: defaultPausers,
+            extraSettler: settler,
+            extraRefunder: refunder,
+            claimRefundEnabled: true,
+            maxWalletsPerEntity: 50,
+            paymentTokens: _defaultPaymentTokens(),
+            expectedPaymentTokenDecimals: 6
+        });
+
+        vm.expectRevert(abi.encodeWithSelector(SettlementSale.ZeroAddress.selector));
+        new TestableSettlementSale(init);
+    }
+
+    function testConstructor_ZeroMaxWalletsPerEntity_Reverts() public {
+        SettlementSale.Init memory init = SettlementSale.Init({
+            saleUUID: TEST_SALE_UUID,
+            admin: admin,
+            extraManagers: defaultExtraManagers,
+            purchasePermitSigner: permitSigner.addr,
+            proceedsReceiver: receiver,
+            extraPausers: defaultPausers,
+            extraSettler: settler,
+            extraRefunder: refunder,
+            claimRefundEnabled: true,
+            maxWalletsPerEntity: 0,
+            paymentTokens: _defaultPaymentTokens(),
+            expectedPaymentTokenDecimals: 6
+        });
+
+        vm.expectRevert(abi.encodeWithSelector(SettlementSale.ZeroMaxWalletsPerEntity.selector));
+        new TestableSettlementSale(init);
+    }
+}
+
+contract SettlementSaleMaxWalletsTest is SettlementSaleBaseTest {
+    function testMaxWalletsPerEntity_Default_Is50() public view {
+        assertEq(sale.maxWalletsPerEntity(), 50, "default should be 50");
+    }
+
+    function testSetMaxWalletsPerEntity_ByManager_Succeeds() public {
+        vm.prank(manager);
+        sale.setMaxWalletsPerEntity(5);
+        assertEq(sale.maxWalletsPerEntity(), 5);
+    }
+
+    function testSetMaxWalletsPerEntity_ToZero_Reverts() public {
+        vm.expectRevert(abi.encodeWithSelector(SettlementSale.ZeroMaxWalletsPerEntity.selector));
+        vm.prank(manager);
+        sale.setMaxWalletsPerEntity(0);
+    }
+
+    function testSetMaxWalletsPerEntity_ByUnauthorized_Reverts() public {
+        vm.expectRevert(missingRoleError(alice, sale.SALE_MANAGER_ROLE()));
+        vm.prank(alice);
+        sale.setMaxWalletsPerEntity(5);
+    }
+
+    function testBid_ExceedsMaxWallets_Reverts() public {
+        openCommitment();
+
+        // Set max to 2 wallets per entity
+        vm.prank(manager);
+        sale.setMaxWalletsPerEntity(2);
+
+        // First two wallets should work
+        address wallet1 = makeAddr("wallet1");
+        address wallet2 = makeAddr("wallet2");
+        address wallet3 = makeAddr("wallet3");
+
+        doBid(aliceID, wallet1, usdc, 2000e6, 10);
+        doBid(aliceID, wallet2, usdc, 3000e6, 10);
+
+        // For the third wallet, set up manually to use vm.expectRevert correctly
+        // (doBid makes view calls that interfere with expectRevert)
+        PurchasePermitV3 memory permit = makePurchasePermit(aliceID, wallet3);
+        bytes memory sig = signPurchasePermit(permit);
+
+        uint256 delta = 1000e6; // 4000e6 (new bid) - 3000e6 (current entity bid)
+        deal(address(usdc), wallet3, delta);
+        vm.prank(wallet3);
+        usdc.approve(address(sale), delta);
+
+        vm.expectRevert(abi.encodeWithSelector(SettlementSale.MaxWalletsPerEntityExceeded.selector, aliceID, 3, 2));
+        vm.prank(wallet3);
+        sale.replaceBidWithApproval(usdc, SettlementSale.Bid({lockup: false, price: 10, amount: 4000e6}), permit, sig);
+    }
+
+    function testBid_UpToMaxWallets_Succeeds() public {
+        openCommitment();
+
+        // Set max to 10
+        vm.prank(manager);
+        sale.setMaxWalletsPerEntity(10);
+
+        // Create and use 10 wallets for same entity
+        for (uint256 i = 0; i < 10; i++) {
+            address wallet = makeAddr(string.concat("wallet", vm.toString(i)));
+            doBid(aliceID, wallet, usdc, 1000e6 + (i * 1000e6), 10);
+        }
+
+        // Should have 10 wallets
+        SettlementSale.EntityStateView memory state = sale.entityStateByID(aliceID);
+        assertEq(state.walletStates.length, 10);
+    }
+
+    function testBid_SameWallet_DoesNotIncreaseCount() public {
+        openCommitment();
+
+        // Set max to 1 wallet per entity
+        vm.prank(manager);
+        sale.setMaxWalletsPerEntity(1);
+
+        // First bid
+        doBid(alice, usdc, 1000e6, 10);
+
+        // Second bid from same wallet should succeed (not a new wallet)
+        doBid(alice, usdc, 2000e6, 15);
+
+        SettlementSale.EntityStateView memory state = sale.entityStateByID(aliceID);
+        assertEq(state.walletStates.length, 1);
+        assertEq(state.currentBid.amount, 2000e6);
+    }
+}
+
+contract SettlementSaleStageEventsTest is SettlementSaleBaseTest {
+    function testOpenCommitment_EmitsStageChanged() public {
+        vm.expectEmit(true, true, false, true);
+        emit SettlementSale.StageChanged(SettlementSale.Stage.PreOpen, SettlementSale.Stage.Commitment);
+        vm.prank(manager);
+        sale.openCommitment();
+    }
+
+    function testCloseCommitment_EmitsStageChanged() public {
+        openCommitment();
+
+        vm.expectEmit(true, true, false, true);
+        emit SettlementSale.StageChanged(SettlementSale.Stage.Commitment, SettlementSale.Stage.Closed);
+        vm.prank(manager);
+        sale.closeCommitment();
+    }
+
+    function testOpenCommitment_FromClosed_EmitsStageChanged() public {
+        openCommitment();
+        closeCommitment();
+
+        vm.expectEmit(true, true, false, true);
+        emit SettlementSale.StageChanged(SettlementSale.Stage.Closed, SettlementSale.Stage.Commitment);
+        vm.prank(manager);
+        sale.openCommitment();
+    }
+
+    function testOpenCancellation_EmitsStageChanged() public {
+        openCommitment();
+        closeCommitment();
+
+        vm.expectEmit(true, true, false, true);
+        emit SettlementSale.StageChanged(SettlementSale.Stage.Closed, SettlementSale.Stage.Cancellation);
+        vm.prank(manager);
+        sale.openCancellation();
+    }
+
+    function testOpenSettlement_FromClosed_EmitsStageChanged() public {
+        openCommitment();
+        closeCommitment();
+
+        vm.expectEmit(true, true, false, true);
+        emit SettlementSale.StageChanged(SettlementSale.Stage.Closed, SettlementSale.Stage.Settlement);
+        vm.prank(manager);
+        sale.openSettlement();
+    }
+
+    function testOpenSettlement_FromCancellation_EmitsStageChanged() public {
+        openCommitment();
+        closeCommitment();
+        openCancellation();
+
+        vm.expectEmit(true, true, false, true);
+        emit SettlementSale.StageChanged(SettlementSale.Stage.Cancellation, SettlementSale.Stage.Settlement);
+        vm.prank(manager);
+        sale.openSettlement();
+    }
+
+    function testFinalizeSettlement_EmitsStageChanged() public {
+        openCommitment();
+        closeCommitment();
+        openSettlement();
+
+        vm.expectEmit(true, true, false, true);
+        emit SettlementSale.StageChanged(SettlementSale.Stage.Settlement, SettlementSale.Stage.Done);
+        vm.prank(admin);
+        sale.finalizeSettlement(0);
+    }
+
+    function testUnsafeSetStage_EmitsStageChanged() public {
+        vm.expectEmit(true, true, false, true);
+        emit SettlementSale.StageChanged(SettlementSale.Stage.PreOpen, SettlementSale.Stage.Done);
+        vm.prank(admin);
+        sale.unsafeSetStage(SettlementSale.Stage.Done);
     }
 }
 
@@ -269,20 +514,12 @@ contract SettlementSaleVandalTest is SettlementSaleBaseTest {
         sale.setAllocations({allocations: allocations, allowOverwrite: false});
     }
 
-    function testSetCloseAuctionAtTimestamp_ByUnauthorizedUser_Reverts(address vandal, uint64 timestamp) public {
+    function testOpenCommitment_ByUnauthorizedUser_Reverts(address vandal) public {
         vm.assume(vandal != admin);
         vm.assume(vandal != manager);
         vm.expectRevert(missingRoleError(vandal, sale.SALE_MANAGER_ROLE()));
         vm.prank(vandal);
-        sale.setCloseAuctionAtTimestamp(timestamp);
-    }
-
-    function testOpenAuction_ByUnauthorizedUser_Reverts(address vandal) public {
-        vm.assume(vandal != admin);
-        vm.assume(vandal != manager);
-        vm.expectRevert(missingRoleError(vandal, sale.SALE_MANAGER_ROLE()));
-        vm.prank(vandal);
-        sale.openAuction();
+        sale.openCommitment();
     }
 
     function testOpenCancellation_ByUnauthorizedUser_Reverts(address vandal) public {
@@ -293,20 +530,12 @@ contract SettlementSaleVandalTest is SettlementSaleBaseTest {
         sale.openCancellation();
     }
 
-    function testCloseAuction_ByUnauthorizedUser_Reverts(address vandal) public {
+    function testCloseCommitment_ByUnauthorizedUser_Reverts(address vandal) public {
         vm.assume(vandal != admin);
         vm.assume(vandal != manager);
         vm.expectRevert(missingRoleError(vandal, sale.SALE_MANAGER_ROLE()));
         vm.prank(vandal);
-        sale.closeAuction();
-    }
-
-    function testReopenAuction_ByUnauthorizedUser_Reverts(address vandal, uint64 timestamp) public {
-        vm.assume(vandal != admin);
-        vm.assume(vandal != manager);
-        vm.expectRevert(missingRoleError(vandal, sale.SALE_MANAGER_ROLE()));
-        vm.prank(vandal);
-        sale.reopenAuction(timestamp);
+        sale.closeCommitment();
     }
 
     function testOpenSettlement_ByUnauthorizedUser_Reverts(address vandal) public {
@@ -360,125 +589,106 @@ contract SettlementSaleVandalTest is SettlementSaleBaseTest {
         vm.assume(vandal != admin);
         vm.expectRevert(missingRoleError(vandal, sale.DEFAULT_ADMIN_ROLE()));
         vm.prank(vandal);
-        sale.unsafeSetStage(SettlementSale.Stage.Auction);
+        sale.unsafeSetStage(SettlementSale.Stage.Commitment);
     }
 }
 
 contract SettlementSaleStageTest is SettlementSaleBaseTest {
-    function testStage_CloseAtTimestamp_TransitionsAutomatically(uint256 startTime) public {
-        startTime = bound(startTime, 0, type(uint32).max);
-        vm.warp(startTime);
-
-        assertEq(uint8(sale.manualStage()), uint8(SettlementSale.Stage.PreOpen));
+    function testStage_Initial_IsPreOpen() public view {
         assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.PreOpen));
-
-        vm.warp(startTime + 5 hours);
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.PreOpen));
-
-        vm.prank(manager);
-        sale.setCloseAuctionAtTimestamp(uint64(startTime + 24 hours));
-
-        // moving on to auction
-
-        vm.prank(manager);
-        sale.openAuction();
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Auction));
-
-        // should automatically close after the close timestamp
-        vm.warp(startTime + 24 hours - 1 seconds);
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Auction));
-
-        vm.warp(startTime + 24 hours);
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Closed));
-
-        // extending the sale close window
-        vm.prank(manager);
-        sale.reopenAuction(uint64(block.timestamp + 1 hours));
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Auction));
-
-        vm.warp(block.timestamp + 30 minutes);
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Auction));
-
-        vm.warp(block.timestamp + 30 minutes);
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Closed));
-
-        // disable automatic closing
-        vm.prank(manager);
-        sale.setCloseAuctionAtTimestamp(0);
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Auction));
     }
 
-    function testOpenAuction_WhenNotPreOpen_Reverts() public {
-        openAuction();
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Auction));
+    function testOpenCommitment_FromInvalidStage_Reverts() public {
+        openCommitment();
+        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Commitment));
 
-        // Try to open auction again while in Auction stage
-        vm.expectRevert(abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.Auction));
+        // Try to open commitment while in Commitment stage
+        vm.expectRevert(
+            encodeInvalidStage(
+                SettlementSale.Stage.Commitment, SettlementSale.Stage.PreOpen, SettlementSale.Stage.Closed
+            )
+        );
         vm.prank(manager);
-        sale.openAuction();
+        sale.openCommitment();
+
+        // Try to open commitment phase while in Cancellation stage
+        closeCommitment();
+        openCancellation();
+        vm.expectRevert(
+            encodeInvalidStage(
+                SettlementSale.Stage.Cancellation, SettlementSale.Stage.PreOpen, SettlementSale.Stage.Closed
+            )
+        );
+        vm.prank(manager);
+        sale.openCommitment();
+
+        // Try to open commitment phase while in Settlement stage
+        openSettlement();
+        vm.expectRevert(
+            encodeInvalidStage(
+                SettlementSale.Stage.Settlement, SettlementSale.Stage.PreOpen, SettlementSale.Stage.Closed
+            )
+        );
+        vm.prank(manager);
+        sale.openCommitment();
+
+        // Try to open commitment phase while in Done stage
+        finalizeSettlement();
+        vm.expectRevert(
+            encodeInvalidStage(SettlementSale.Stage.Done, SettlementSale.Stage.PreOpen, SettlementSale.Stage.Closed)
+        );
+        vm.prank(manager);
+        sale.openCommitment();
     }
 
-    function testCloseAuction_WhenNotAuction_Reverts() public {
+    function testOpenCommitment_FromClosed_Succeeds() public {
+        openCommitment();
+        closeCommitment();
+        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Closed));
+
+        vm.prank(manager);
+        sale.openCommitment();
+        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Commitment));
+    }
+
+    function testCloseCommitment_WhenNotCommitment_Reverts() public {
         // Try to close while in PreOpen
-        vm.expectRevert(abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.PreOpen));
+        vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.PreOpen, SettlementSale.Stage.Commitment));
         vm.prank(manager);
-        sale.closeAuction();
-    }
-
-    function testReopenAuction_WhenNotClosed_Reverts() public {
-        // Try to reopen while in PreOpen
-        vm.expectRevert(abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.PreOpen));
-        vm.prank(manager);
-        sale.reopenAuction(uint64(block.timestamp + 1 hours));
-
-        // Try to reopen while in Auction
-        openAuction();
-        vm.expectRevert(abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.Auction));
-        vm.prank(manager);
-        sale.reopenAuction(uint64(block.timestamp + 1 hours));
-    }
-
-    function testReopenAuction_WithPastTimestamp_ImmediatelyCloses() public {
-        openAuction();
-
-        // Disable auto close first
-        vm.prank(manager);
-        sale.setCloseAuctionAtTimestamp(0);
-
-        closeAuction();
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Closed));
-
-        // Reopen with a past timestamp - auction immediately closes again
-        vm.prank(manager);
-        sale.reopenAuction(uint64(block.timestamp - 1));
-
-        // manualStage is Auction, but stage() returns Closed because timestamp is in the past
-        assertEq(uint8(sale.manualStage()), uint8(SettlementSale.Stage.Auction));
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Closed));
+        sale.closeCommitment();
     }
 
     function testOpenCancellation_WhenNotClosed_Reverts() public {
         // Try to open cancellation while in PreOpen
-        vm.expectRevert(abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.PreOpen));
+        vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.PreOpen, SettlementSale.Stage.Closed));
         vm.prank(manager);
         sale.openCancellation();
 
-        // Try to open cancellation while in Auction
-        openAuction();
-        vm.expectRevert(abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.Auction));
+        // Try to open cancellation while in Commitment
+        openCommitment();
+        vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.Commitment, SettlementSale.Stage.Closed));
+
         vm.prank(manager);
         sale.openCancellation();
     }
 
     function testOpenSettlement_WhenNotClosedOrCancellation_Reverts() public {
         // Try while in PreOpen
-        vm.expectRevert(abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.PreOpen));
+        vm.expectRevert(
+            encodeInvalidStage(
+                SettlementSale.Stage.PreOpen, SettlementSale.Stage.Closed, SettlementSale.Stage.Cancellation
+            )
+        );
         vm.prank(manager);
         sale.openSettlement();
 
-        // Try while in Auction
-        openAuction();
-        vm.expectRevert(abi.encodeWithSelector(SettlementSale.InvalidStage.selector, SettlementSale.Stage.Auction));
+        // Try while in Commitment
+        openCommitment();
+        vm.expectRevert(
+            encodeInvalidStage(
+                SettlementSale.Stage.Commitment, SettlementSale.Stage.Closed, SettlementSale.Stage.Cancellation
+            )
+        );
         vm.prank(manager);
         sale.openSettlement();
     }
@@ -502,17 +712,17 @@ contract SettlementSaleRecoverTokensTest is SettlementSaleBaseTest {
 
 contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     function testNumCommitments_Empty_ReturnsZero() public {
-        assertEq(sale.numCommitments(), 0, "numCommitments should be 0 for empty auction");
+        assertEq(sale.numCommitments(), 0, "numCommitments should be 0 for empty sale");
     }
 
     function testNumCommitments_SingleBid_ReturnsOne() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         assertEq(sale.numCommitments(), 1, "numCommitments should be 1 after single bid");
     }
 
     function testNumCommitments_MultipleBidsFromSameEntity_ReturnsOne() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(alice, usdc, 2000e6, 20);
         doBid(alice, usdc, 3000e6, 30);
@@ -520,7 +730,7 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testNumCommitments_MultipleEntities_ReturnsCorrectCount() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(bob, usdt, 2000e6, 20);
         doBid(charlie, usdt, 3000e6, 30);
@@ -528,7 +738,7 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadCommitmentDataAt_SingleBid_ReturnsCorrectData() public {
-        openAuction();
+        openCommitment();
         vm.warp(1000);
         doBid(alice, usdc, 1000e6, 10);
 
@@ -545,7 +755,7 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadCommitmentDataAt_SingleBidWithLockup_ReturnsCorrectData() public {
-        openAuction();
+        openCommitment();
         vm.warp(1000);
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc, lockup: true});
 
@@ -562,7 +772,7 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadCommitmentDataAt_MultipleEntities_ReturnsCorrectData() public {
-        openAuction();
+        openCommitment();
 
         vm.warp(1000);
         doBid(alice, usdc, 1000e6, 10);
@@ -593,7 +803,7 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadCommitmentDataAt_AfterBidUpdate_ReflectsLatest() public {
-        openAuction();
+        openCommitment();
 
         vm.warp(1000);
         doBid(alice, usdc, 1000e6, 10);
@@ -613,7 +823,7 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadCommitmentDataIn_SingleBid_ReturnsCorrectData() public {
-        openAuction();
+        openCommitment();
         vm.warp(1000);
         doBid(alice, usdc, 1000e6, 10);
 
@@ -625,7 +835,7 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadCommitmentDataIn_MultipleBids_ReturnsCorrectData() public {
-        openAuction();
+        openCommitment();
 
         vm.warp(1000);
         doBid(alice, usdc, 1000e6, 10);
@@ -643,7 +853,7 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadCommitmentDataIn_Pagination_ReturnsCorrectPages() public {
-        openAuction();
+        openCommitment();
 
         vm.warp(1000);
         doBid(alice, usdc, 1000e6, 10);
@@ -665,7 +875,7 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadCommitmentDataIn_PartialRange_ReturnsCorrectSubset() public {
-        openAuction();
+        openCommitment();
 
         vm.warp(1000);
         doBid(alice, usdc, 1000e6, 10);
@@ -680,11 +890,11 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadCommitmentDataIn_AfterRefund_ReflectsRefundStatus() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(bob, usdt, 2000e6, 20);
 
-        closeAuction();
+        closeCommitment();
         openSettlement();
 
         doSetAllocation(alice, usdc, 500e6);
@@ -707,7 +917,7 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testCommitmentID_MultipleEntities_IsUnique() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(bob, usdt, 2000e6, 20);
         doBid(charlie, usdt, 3000e6, 30);
@@ -735,7 +945,7 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testCommitmentID_AfterBidUpdate_RemainsConstant() public {
-        openAuction();
+        openCommitment();
         vm.warp(1000);
         doBid(alice, usdc, 1000e6, 10);
 
@@ -756,7 +966,7 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadCommitmentDataIn_ConsistentWithNumCommitments_ReturnsAll() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(bob, usdt, 2000e6, 20);
         doBid(charlie, usdt, 3000e6, 30);
@@ -785,7 +995,7 @@ contract SettlementSaleViewFunctionsTest is SettlementSaleBaseTest {
     }
 
     function testEntityAt_OutOfBoundsAfterBids_Reverts() public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
 
         assertEq(sale.numEntities(), 1);
@@ -803,7 +1013,7 @@ contract SettlementSaleViewFunctionsTest is SettlementSaleBaseTest {
     }
 
     function testReadCommitmentDataAt_OutOfBoundsAfterBids_Reverts() public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
         doBid({user: bob, amount: 2000e6, price: 15, token: usdt});
 
@@ -819,7 +1029,7 @@ contract SettlementSaleViewFunctionsTest is SettlementSaleBaseTest {
     }
 
     function testEntitiesIn_OutOfBounds_Reverts() public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
 
         bytes16[] memory result = sale.entitiesIn(0, 1);
@@ -830,7 +1040,7 @@ contract SettlementSaleViewFunctionsTest is SettlementSaleBaseTest {
     }
 
     function testEntityStatesIn_OutOfBounds_Reverts() public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
 
         SettlementSale.EntityStateView[] memory result = sale.entityStatesIn(0, 1);
@@ -841,7 +1051,7 @@ contract SettlementSaleViewFunctionsTest is SettlementSaleBaseTest {
     }
 
     function testReadCommitmentDataIn_OutOfBounds_Reverts() public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
 
         ICommitmentDataReader.CommitmentData[] memory result = sale.readCommitmentDataIn(0, 1);
@@ -852,7 +1062,7 @@ contract SettlementSaleViewFunctionsTest is SettlementSaleBaseTest {
     }
 
     function testTotalCommittedAmountByToken_AfterBids_ReturnsCorrectAmounts() public {
-        openAuction();
+        openCommitment();
 
         // Test with no commitments
         TokenAmount[] memory amounts = sale.totalCommittedAmountByToken();
@@ -869,11 +1079,11 @@ contract SettlementSaleViewFunctionsTest is SettlementSaleBaseTest {
     }
 
     function testTotalRefundedAmountByToken_AfterRefunds_ReturnsCorrectAmounts() public {
-        openAuction();
+        openCommitment();
         doBid({user: alice, amount: 5000e6, price: 10, token: usdc});
         doBid({user: bob, amount: 3000e6, price: 10, token: usdt});
 
-        closeAuction();
+        closeCommitment();
         openSettlement();
         doSetAllocation(alice, usdc, 2000e6);
         doSetAllocation(bob, usdt, 1000e6);
@@ -898,7 +1108,7 @@ contract SettlementSaleViewFunctionsTest is SettlementSaleBaseTest {
     }
 
     function testEntityState_AfterMultipleBids_ReturnsCorrectData() public {
-        openAuction();
+        openCommitment();
 
         doBid({user: alice, price: 10, amount: 2000e6, token: usdc});
         doBid({user: bob, price: 15, amount: SALE_MAX_AMOUNT, token: usdc});
@@ -938,7 +1148,7 @@ contract SettlementSaleViewFunctionsTest is SettlementSaleBaseTest {
     }
 
     function testEntityState_MultipleWalletsPerEntity_ReturnsAllWalletStates() public {
-        openAuction();
+        openCommitment();
 
         // Use alice's entityID with two different wallets
         address wallet1 = makeAddr("wallet1");
@@ -951,7 +1161,7 @@ contract SettlementSaleViewFunctionsTest is SettlementSaleBaseTest {
         doBid({entityID: aliceID, user: wallet2, token: usdt, amount: 5000e6, price: 12});
 
         // Test settlement with multiple wallets
-        closeAuction();
+        closeCommitment();
         openSettlement();
 
         // Allocate 1500 USDC from wallet1 and 2000 USDT from wallet2
@@ -1020,8 +1230,8 @@ contract SettlementSaleSingleTokenTest is BaseTest {
             extraPausers: extraPausers,
             extraSettler: settler,
             extraRefunder: refunder,
-            closeAuctionAtTimestamp: uint64(block.timestamp + 24 hours),
             claimRefundEnabled: true,
+            maxWalletsPerEntity: 50,
             paymentTokens: paymentTokens,
             expectedPaymentTokenDecimals: 6
         });
@@ -1036,9 +1246,9 @@ contract SettlementSaleSingleTokenTest is BaseTest {
 
     function testBidAndSettlement_SingleToken_CompletesSuccessfully() public {
         vm.prank(manager);
-        sale.openAuction();
+        sale.openCommitment();
 
-        PurchasePermitV2 memory permit = PurchasePermitV2({
+        PurchasePermitV3 memory permit = PurchasePermitV3({
             saleSpecificEntityID: aliceID,
             saleUUID: TEST_SALE_UUID,
             wallet: alice,
@@ -1047,9 +1257,11 @@ contract SettlementSaleSingleTokenTest is BaseTest {
             maxAmount: 15000e6,
             minPrice: 5,
             maxPrice: 100,
+            opensAt: 0,
+            closesAt: type(uint64).max,
             payload: abi.encode(SettlementSale.PurchasePermitPayload({forcedLockup: false}))
         });
-        bytes32 digest = PurchasePermitV2Lib.digest(permit);
+        bytes32 digest = PurchasePermitV3Lib.digest(permit);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(permitSigner.key, digest);
         bytes memory sig = abi.encodePacked(r, s, v);
 
@@ -1068,7 +1280,7 @@ contract SettlementSaleSingleTokenTest is BaseTest {
         assertEq(sale.totalCommittedAmount(), 2000e6);
 
         vm.prank(manager);
-        sale.closeAuction();
+        sale.closeCommitment();
 
         vm.prank(manager);
         sale.openSettlement();
@@ -1100,7 +1312,7 @@ contract SettlementSaleSingleTokenTest is BaseTest {
 
     function testTotalAmountFunctions_SingleToken_ReturnCorrectValues() public {
         vm.prank(manager);
-        sale.openAuction();
+        sale.openCommitment();
 
         assertEq(sale.totalCommittedAmount(), 0);
         assertEq(sale.totalAcceptedAmount(), 0);
@@ -1130,7 +1342,7 @@ contract SettlementSaleViewFunctionsCoverageTest is SettlementSaleBaseTest {
     }
 
     function testWalletStatesByAddresses_MultipleWallets_ReturnsCorrectData() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(bob, usdt, 2000e6, 20);
 
@@ -1152,7 +1364,7 @@ contract SettlementSaleViewFunctionsCoverageTest is SettlementSaleBaseTest {
     }
 
     function testWalletStatesByAddresses_AnyUninitialized_Reverts() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         // bob never placed a bid
 
@@ -1165,7 +1377,7 @@ contract SettlementSaleViewFunctionsCoverageTest is SettlementSaleBaseTest {
     }
 
     function testEntityStatesByIDs_MultipleEntities_ReturnsCorrectData() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(bob, usdt, 2000e6, 20);
 
@@ -1221,11 +1433,11 @@ contract SettlementSaleViewFunctionsCoverageTest is SettlementSaleBaseTest {
 
 contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
     function testNumEntityAllocations_Empty_ReturnsZero() public view {
-        assertEq(sale.numEntityAllocations(), 0, "numEntityAllocations should be 0 for empty auction");
+        assertEq(sale.numEntityAllocations(), 0, "numEntityAllocations should be 0 for empty sale");
     }
 
     function testNumEntityAllocations_AfterBids_ReturnsEntityCount() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(bob, usdt, 2000e6, 20);
         doBid(charlie, usdt, 3000e6, 30);
@@ -1233,7 +1445,7 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testNumEntityAllocations_MultipleBidsFromSameEntity_ReturnsOne() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(alice, usdc, 2000e6, 20);
         doBid(alice, usdc, 3000e6, 30);
@@ -1243,7 +1455,7 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadEntityAllocationDataAt_BeforeSettlement_ReturnsZeroAmounts() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
 
         IEntityAllocationDataReader.EntityAllocationData[] memory got = sale.readEntityAllocationDataIn(0, 1);
@@ -1259,10 +1471,10 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadEntityAllocationDataAt_AfterSettlement_ReturnsCorrectAmounts() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
 
-        closeAuction();
+        closeCommitment();
         openSettlement();
         doSetAllocation(alice, usdc, 500e6);
 
@@ -1279,12 +1491,12 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadEntityAllocationDataIn_MultipleEntities_ReturnsCorrectData() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(bob, usdt, 2000e6, 20);
         doBid(charlie, usdc, 3000e6, 30);
 
-        closeAuction();
+        closeCommitment();
         openSettlement();
         doSetAllocation(alice, usdc, 500e6);
         doSetAllocation(bob, usdt, 1000e6);
@@ -1317,11 +1529,11 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadEntityAllocationDataAt_MultipleTokens_ReturnsAllTokenAmounts() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(alice, usdt, 2000e6, 10); // Same entity, different token
 
-        closeAuction();
+        closeCommitment();
         openSettlement();
         doSetAllocation(alice, usdc, 500e6);
         doSetAllocation(alice, usdt, 800e6);
@@ -1344,7 +1556,7 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadEntityAllocationDataAt_OutOfBoundsAfterBids_Reverts() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
 
         vm.expectRevert();
@@ -1359,12 +1571,12 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadEntityAllocationDataIn_Pagination_ReturnsCorrectPages() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(bob, usdt, 2000e6, 20);
         doBid(charlie, usdc, 3000e6, 30);
 
-        closeAuction();
+        closeCommitment();
         openSettlement();
         doSetAllocation(alice, usdc, 500e6);
         doSetAllocation(bob, usdt, 1000e6);
@@ -1400,12 +1612,12 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadEntityAllocationDataIn_PartialRange_ReturnsCorrectSubset() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(bob, usdt, 2000e6, 20);
         doBid(charlie, usdc, 3000e6, 30);
 
-        closeAuction();
+        closeCommitment();
         openSettlement();
         doSetAllocation(alice, usdc, 500e6);
         doSetAllocation(bob, usdt, 1000e6);
@@ -1424,7 +1636,7 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadEntityAllocationDataIn_OutOfBounds_Reverts() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
 
         vm.expectRevert();
@@ -1432,7 +1644,7 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadEntityAllocationDataIn_ConsistentWithNumEntityAllocations() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
         doBid(bob, usdt, 2000e6, 20);
         doBid(charlie, usdc, 3000e6, 30);
@@ -1445,10 +1657,10 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
     }
 
     function testReadEntityAllocationDataIn_AfterAllocationOverwrite_ReflectsLatest() public {
-        openAuction();
+        openCommitment();
         doBid(alice, usdc, 1000e6, 10);
 
-        closeAuction();
+        closeCommitment();
         openSettlement();
 
         // Set initial allocation
@@ -1485,7 +1697,7 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
         address alice2 = makeAddr("alice2");
         bytes16 aliceEntityID = aliceID;
 
-        openAuction();
+        openCommitment();
 
         // Alice bids from first wallet
         doBid(alice, usdc, 1000e6, 10);
@@ -1493,7 +1705,7 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
         // Alice bids from second wallet (same entity)
         doBid(aliceEntityID, alice2, usdt, 2000e6, 10);
 
-        closeAuction();
+        closeCommitment();
         openSettlement();
 
         // Set allocations for both wallets

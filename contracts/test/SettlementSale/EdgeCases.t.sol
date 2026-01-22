@@ -4,12 +4,8 @@ pragma solidity ^0.8.23;
 import "./SettlementSaleBaseTest.sol";
 
 contract SettlementSaleEdgeCasesTest is SettlementSaleBaseTest {
-    function testSetAllocation_AfterReopenAuction_UpdatesCorrectly() public {
-        openAuction();
-
-        // Disable auto close
-        vm.prank(manager);
-        sale.setCloseAuctionAtTimestamp(uint64(0));
+    function testSetAllocation_AfterReopenCommitment_UpdatesCorrectly() public {
+        openCommitment();
 
         // Alice commits {500 USDC, 10000 USDT} = 10500 total
         // Bid 500 USDC
@@ -21,8 +17,8 @@ contract SettlementSaleEdgeCasesTest is SettlementSaleBaseTest {
         // Verify state after first bids
         assertEq(sale.entityStateByID(aliceID).currentBid.amount, 3000e6, "total commitment should be 3000");
 
-        // Close auction and open settlement
-        closeAuction();
+        // Close commitment phase and open settlement
+        closeCommitment();
         openSettlement();
 
         // Set allocation: U1 gets allocation of 2500
@@ -45,10 +41,10 @@ contract SettlementSaleEdgeCasesTest is SettlementSaleBaseTest {
         );
         assertEq(sale.totalAcceptedAmountByToken(), toTokenAmounts({usdcAmount: 1000e6, usdtAmount: 1500e6}));
 
-        // Re-open auction manually
+        // Re-open commitment phase manually
         vm.prank(admin);
-        sale.unsafeSetStage(SettlementSale.Stage.Auction);
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Auction), "auction should be open");
+        sale.unsafeSetStage(SettlementSale.Stage.Commitment);
+        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Commitment), "commitment phase should be open");
 
         // User commits 4000 more USDC (total USDC now 5000, total commitment 7000)
         doBid({user: alice, token: usdc, amount: 7000e6, price: 10});
