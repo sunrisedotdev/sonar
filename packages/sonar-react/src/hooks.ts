@@ -2,6 +2,7 @@ import {
     APIError,
     EntityDetails,
     EntityID,
+    EntityInvestmentHistoryResponse,
     GeneratePurchasePermitResponse,
     MyProfileResponse,
     PrePurchaseFailureReason,
@@ -367,6 +368,73 @@ export function useSonarProfile(): UseSonarProfileResult {
         authenticated,
         loading: state.loading,
         profile: state.profile,
+        error: state.error,
+    };
+}
+
+export type UseEntityInvestmentHistoryResult = {
+    authenticated: boolean;
+    loading: boolean;
+    investmentHistory?: EntityInvestmentHistoryResponse;
+    error?: Error;
+};
+
+export function useEntityInvestmentHistory(): UseEntityInvestmentHistoryResult {
+    const { authenticated, ready } = useSonarAuth();
+    const client = useSonarClient();
+
+    const [state, setState] = useState<{
+        loading: boolean;
+        investmentHistory?: EntityInvestmentHistoryResponse;
+        error?: Error;
+    }>({
+        loading: false,
+    });
+
+    const fullyConnected = ready && authenticated;
+
+    const refetch = useCallback(async () => {
+        if (!fullyConnected) {
+            return;
+        }
+        setState((s) => ({ ...s, loading: true }));
+        try {
+            const resp = await client.readEntityInvestmentHistory();
+            setState({
+                loading: false,
+                investmentHistory: resp,
+                error: undefined,
+            });
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setState({ loading: false, investmentHistory: undefined, error });
+        }
+    }, [client, fullyConnected]);
+
+    const reset = useCallback(() => {
+        setState({
+            loading: false,
+            investmentHistory: undefined,
+            error: undefined,
+        });
+    }, []);
+
+    useEffect(() => {
+        if (fullyConnected) {
+            refetch();
+        }
+    }, [fullyConnected, refetch]);
+
+    useEffect(() => {
+        if (ready && !authenticated) {
+            reset();
+        }
+    }, [ready, authenticated, reset]);
+
+    return {
+        authenticated,
+        loading: state.loading,
+        investmentHistory: state.investmentHistory,
         error: state.error,
     };
 }

@@ -6,6 +6,7 @@ import type {
     BasicPermitV2,
     EntityDetails,
     EntityID,
+    EntityInvestmentHistoryResponse,
     Hex,
     MyProfileResponse,
 } from "./types";
@@ -192,6 +193,10 @@ export class SonarClient {
 
     async myProfile(): Promise<MyProfileResponse> {
         return this.postJSON<MyProfileResponse>("/externalapi.MyProfile", {});
+    }
+
+    async readEntityInvestmentHistory(): Promise<EntityInvestmentHistoryResponse> {
+        return this.postJSON<EntityInvestmentHistoryResponse>("/externalapi.ReadEntityInvestmentHistory", {});
     }
 
     async prePurchaseCheck(args: {

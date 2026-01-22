@@ -96,3 +96,13 @@ export type MyProfileResponse = {
     EntityID: string;
     EmailAddress?: string;
 };
+
+export type EntityInvestment = {
+    CompanyName: string;
+    Round: string;
+    InvestedOn: string;
+};
+
+export type EntityInvestmentHistoryResponse = {
+    Investments: EntityInvestment[];
+};
