@@ -1,26 +1,21 @@
 name: Release
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-    types:
-      - closed
 
 jobs:
-  publish:
-    # Only run when a release PR is merged
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
+  release:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
-      id-token: write # for npm provenance (optional)
+      contents: write
+      pull-requests: write
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main
 
       - uses: pnpm/action-setup@v3
         with:
@@ -40,7 +35,10 @@ jobs:
       - name: Run tests
         run: pnpm test
 
-      - name: Publish packages
-        run: pnpm changeset publish
+      - name: Create Release Pull Request or Publish to npm
+        uses: changesets/action@v1
+        with:
+          publish: pnpm changeset publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
