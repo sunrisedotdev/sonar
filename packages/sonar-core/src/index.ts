@@ -17,6 +17,7 @@ export type CreateClientOptions = {
     tokenKey?: string;
     onExpire?: () => void;
     onTokenChange?: (token?: string) => void;
+    onUnauthorized?: () => void;
 };
 
 export function createClient(options?: CreateClientOptions): SonarClient {
@@ -34,8 +35,13 @@ export function createClient(options?: CreateClientOptions): SonarClient {
         authSession.onTokenChange(onTokenChange);
     }
 
+    const onUnauthorized = () => {
+        authSession.clear();
+        options?.onUnauthorized?.();
+    };
+
     return new SonarClient({
         apiURL,
-        opts: { auth: authSession, fetch, onUnauthorized: () => authSession.clear() },
+        opts: { auth: authSession, fetch, onUnauthorized },
     });
 }
