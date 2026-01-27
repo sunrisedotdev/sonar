@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.14.0
+
+### Minor Changes
+
+- Add wrapper function and hook for ReadCommitmentData endpoint
+
 ## 0.13.0
 
 ### Minor Changes
