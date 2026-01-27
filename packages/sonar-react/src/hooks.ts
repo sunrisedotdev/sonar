@@ -442,7 +442,7 @@ export function useEntityInvestmentHistory(): UseEntityInvestmentHistoryResult {
 
 // Public API hooks
 
-const MIN_POLLING_INTERVAL_MS = 10000;
+const MIN_POLLING_INTERVAL_MS = 1000;
 
 export type UseCommitmentDataResult = {
     loading: boolean;
@@ -451,10 +451,7 @@ export type UseCommitmentDataResult = {
 };
 
 /**
- * Fetches commitment data for a sale and optionally polls for updates.
- *
- * The backend only refreshes commitment data every 10 seconds, so polling more
- * frequently than that is not useful. Polling is disabled by default.
+ * Fetches commitment data for a sale and optionally polls for updates. Polling is disabled by default.
  */
 export function useCommitmentData(args: { saleUUID: string; pollingIntervalMs?: number }): UseCommitmentDataResult {
     const saleUUID = args.saleUUID;
