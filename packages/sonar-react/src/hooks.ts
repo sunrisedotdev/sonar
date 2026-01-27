@@ -6,6 +6,7 @@ import {
     GeneratePurchasePermitResponse,
     MyProfileResponse,
     PrePurchaseFailureReason,
+    ReadCommitmentDataResponse,
     SonarClient,
 } from "@echoxyz/sonar-core";
 import { useCallback, useContext, useEffect, useState } from "react";
@@ -435,6 +436,76 @@ export function useEntityInvestmentHistory(): UseEntityInvestmentHistoryResult {
         authenticated,
         loading: state.loading,
         investmentHistory: state.investmentHistory,
+        error: state.error,
+    };
+}
+
+// Public API hooks
+
+const DEFAULT_POLLING_INTERVAL_MS = 10000;
+
+export type UseCommitmentDataResult = {
+    loading: boolean;
+    commitmentData?: ReadCommitmentDataResponse;
+    error?: Error;
+};
+
+/**
+ * Fetches commitment data for a sale and polls for updates.
+ *
+ * The backend only refreshes commitment data every 10 seconds, so polling more
+ * frequently than that is not useful. By default, this hook polls every 10 seconds.
+ */
+export function useCommitmentData(args: { saleUUID: string; pollingIntervalMs?: number }): UseCommitmentDataResult {
+    const saleUUID = args.saleUUID;
+    const pollingIntervalMs = args.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS;
+
+    if (pollingIntervalMs < DEFAULT_POLLING_INTERVAL_MS) {
+        throw new Error(`pollingIntervalMs must be at least ${DEFAULT_POLLING_INTERVAL_MS}ms`);
+    }
+
+    const client = useSonarClient();
+
+    const [state, setState] = useState<{
+        loading: boolean;
+        commitmentData?: ReadCommitmentDataResponse;
+        error?: Error;
+    }>({
+        loading: false,
+    });
+
+    const refetch = useCallback(async () => {
+        setState((s) => ({ ...s, loading: true }));
+        try {
+            const resp = await client.readCommitmentData({ saleUUID });
+            setState({
+                loading: false,
+                commitmentData: resp,
+                error: undefined,
+            });
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setState({ loading: false, commitmentData: undefined, error });
+        }
+    }, [client, saleUUID]);
+
+    useEffect(() => {
+        // Fetch immediately on mount
+        refetch();
+
+        // Set up polling interval
+        const intervalId = setInterval(() => {
+            refetch();
+        }, pollingIntervalMs);
+
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, [refetch, pollingIntervalMs]);
+
+    return {
+        loading: state.loading,
+        commitmentData: state.commitmentData,
         error: state.error,
     };
 }

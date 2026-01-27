@@ -10,6 +10,7 @@ import type {
     EntityInvestmentHistoryResponse,
     Hex,
     MyProfileResponse,
+    Commitment,
 } from "./types";
 
 export type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -38,6 +39,17 @@ export type ReadEntityResponse = {
 
 export type ListAvailableEntitiesResponse = {
     Entities: EntityDetails[];
+};
+
+export type ReadCommitmentDataResponse = {
+    TotalCommitmentAmount: string;
+    ClearingPriceNumerator?: string;
+    ClearingPriceDenominator?: string;
+    ClearingPriceMicroUSD?: string;
+    PaymentTokenDecimals: number;
+    OfferedTokenDecimals?: number;
+    UniqueCommitmentCount: number;
+    Commitments: Commitment[];
 };
 
 export type TokenResponse = {
@@ -242,6 +254,18 @@ export class SonarClient {
         return this.postJSON<ListAvailableEntitiesResponse>("/externalapi.ListAvailableEntities", {
             SaleUUID: args.saleUUID,
         });
+    }
+
+    // Public API
+
+    async readCommitmentData(args: { saleUUID: string }): Promise<ReadCommitmentDataResponse> {
+        return this.postJSON<ReadCommitmentDataResponse>(
+            "/sales.ReadCommitmentData",
+            {
+                SaleUUID: args.saleUUID,
+            },
+            { includeAuth: false },
+        );
     }
 }
 
