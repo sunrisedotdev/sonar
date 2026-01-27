@@ -1,5 +1,16 @@
 # @echoxyz/sonar-react
 
+## 0.13.0
+
+### Minor Changes
+
+- Add wrapper function and hook for ReadCommitmentData endpoint
+
+### Patch Changes
+
+- Updated dependencies
+    - @echoxyz/sonar-core@0.14.0
+
 ## 0.12.2
 
 ### Patch Changes
