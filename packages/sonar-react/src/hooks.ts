@@ -6,6 +6,7 @@ import {
     GeneratePurchasePermitResponse,
     MyProfileResponse,
     PrePurchaseFailureReason,
+    ReadCommitmentDataResponse,
     SonarClient,
 } from "@echoxyz/sonar-core";
 import { useCallback, useContext, useEffect, useState } from "react";
@@ -437,4 +438,71 @@ export function useEntityInvestmentHistory(): UseEntityInvestmentHistoryResult {
         investmentHistory: state.investmentHistory,
         error: state.error,
     };
+}
+
+// Public API hooks
+
+const MIN_POLLING_INTERVAL_MS = 1000;
+
+export type UseCommitmentDataResult = {
+    loading: boolean;
+    commitmentData?: ReadCommitmentDataResponse;
+    error?: Error;
+};
+
+/**
+ * Fetches commitment data for a sale and optionally polls for updates. Polling is disabled by default.
+ */
+export function useCommitmentData(args: { saleUUID: string; pollingIntervalMs?: number }): UseCommitmentDataResult {
+    const saleUUID = args.saleUUID;
+    const pollingIntervalMs = args.pollingIntervalMs;
+
+    if (pollingIntervalMs !== undefined && pollingIntervalMs < MIN_POLLING_INTERVAL_MS) {
+        throw new Error(`pollingIntervalMs must be at least ${MIN_POLLING_INTERVAL_MS}ms`);
+    }
+
+    const client = useSonarClient();
+
+    const [state, setState] = useState<{
+        loading: boolean;
+        commitmentData?: ReadCommitmentDataResponse;
+        error?: Error;
+    }>({
+        loading: false,
+    });
+
+    const refetch = useCallback(async () => {
+        setState((s) => ({ ...s, loading: true }));
+        try {
+            const resp = await client.readCommitmentData({ saleUUID });
+            setState({
+                loading: false,
+                commitmentData: resp,
+                error: undefined,
+            });
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            setState({ loading: false, commitmentData: undefined, error });
+        }
+    }, [client, saleUUID]);
+
+    useEffect(() => {
+        // Fetch immediately on mount
+        refetch();
+
+        // Set up polling interval if enabled
+        if (pollingIntervalMs === undefined) {
+            return;
+        }
+
+        const intervalId = setInterval(() => {
+            refetch();
+        }, pollingIntervalMs);
+
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, [refetch, pollingIntervalMs]);
+
+    return state;
 }

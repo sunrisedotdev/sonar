@@ -231,6 +231,12 @@ function PurchaseButton({
 
 - `useSonarEntities()` → `{ authenticated, loading, entities?, error? }` high-level hook for fetching all entities available to the authenticated user.
 
+- `useSonarPurchase()` → `{ loading, readyToPurchase, error?, generatePurchasePermit() }` high-level hook to check if the user is ready to purchase and generate a purchase permit.
+
+- `useEntityInvestmentHistory()` → `{ loading, investmentHistory?, error? }` high-level hook to fetch Echo private group investment history for a given entity.
+
+- `useCommitmentData()` → `{ loading, commitmentData?, error? }` high-level hook to poll for commitment data for a given sale. Note this calls a public API endpoint so the client does not need to be authenticated.
+
 ## Notes
 
 - Tokens are not auto-refreshed. On expiry, call `logout()` and re-run the OAuth flow.

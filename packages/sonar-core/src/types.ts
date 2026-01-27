@@ -124,3 +124,21 @@ export type EntityInvestment = {
 export type EntityInvestmentHistoryResponse = {
     Investments: EntityInvestment[];
 };
+
+export type Commitment = {
+    CommitmentID: Hex;
+    SaleSpecificEntityID: Hex;
+    PriceNumerator: string;
+    PriceDenominator: string;
+    PriceMicroUSD?: string;
+    Amounts: WalletTokenAmount[];
+    CreatedAt: string; // ISO 8601 timestamp
+    ExtraRaw: Hex;
+    ExtraDataParsed: unknown;
+};
+
+export type WalletTokenAmount = {
+    Wallet: Hex;
+    Token: Hex;
+    Amount: string;
+};
