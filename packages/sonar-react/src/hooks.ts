@@ -442,7 +442,7 @@ export function useEntityInvestmentHistory(): UseEntityInvestmentHistoryResult {
 
 // Public API hooks
 
-const DEFAULT_POLLING_INTERVAL_MS = 10000;
+const MIN_POLLING_INTERVAL_MS = 10000;
 
 export type UseCommitmentDataResult = {
     loading: boolean;
@@ -451,17 +451,17 @@ export type UseCommitmentDataResult = {
 };
 
 /**
- * Fetches commitment data for a sale and polls for updates.
+ * Fetches commitment data for a sale and optionally polls for updates.
  *
  * The backend only refreshes commitment data every 10 seconds, so polling more
- * frequently than that is not useful. By default, this hook polls every 10 seconds.
+ * frequently than that is not useful. Polling is disabled by default.
  */
 export function useCommitmentData(args: { saleUUID: string; pollingIntervalMs?: number }): UseCommitmentDataResult {
     const saleUUID = args.saleUUID;
-    const pollingIntervalMs = args.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS;
+    const pollingIntervalMs = args.pollingIntervalMs;
 
-    if (pollingIntervalMs < DEFAULT_POLLING_INTERVAL_MS) {
-        throw new Error(`pollingIntervalMs must be at least ${DEFAULT_POLLING_INTERVAL_MS}ms`);
+    if (pollingIntervalMs !== undefined && pollingIntervalMs < MIN_POLLING_INTERVAL_MS) {
+        throw new Error(`pollingIntervalMs must be at least ${MIN_POLLING_INTERVAL_MS}ms`);
     }
 
     const client = useSonarClient();
@@ -493,7 +493,11 @@ export function useCommitmentData(args: { saleUUID: string; pollingIntervalMs?: 
         // Fetch immediately on mount
         refetch();
 
-        // Set up polling interval
+        // Set up polling interval if enabled
+        if (pollingIntervalMs === undefined) {
+            return;
+        }
+
         const intervalId = setInterval(() => {
             refetch();
         }, pollingIntervalMs);
@@ -503,9 +507,5 @@ export function useCommitmentData(args: { saleUUID: string; pollingIntervalMs?: 
         };
     }, [refetch, pollingIntervalMs]);
 
-    return {
-        loading: state.loading,
-        commitmentData: state.commitmentData,
-        error: state.error,
-    };
+    return state;
 }
