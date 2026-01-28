@@ -61,19 +61,20 @@ Then create a PR to merge the release branch into `main`:
 gh pr create --title 'chore: release' --body 'Release packages'
 ```
 
+Note that we need to manually create the PR because our repository permissions currently block PR creation from Github actions.
+
 ---
 
 ### 3. Publishing (automated)
 
-When the release PR is merged, the GitHub Actions workflow (`.github/workflows/release.yml`) automatically:
-
-- Builds and tests the packages.
-- Publishes new versions to npm using `changeset publish`.
+The GitHub Actions workflow runs on every `main` commit.
+The publish step is idempotent - `changeset publish` checks npm and only publishes packages with versions not yet on the registry.
+When you merge a release PR with version bumps, the new versions get published automatically.
 
 ---
 
 ## Summary
 
-- Use **`pnpm changeset`** in your PR to record what changed.
-- Run **`pnpm prepare-release`** to prepare a release PR.
-- Merging the release PR triggers automatic publishing to npm.
+1. Use **`pnpm changeset`** in your PR to record what changed.
+2. Run **`pnpm prepare-release`** to prepare a release PR.
+3. Merge the release PR to automatically publish to npm.
