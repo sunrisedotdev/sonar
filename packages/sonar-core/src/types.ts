@@ -92,6 +92,7 @@ export enum PrePurchaseFailureReason {
     REQUIRES_LIVENESS = "requires-liveness",
     SALE_NOT_ACTIVE = "sale-not-active",
     WALLET_NOT_LINKED = "wallet-not-linked",
+    OUTSIDE_TIME_WINDOW = "outside-time-window",
 }
 
 export enum InvestingRegion {
