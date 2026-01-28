@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.14.1
+
+### Patch Changes
+
+- 7101949: All onUnauthorized to be passed into createClient
+
 ## 0.14.0
 
 ### Minor Changes
