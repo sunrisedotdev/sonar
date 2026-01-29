@@ -82,6 +82,7 @@ pnpm commitment-data-csv \
 - `TOKEN` - payment token address
 - `COMMITMENT_ID` - unique id for this commitment
 - `TIMESTAMP` - commitment timestamp
+- `LOCKUP` - whether the commitment is locked up
 - `PRICE` - commitment price
 - `COMMITTED_AMOUNT` - committed amount for this wallet and token
 - `ACCEPTED_AMOUNT` - accepted amount for this wallet and token
