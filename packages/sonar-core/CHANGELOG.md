@@ -1,5 +1,12 @@
 # @echoxyz/sonar-core
 
+## 0.14.2
+
+### Patch Changes
+
+- e02745a: Switch to new "read-commitment-data" path
+- 85f81dc: Add OUTSIDE_TIME_WINDOW to PrePurchaseFailureReason enum
+
 ## 0.14.1
 
 ### Patch Changes
