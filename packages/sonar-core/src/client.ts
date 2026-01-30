@@ -260,7 +260,7 @@ export class SonarClient {
 
     async readCommitmentData(args: { saleUUID: string }): Promise<ReadCommitmentDataResponse> {
         return this.postJSON<ReadCommitmentDataResponse>(
-            "/sales.ReadCommitmentData",
+            "/sonar/v1/public/read-commitment-data",
             {
                 SaleUUID: args.saleUUID,
             },
