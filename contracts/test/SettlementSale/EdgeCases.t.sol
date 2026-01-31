@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
-import "./SettlementSaleBaseTest.sol";
+import "./SettlementSaleBaseTest.t.sol";
 
 contract SettlementSaleEdgeCasesTest is SettlementSaleBaseTest {
     function testSetAllocation_AfterReopenCommitment_UpdatesCorrectly() public {

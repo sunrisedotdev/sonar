@@ -1,75 +1,7 @@
 export const settlementSaleAbi = [
   {
     "type": "constructor",
-    "inputs": [
-      {
-        "name": "init",
-        "type": "tuple",
-        "internalType": "struct SettlementSale.Init",
-        "components": [
-          {
-            "name": "saleUUID",
-            "type": "bytes16",
-            "internalType": "bytes16"
-          },
-          {
-            "name": "admin",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "extraManagers",
-            "type": "address[]",
-            "internalType": "address[]"
-          },
-          {
-            "name": "extraPausers",
-            "type": "address[]",
-            "internalType": "address[]"
-          },
-          {
-            "name": "extraSettler",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "extraRefunder",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "purchasePermitSigner",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "proceedsReceiver",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "claimRefundEnabled",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "maxWalletsPerEntity",
-            "type": "uint8",
-            "internalType": "uint8"
-          },
-          {
-            "name": "paymentTokens",
-            "type": "address[]",
-            "internalType": "contract IERC20Metadata[]"
-          },
-          {
-            "name": "expectedPaymentTokenDecimals",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
-    ],
+    "inputs": [],
     "stateMutability": "nonpayable"
   },
   {
@@ -133,19 +65,6 @@ export const settlementSaleAbi = [
         "name": "",
         "type": "bytes32",
         "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "SALE_UUID",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes16",
-        "internalType": "bytes16"
       }
     ],
     "stateMutability": "view"
@@ -729,6 +648,81 @@ export const settlementSaleAbi = [
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "initialize",
+    "inputs": [
+      {
+        "name": "init",
+        "type": "tuple",
+        "internalType": "struct SettlementSale.Init",
+        "components": [
+          {
+            "name": "saleUUID",
+            "type": "bytes16",
+            "internalType": "bytes16"
+          },
+          {
+            "name": "admin",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "extraManagers",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "extraPausers",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "extraSettler",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "extraRefunder",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "purchasePermitSigner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "proceedsReceiver",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "claimRefundEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "maxWalletsPerEntity",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "paymentTokens",
+            "type": "address[]",
+            "internalType": "contract IERC20Metadata[]"
+          },
+          {
+            "name": "expectedPaymentTokenDecimals",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -1404,6 +1398,19 @@ export const settlementSaleAbi = [
   },
   {
     "type": "function",
+    "name": "saleUUID",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes16",
+        "internalType": "bytes16"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "setAllocations",
     "inputs": [
       {
@@ -1652,6 +1659,29 @@ export const settlementSaleAbi = [
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "version",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -1991,6 +2021,19 @@ export const settlementSaleAbi = [
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Initialized",
+    "inputs": [
+      {
+        "name": "version",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
       }
     ],
     "anonymous": false
@@ -2553,6 +2596,11 @@ export const settlementSaleAbi = [
   },
   {
     "type": "error",
+    "name": "InvalidInitialization",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidPaymentToken",
     "inputs": [
       {
@@ -2655,6 +2703,11 @@ export const settlementSaleAbi = [
   {
     "type": "error",
     "name": "NoPaymentTokens",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotInitializing",
     "inputs": []
   },
   {
