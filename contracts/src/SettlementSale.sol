@@ -1,21 +1,25 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
-import {AccessControlEnumerable} from "@openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol";
+import {
+    AccessControlEnumerableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {PurchasePermitV3, PurchasePermitV3Lib} from "./permits/PurchasePermitV3.sol";
+import {Versioned} from "./Versioned.sol";
 
-import {ICommitmentDataReader} from "./interfaces/ICommitmentDataReader.sol";
-import {IOffchainSettlement} from "./interfaces/IOffchainSettlement.sol";
-import {ITotalCommitmentsReader} from "./interfaces/ITotalCommitmentsReader.sol";
-import {IEntityAllocationDataReader} from "./interfaces/IEntityAllocationDataReader.sol";
-import {ITotalAllocationsReader} from "./interfaces/ITotalAllocationsReader.sol";
-import {TokenAmount, WalletTokenAmount} from "./interfaces/types.sol";
+import {PurchasePermitV3, PurchasePermitV3Lib} from "sales/permits/PurchasePermitV3.sol";
+
+import {ICommitmentDataReader} from "sales/interfaces/ICommitmentDataReader.sol";
+import {IOffchainSettlement} from "sales/interfaces/IOffchainSettlement.sol";
+import {ITotalCommitmentsReader} from "sales/interfaces/ITotalCommitmentsReader.sol";
+import {IEntityAllocationDataReader} from "sales/interfaces/IEntityAllocationDataReader.sol";
+import {ITotalAllocationsReader} from "sales/interfaces/ITotalAllocationsReader.sol";
+import {TokenAmount, WalletTokenAmount} from "sales/interfaces/types.sol";
 
 /// @title  SettlementSale
 /// @notice Public sale contract for a token offering with various clearing mechanisms.
@@ -123,12 +127,13 @@ import {TokenAmount, WalletTokenAmount} from "./interfaces/types.sol";
 ///
 /// @custom:security-contact security@echo.xyz
 contract SettlementSale is
-    AccessControlEnumerable,
+    AccessControlEnumerableUpgradeable,
     ICommitmentDataReader,
     ITotalCommitmentsReader,
     IOffchainSettlement,
     IEntityAllocationDataReader,
-    ITotalAllocationsReader
+    ITotalAllocationsReader,
+    Versioned(1, 0, 0)
 {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -280,7 +285,8 @@ contract SettlementSale is
     }
 
     /// @notice The Sonar UUID of the sale.
-    bytes16 public immutable SALE_UUID;
+    /// @dev Set during initialization.
+    bytes16 public saleUUID;
 
     /// @notice The payment tokens used to fund the sale.
     /// @dev Only set on construction and cannot be modified after.
@@ -407,7 +413,18 @@ contract SettlementSale is
         uint256 expectedPaymentTokenDecimals;
     }
 
-    constructor(Init memory init) {
+    /// @notice Disables initializers on the implementation contract.
+    /// @dev This prevents the implementation from being initialized directly when used with proxies.
+    constructor() {
+        _disableInitializers();
+    }
+
+    /// @notice Initializes the sale contract.
+    /// @dev This replaces the constructor for use with the clone/proxy pattern.
+    /// @param init The initialization parameters.
+    function initialize(Init memory init) external initializer {
+        __AccessControlEnumerable_init();
+
         if (init.admin == address(0)) {
             revert ZeroAddress();
         }
@@ -421,7 +438,7 @@ contract SettlementSale is
             revert ZeroMaxWalletsPerEntity();
         }
 
-        SALE_UUID = init.saleUUID;
+        saleUUID = init.saleUUID;
         proceedsReceiver = init.proceedsReceiver;
         claimRefundEnabled = init.claimRefundEnabled;
         maxWalletsPerEntity = init.maxWalletsPerEntity;
@@ -691,8 +708,8 @@ contract SettlementSale is
     /// @dev This ensures that the permit was issued for the right sale (preventing the reuse of the same permit across sales),
     /// is not expired, and is signed by the purchase permit signer.
     function _validatePurchasePermit(PurchasePermitV3 memory permit, bytes calldata signature) internal view {
-        if (permit.saleUUID != SALE_UUID) {
-            revert InvalidSaleUUID(permit.saleUUID, SALE_UUID);
+        if (permit.saleUUID != saleUUID) {
+            revert InvalidSaleUUID(permit.saleUUID, saleUUID);
         }
 
         if (permit.expiresAt <= block.timestamp) {
@@ -1216,7 +1233,12 @@ contract SettlementSale is
     }
 
     /// @notice Checks if the contract supports an interface.
-    function supportsInterface(bytes4 interfaceId) public view override(AccessControlEnumerable) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(AccessControlEnumerableUpgradeable)
+        returns (bool)
+    {
         return interfaceId == type(ICommitmentDataReader).interfaceId
             || interfaceId == type(ITotalCommitmentsReader).interfaceId
             || interfaceId == type(IEntityAllocationDataReader).interfaceId

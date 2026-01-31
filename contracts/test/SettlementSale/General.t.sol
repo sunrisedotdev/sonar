@@ -3,11 +3,12 @@ pragma solidity ^0.8.23;
 
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
-import {ITotalCommitmentsReader} from "sonar/interfaces/ITotalCommitmentsReader.sol";
-import {IEntityAllocationDataReader} from "sonar/interfaces/IEntityAllocationDataReader.sol";
+import {ITotalCommitmentsReader} from "sales/interfaces/ITotalCommitmentsReader.sol";
+import {IEntityAllocationDataReader} from "sales/interfaces/IEntityAllocationDataReader.sol";
 
-import "./SettlementSaleBaseTest.sol";
+import "./SettlementSaleBaseTest.t.sol";
 
 contract SettlementSaleConstructorTest is BaseTest {
     ERC20FakeWithDecimals usdc;
@@ -58,7 +59,7 @@ contract SettlementSaleConstructorTest is BaseTest {
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
         });
-        TestableSettlementSale sale = new TestableSettlementSale(init);
+        TestableSettlementSale sale = newTestableSettlementSale(init);
 
         assertEq(sale.getRoleMemberCount(sale.SALE_MANAGER_ROLE()), 2);
         assertEq(sale.getRoleMember(sale.SALE_MANAGER_ROLE(), 0), admin);
@@ -97,7 +98,7 @@ contract SettlementSaleConstructorTest is BaseTest {
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
         });
-        TestableSettlementSale sale = new TestableSettlementSale(init);
+        TestableSettlementSale sale = newTestableSettlementSale(init);
 
         assertEq(sale.getRoleMemberCount(sale.SALE_MANAGER_ROLE()), 1);
         assertEq(sale.getRoleMember(sale.SALE_MANAGER_ROLE(), 0), admin);
@@ -133,7 +134,7 @@ contract SettlementSaleConstructorTest is BaseTest {
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
         });
-        TestableSettlementSale sale = new TestableSettlementSale(init);
+        TestableSettlementSale sale = newTestableSettlementSale(init);
 
         assertEq(sale.getRoleMemberCount(sale.SALE_MANAGER_ROLE()), 1);
         assertEq(sale.getRoleMember(sale.SALE_MANAGER_ROLE(), 0), admin);
@@ -170,13 +171,14 @@ contract SettlementSaleConstructorTest is BaseTest {
             expectedPaymentTokenDecimals: 6
         });
 
+        TestableSettlementSale testSale = newUninitializedTestableSettlementSale();
         vm.expectRevert(
             abi.encodeWithSelector(SettlementSale.InvalidPaymentTokenDecimals.selector, address(invalidToken), 18, 6)
         );
-        new TestableSettlementSale(init);
+        testSale.initialize(init);
     }
 
-    function testConstructor_DuplicateTokens_Reverts() public {
+    function testInitialize_DuplicateTokens_Reverts() public {
         IERC20Metadata[] memory duplicateTokens = new IERC20Metadata[](2);
         duplicateTokens[0] = IERC20Metadata(address(usdc));
         duplicateTokens[1] = IERC20Metadata(address(usdc));
@@ -196,11 +198,12 @@ contract SettlementSaleConstructorTest is BaseTest {
             expectedPaymentTokenDecimals: 6
         });
 
+        TestableSettlementSale testSale = newUninitializedTestableSettlementSale();
         vm.expectRevert(abi.encodeWithSelector(SettlementSale.DuplicatePaymentToken.selector, usdc));
-        new TestableSettlementSale(init);
+        testSale.initialize(init);
     }
 
-    function testConstructor_NoPaymentTokens_Reverts() public {
+    function testInitialize_NoPaymentTokens_Reverts() public {
         IERC20Metadata[] memory emptyTokens = new IERC20Metadata[](0);
 
         SettlementSale.Init memory init = SettlementSale.Init({
@@ -218,11 +221,12 @@ contract SettlementSaleConstructorTest is BaseTest {
             expectedPaymentTokenDecimals: 6
         });
 
+        TestableSettlementSale testSale = newUninitializedTestableSettlementSale();
         vm.expectRevert(abi.encodeWithSelector(SettlementSale.NoPaymentTokens.selector));
-        new TestableSettlementSale(init);
+        testSale.initialize(init);
     }
 
-    function testConstructor_ZeroAdmin_Reverts() public {
+    function testInitialize_ZeroAdmin_Reverts() public {
         SettlementSale.Init memory init = SettlementSale.Init({
             saleUUID: TEST_SALE_UUID,
             admin: address(0),
@@ -238,11 +242,12 @@ contract SettlementSaleConstructorTest is BaseTest {
             expectedPaymentTokenDecimals: 6
         });
 
+        TestableSettlementSale testSale = newUninitializedTestableSettlementSale();
         vm.expectRevert(abi.encodeWithSelector(SettlementSale.ZeroAddress.selector));
-        new TestableSettlementSale(init);
+        testSale.initialize(init);
     }
 
-    function testConstructor_ZeroPurchasePermitSigner_Reverts() public {
+    function testInitialize_ZeroPurchasePermitSigner_Reverts() public {
         SettlementSale.Init memory init = SettlementSale.Init({
             saleUUID: TEST_SALE_UUID,
             admin: admin,
@@ -258,11 +263,12 @@ contract SettlementSaleConstructorTest is BaseTest {
             expectedPaymentTokenDecimals: 6
         });
 
+        TestableSettlementSale testSale = newUninitializedTestableSettlementSale();
         vm.expectRevert(abi.encodeWithSelector(SettlementSale.ZeroAddress.selector));
-        new TestableSettlementSale(init);
+        testSale.initialize(init);
     }
 
-    function testConstructor_ZeroProceedsReceiver_Reverts() public {
+    function testInitialize_ZeroProceedsReceiver_Reverts() public {
         SettlementSale.Init memory init = SettlementSale.Init({
             saleUUID: TEST_SALE_UUID,
             admin: admin,
@@ -278,11 +284,12 @@ contract SettlementSaleConstructorTest is BaseTest {
             expectedPaymentTokenDecimals: 6
         });
 
+        TestableSettlementSale testSale = newUninitializedTestableSettlementSale();
         vm.expectRevert(abi.encodeWithSelector(SettlementSale.ZeroAddress.selector));
-        new TestableSettlementSale(init);
+        testSale.initialize(init);
     }
 
-    function testConstructor_ZeroMaxWalletsPerEntity_Reverts() public {
+    function testInitialize_ZeroMaxWalletsPerEntity_Reverts() public {
         SettlementSale.Init memory init = SettlementSale.Init({
             saleUUID: TEST_SALE_UUID,
             admin: admin,
@@ -298,8 +305,9 @@ contract SettlementSaleConstructorTest is BaseTest {
             expectedPaymentTokenDecimals: 6
         });
 
+        TestableSettlementSale testSale = newUninitializedTestableSettlementSale();
         vm.expectRevert(abi.encodeWithSelector(SettlementSale.ZeroMaxWalletsPerEntity.selector));
-        new TestableSettlementSale(init);
+        testSale.initialize(init);
     }
 }
 
@@ -1235,7 +1243,9 @@ contract SettlementSaleSingleTokenTest is BaseTest {
             paymentTokens: paymentTokens,
             expectedPaymentTokenDecimals: 6
         });
-        sale = new TestableSettlementSale(init);
+        TestableSettlementSale impl = new TestableSettlementSale();
+        sale = TestableSettlementSale(Clones.clone(address(impl)));
+        sale.initialize(init);
     }
 
     function testPaymentTokens_SingleToken_ReturnsCorrectToken() public view {

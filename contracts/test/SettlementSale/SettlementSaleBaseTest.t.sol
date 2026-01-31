@@ -3,24 +3,25 @@ pragma solidity ^0.8.23;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {ICommitmentDataReader} from "sonar/interfaces/ICommitmentDataReader.sol";
-import {IEntityAllocationDataReader} from "sonar/interfaces/IEntityAllocationDataReader.sol";
-import {IOffchainSettlement} from "sonar/interfaces/IOffchainSettlement.sol";
-import {TokenAmount, WalletTokenAmount} from "sonar/interfaces/types.sol";
+import {ICommitmentDataReader} from "sales/interfaces/ICommitmentDataReader.sol";
+import {IEntityAllocationDataReader} from "sales/interfaces/IEntityAllocationDataReader.sol";
+import {IOffchainSettlement} from "sales/interfaces/IOffchainSettlement.sol";
+import {TokenAmount, WalletTokenAmount} from "sales/interfaces/types.sol";
 
-import {PurchasePermitV3, PurchasePermitV3Lib} from "sonar/permits/PurchasePermitV3.sol";
+import {PurchasePermitV3, PurchasePermitV3Lib} from "sales/permits/PurchasePermitV3.sol";
 
 import {BaseTest, console} from "../BaseTest.sol";
 import {ERC20FakeWithDecimals, ERC20Permit} from "../doubles/ERC20Fake.sol";
 import {Vm} from "forge-std/Vm.sol";
 
-import {SettlementSale} from "sonar/SettlementSale.sol";
+import {SettlementSale} from "sales/SettlementSale.sol";
 
 bytes16 constant TEST_SALE_UUID = hex"1234567890abcdef1234567890abcdef";
 bytes32 constant ERC20_PERMIT_TYPEHASH =
@@ -34,8 +35,6 @@ uint64 constant SALE_MAX_PRICE = 100;
 
 contract TestableSettlementSale is SettlementSale {
     using EnumerableSet for EnumerableSet.AddressSet;
-
-    constructor(Init memory init) SettlementSale(init) {}
 
     function allEntities() public view returns (bytes16[] memory) {
         uint256 num = this.numEntities();
@@ -59,6 +58,21 @@ contract TestableSettlementSale is SettlementSale {
     function getEntityID(address addr) public view returns (bytes16) {
         return _entityIDByAddress[addr];
     }
+}
+
+/// @dev Helper to create a TestableSettlementSale using the clone pattern.
+/// This is needed because the base SettlementSale constructor disables initializers.
+function newTestableSettlementSale(SettlementSale.Init memory init) returns (TestableSettlementSale) {
+    TestableSettlementSale clone = newUninitializedTestableSettlementSale();
+    clone.initialize(init);
+    return clone;
+}
+
+/// @dev Helper to create an uninitialized TestableSettlementSale clone.
+/// Use this for testing initialization failures.
+function newUninitializedTestableSettlementSale() returns (TestableSettlementSale) {
+    TestableSettlementSale impl = new TestableSettlementSale();
+    return TestableSettlementSale(Clones.clone(address(impl)));
 }
 
 contract SettlementSaleBaseTest is BaseTest {
@@ -111,7 +125,7 @@ contract SettlementSaleBaseTest is BaseTest {
             paymentTokens: paymentTokens,
             expectedPaymentTokenDecimals: 6
         });
-        sale = new TestableSettlementSale(init);
+        sale = newTestableSettlementSale(init);
 
         vm.startPrank(admin);
         sale.grantRole(sale.TOKEN_RECOVERER_ROLE(), recoverer);

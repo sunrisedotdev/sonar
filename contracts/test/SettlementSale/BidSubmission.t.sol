@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.23;
 
-import "./SettlementSaleBaseTest.sol";
+import "./SettlementSaleBaseTest.t.sol";
 
 contract SettlementSaleBidTestBase is SettlementSaleBaseTest {
     function setUp() public override {
