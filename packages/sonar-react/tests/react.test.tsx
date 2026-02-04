@@ -106,6 +106,7 @@ vi.mock("@echoxyz/sonar-core", async () => {
             UNKNOWN: "unknown",
             OTHER: "other",
             US: "us",
+            EU: "eu",
         },
         __test: {
             emitToken,

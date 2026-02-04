@@ -99,6 +99,7 @@ export enum InvestingRegion {
     UNKNOWN = "unknown",
     OTHER = "other",
     US = "us",
+    EU = "eu",
 }
 
 export type EntityDetails = {
