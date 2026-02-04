@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.14.3
+
+### Patch Changes
+
+- 5a7d0b3: Add support for "eu" investing region
+
 ## 0.14.2
 
 ### Patch Changes
