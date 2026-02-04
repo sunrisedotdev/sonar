@@ -37,3 +37,5 @@ jobs:
       # Use npx (not pnpm) because pnpm doesn't support OIDC trusted publishing yet
       - name: Publish to npm
         run: npx changeset publish
+        env:
+          NPM_CONFIG_PROVENANCE: true
