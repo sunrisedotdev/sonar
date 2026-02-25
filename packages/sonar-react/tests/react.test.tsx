@@ -220,8 +220,16 @@ describe("SonarProvider auth state", () => {
     });
 });
 
-function EntityStateProbe({ saleUUID, walletAddress }: { saleUUID: string; walletAddress?: string }) {
-    const value = useSonarEntity({ saleUUID, walletAddress });
+function EntityStateProbe({
+    saleUUID,
+    entityID,
+    walletAddress,
+}: {
+    saleUUID: string;
+    entityID?: string;
+    walletAddress?: string;
+}) {
+    const value = useSonarEntity({ saleUUID, entityID, walletAddress });
 
     return (
         <div
@@ -347,6 +355,7 @@ describe("useSonarEntity", () => {
 
         expect(mockReadEntity).toHaveBeenCalledWith({
             saleUUID: "test-sale",
+            entityID: undefined,
             walletAddress: mockWalletAddress,
         });
         expect(getByTestId("entity-state").dataset.entityId).toBe(mockEntity.EntityID);
@@ -488,8 +497,121 @@ describe("useSonarEntity", () => {
         await waitFor(() => expect(mockReadEntity).toHaveBeenCalledTimes(2));
         expect(mockReadEntity).toHaveBeenLastCalledWith({
             saleUUID: "test-sale",
+            entityID: undefined,
             walletAddress: newWalletAddress,
         });
+    });
+
+    it("fetches entity when entityID is provided without walletAddress", async () => {
+        const mockReadEntity = vi.fn().mockResolvedValue({ Entity: mockEntity });
+        __test.mockClient.readEntity = mockReadEntity;
+
+        const { getByTestId } = render(
+            <SonarProvider config={config}>
+                <EntityStateProbe saleUUID="test-sale" entityID="entity-123" />
+            </SonarProvider>,
+        );
+
+        await waitFor(() => expect(getByTestId("entity-state").dataset.authenticated).toBe("false"));
+
+        act(() => {
+            __test.emitToken("token-123");
+        });
+
+        await waitFor(() => expect(getByTestId("entity-state").dataset.authenticated).toBe("true"));
+        await waitFor(() => expect(getByTestId("entity-state").dataset.loading).toBe("false"));
+
+        expect(mockReadEntity).toHaveBeenCalledWith({
+            saleUUID: "test-sale",
+            entityID: "entity-123",
+            walletAddress: undefined,
+        });
+        expect(getByTestId("entity-state").dataset.entityId).toBe(mockEntity.EntityID);
+        expect(getByTestId("entity-state").dataset.entityLabel).toBe(mockEntity.Label);
+    });
+
+    it("does not fetch when neither entityID nor walletAddress is provided", async () => {
+        const mockReadEntity = vi.fn().mockResolvedValue({ Entity: mockEntity });
+        __test.mockClient.readEntity = mockReadEntity;
+
+        const { getByTestId } = render(
+            <SonarProvider config={config}>
+                <EntityStateProbe saleUUID="test-sale" />
+            </SonarProvider>,
+        );
+
+        act(() => {
+            __test.emitToken("token-123");
+        });
+
+        await waitFor(() => expect(getByTestId("entity-state").dataset.authenticated).toBe("true"));
+
+        expect(mockReadEntity).not.toHaveBeenCalled();
+        expect(getByTestId("entity-state").dataset.entityId).toBe("");
+    });
+
+    it("re-runs entity fetch when entityID changes", async () => {
+        const mockReadEntity = vi.fn().mockResolvedValue({ Entity: mockEntity });
+        __test.mockClient.readEntity = mockReadEntity;
+
+        const { getByTestId, rerender } = render(
+            <SonarProvider config={config}>
+                <EntityStateProbe saleUUID="test-sale" entityID="entity-123" />
+            </SonarProvider>,
+        );
+
+        await waitFor(() => expect(getByTestId("entity-state").dataset.authenticated).toBe("false"));
+
+        act(() => {
+            __test.emitToken("token-123");
+        });
+
+        await waitFor(() => expect(getByTestId("entity-state").dataset.authenticated).toBe("true"));
+        await waitFor(() => expect(getByTestId("entity-state").dataset.loading).toBe("false"));
+        expect(mockReadEntity).toHaveBeenCalledTimes(1);
+
+        const newEntityID = "entity-456";
+        rerender(
+            <SonarProvider config={config}>
+                <EntityStateProbe saleUUID="test-sale" entityID={newEntityID} />
+            </SonarProvider>,
+        );
+
+        await waitFor(() => expect(mockReadEntity).toHaveBeenCalledTimes(2));
+        expect(mockReadEntity).toHaveBeenLastCalledWith({
+            saleUUID: "test-sale",
+            entityID: newEntityID,
+            walletAddress: undefined,
+        });
+    });
+
+    it("resets state when entityID is removed and no walletAddress", async () => {
+        const mockReadEntity = vi.fn().mockResolvedValue({ Entity: mockEntity });
+        __test.mockClient.readEntity = mockReadEntity;
+
+        const { getByTestId, rerender } = render(
+            <SonarProvider config={config}>
+                <EntityStateProbe saleUUID="test-sale" entityID="entity-123" />
+            </SonarProvider>,
+        );
+
+        await waitFor(() => expect(getByTestId("entity-state").dataset.authenticated).toBe("false"));
+
+        act(() => {
+            __test.emitToken("token-123");
+        });
+
+        await waitFor(() => expect(getByTestId("entity-state").dataset.authenticated).toBe("true"));
+        await waitFor(() => expect(getByTestId("entity-state").dataset.entityId).toBe(mockEntity.EntityID));
+
+        rerender(
+            <SonarProvider config={config}>
+                <EntityStateProbe saleUUID="test-sale" entityID={undefined} />
+            </SonarProvider>,
+        );
+
+        await waitFor(() => expect(getByTestId("entity-state").dataset.entityId).toBe(""));
+        expect(getByTestId("entity-state").dataset.error).toBe("");
     });
 });
 

@@ -35,7 +35,12 @@ export type UseSonarEntityResult = {
     error?: Error;
 };
 
-export function useSonarEntity(args: { saleUUID: string; walletAddress?: string }): UseSonarEntityResult {
+export function useSonarEntity(args: {
+    saleUUID: string;
+    entityID?: string;
+    /** Only used for a wallet linking feature, enabled for niche use-cases on request. */
+    walletAddress?: string;
+}): UseSonarEntityResult {
     const { authenticated, ready } = useSonarAuth();
     const client = useSonarClient();
 
@@ -44,12 +49,14 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
     }
 
     const saleUUID = args.saleUUID;
+    const entityID = args.entityID;
     const walletAddress = args.walletAddress;
 
     const [state, setState] = useState<{
         loading: boolean;
         entity?: EntityDetails;
-        walletAddress?: string; // To track the wallet address of the fetched entity (rather than the wallet address that was passed in)
+        entityID?: string; // To track the entityID of the fetched entity (rather than the entityID that was passed in)
+        walletAddress?: string;
         error?: Error;
         hasFetched: boolean;
     }>({
@@ -57,21 +64,23 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
         hasFetched: false,
     });
 
-    const fullyConnected = ready && authenticated && Boolean(walletAddress);
+    const fullyConnected = ready && authenticated && (Boolean(entityID) || Boolean(walletAddress));
 
     const refetch = useCallback(async () => {
-        if (!walletAddress || !fullyConnected) {
+        if ((!entityID && !walletAddress) || !fullyConnected) {
             return;
         }
         setState((s) => ({ ...s, loading: true }));
         try {
             const resp = await client.readEntity({
                 saleUUID,
+                entityID,
                 walletAddress,
             });
             setState({
                 loading: false,
                 entity: resp.Entity,
+                entityID: entityID,
                 walletAddress: walletAddress,
                 error: undefined,
                 hasFetched: true,
@@ -82,6 +91,7 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
                 setState({
                     loading: false,
                     entity: undefined,
+                    entityID: undefined,
                     walletAddress: undefined,
                     error: undefined,
                     hasFetched: true,
@@ -89,31 +99,39 @@ export function useSonarEntity(args: { saleUUID: string; walletAddress?: string 
                 return;
             }
             const error = err instanceof Error ? err : new Error(String(err));
-            setState({ loading: false, entity: undefined, walletAddress: undefined, error, hasFetched: true });
+            setState({
+                loading: false,
+                entity: undefined,
+                entityID: undefined,
+                walletAddress: undefined,
+                error,
+                hasFetched: true,
+            });
         }
-    }, [client, saleUUID, walletAddress, fullyConnected]);
+    }, [client, saleUUID, entityID, walletAddress, fullyConnected]);
 
     const reset = useCallback(() => {
         setState({
             loading: false,
             hasFetched: false,
             entity: undefined,
+            entityID: undefined,
             walletAddress: undefined,
             error: undefined,
         });
     }, []);
 
     useEffect(() => {
-        if (fullyConnected && state.walletAddress !== walletAddress) {
+        if (fullyConnected && (state.entityID !== entityID || state.walletAddress !== walletAddress)) {
             refetch();
         }
-    }, [fullyConnected, state.walletAddress, walletAddress, refetch]);
+    }, [fullyConnected, state.entityID, entityID, state.walletAddress, walletAddress, refetch]);
 
     useEffect(() => {
-        if (ready && (!authenticated || !walletAddress)) {
+        if (ready && (!authenticated || (!entityID && !walletAddress))) {
             reset();
         }
-    }, [ready, authenticated, walletAddress, reset]);
+    }, [ready, authenticated, entityID, walletAddress, reset]);
 
     return {
         authenticated,
