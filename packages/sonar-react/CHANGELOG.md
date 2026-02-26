@@ -1,5 +1,16 @@
 # @echoxyz/sonar-react
 
+## 0.14.0
+
+### Minor Changes
+
+- 06bc5a6: Support passing in EntityID to ReadEntity
+
+### Patch Changes
+
+- Updated dependencies [06bc5a6]
+    - @echoxyz/sonar-core@0.15.0
+
 ## 0.13.3
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @echoxyz/sonar-core
 
+## 0.15.0
+
+### Minor Changes
+
+- 06bc5a6: Support passing in EntityID to ReadEntity
+
 ## 0.14.3
 
 ### Patch Changes
