@@ -243,9 +243,15 @@ export class SonarClient {
         });
     }
 
-    async readEntity(args: { saleUUID: string; walletAddress: string }): Promise<ReadEntityResponse> {
+    async readEntity(args: {
+        saleUUID: string;
+        entityID?: string;
+        /** Only used for a wallet linking feature, enabled for niche use-cases on request. */
+        walletAddress?: string;
+    }): Promise<ReadEntityResponse> {
         return this.postJSON<ReadEntityResponse>("/externalapi.ReadEntity", {
             SaleUUID: args.saleUUID,
+            EntityID: args.entityID,
             WalletAddress: args.walletAddress,
         });
     }
