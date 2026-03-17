@@ -67,7 +67,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openSettlement();
 
         setAllocationSuccess(alice, usdc, 2000e6, false);
@@ -83,7 +82,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         doBid({user: alice, amount: 2000e6, price: 10, token: usdt});
         doBid({user: alice, amount: 5000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openSettlement();
 
         // Alice committed 3000 USDC and 2000 USDT (total 5000, bid amount is 5000)
@@ -103,7 +101,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         doBid({user: alice, amount: 3000e6, price: 10, token: usdc});
         doBid({user: bob, amount: 5000e6, price: 10, token: usdt});
 
-        closeCommitment();
         openCancellation();
         openSettlement();
 
@@ -123,7 +120,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 3000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openCancellation();
         openSettlement();
 
@@ -145,7 +141,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
         doBid({user: alice, amount: 2000e6, price: 10, token: usdt});
 
-        closeCommitment();
         openCancellation();
         openSettlement();
 
@@ -165,7 +160,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openCancellation();
         openSettlement();
 
@@ -183,7 +177,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openCancellation();
         openSettlement();
 
@@ -193,7 +186,7 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
             token: usdc,
             amount: 0,
             allowOverwrite: false,
-            err: abi.encodeWithSelector(SettlementSale.AllocationAlreadySet.selector, aliceID, 1000e6)
+            err: abi.encodeWithSelector(SettlementSale.AllocationAlreadySet.selector, aliceID)
         });
         setAllocationSuccess(alice, usdc, 2000e6, true);
     }
@@ -217,7 +210,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
             err: encodeInvalidStage(SettlementSale.Stage.Commitment, SettlementSale.Stage.Settlement)
         });
 
-        closeCommitment();
         openCancellation();
         openSettlement();
 
@@ -238,7 +230,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openCancellation();
         openSettlement();
 
@@ -256,7 +247,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openCancellation();
         openSettlement();
 
@@ -285,7 +275,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openCancellation();
 
         vm.prank(alice);
@@ -301,14 +290,13 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         });
     }
 
-    function testOpenSettlement_FromClosed_Success() public {
+    function testOpenSettlement_FromCommitment_Success() public {
         openCommitment();
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
 
-        closeCommitment();
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Closed));
+        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Commitment));
 
-        // Can open settlement directly from Closed stage
+        // Can open settlement directly from Commitment stage
         vm.prank(admin);
         sale.openSettlement();
 
@@ -319,7 +307,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openSettlement();
 
         IOffchainSettlement.Allocation[] memory emptyAllocations = new IOffchainSettlement.Allocation[](0);
@@ -336,7 +323,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
         doBid({user: bob, amount: 2000e6, price: 15, token: usdt});
 
-        closeCommitment();
         openSettlement();
 
         // Don't set any allocations, finalize with 0
@@ -352,7 +338,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
         doBid({user: bob, amount: 2000e6, price: 15, token: usdt});
 
-        closeCommitment();
         openCancellation();
 
         vm.prank(alice);
@@ -380,7 +365,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openSettlement();
 
         // Try to set allocation for USDT (which alice never committed)
@@ -397,7 +381,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openSettlement();
 
         // Setting 0 allocation for USDT should succeed (0 <= 0)
@@ -417,7 +400,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
         doBid({user: bob, amount: 2000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openSettlement();
 
         // Try to set allocation for Alice's entity but with Bob's wallet
@@ -435,7 +417,6 @@ contract SettlementSaleSettlementTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 1000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openSettlement();
 
         // Create a fake token that's not a valid payment token

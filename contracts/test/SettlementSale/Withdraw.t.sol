@@ -13,7 +13,6 @@ contract SettlementSaleWithdrawTest is SettlementSaleBaseTest {
         doBid({user: bob, amount: 10000e6, price: 10, token: usdt});
         doBid({user: charlie, amount: 10000e6, price: 10, token: usdt});
 
-        closeCommitment();
         openCancellation();
         openSettlement();
 

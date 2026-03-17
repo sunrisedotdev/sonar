@@ -65,8 +65,6 @@ contract SettlementSaleFullLifecycleFuzzTest is SettlementSaleBaseTest {
 
         // assume we have at least one commitment so the commitment phase can be closed
         vm.assume(sale.totalCommittedAmount() > 0);
-        closeCommitment();
-
         // open the cancellation stage, so some users can cancel their bids
         openCancellation();
         bytes16[] memory entities = sale.allEntities();

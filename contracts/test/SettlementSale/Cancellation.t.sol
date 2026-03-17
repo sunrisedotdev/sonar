@@ -7,7 +7,6 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
     struct State {
         uint256 bidAmount;
         bool refunded;
-        bool cancelled;
         TokenAmount[] userBalance;
         TokenAmount[] saleBalance;
         TokenAmount[] committedAmountByToken;
@@ -19,7 +18,6 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         return State({
             bidAmount: entityState.currentBid.amount,
             refunded: entityState.refunded,
-            cancelled: entityState.cancelled,
             userBalance: tokenBalances(wallet),
             saleBalance: tokenBalances(address(sale)),
             committedAmountByToken: walletState.committedAmountByToken
@@ -29,8 +27,6 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
     function cancelBidSuccess(address user) internal {
         bytes16 entityID = addressToEntityID(user);
         State memory stateBefore = getState(entityID, user);
-        vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.BidCancelled(entityID, user, stateBefore.bidAmount);
 
         vm.prank(user);
         sale.cancelBid();
@@ -38,7 +34,6 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         State memory stateAfter = getState(entityID, user);
 
         assertEq(stateAfter.refunded, true, "refunded should be true");
-        assertEq(stateAfter.cancelled, true, "cancelled should be true");
 
         assertEq(
             stateAfter.userBalance,
@@ -62,7 +57,6 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openCancellation();
 
         cancelBidSuccess(alice);
@@ -72,18 +66,16 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openCancellation();
 
         cancelBidSuccess(alice);
-        cancelBidFail(alice, abi.encodeWithSelector(SettlementSale.BidAlreadyCancelled.selector, aliceID));
+        cancelBidFail(alice, abi.encodeWithSelector(SettlementSale.AlreadyRefunded.selector, aliceID));
     }
 
     function testCancelBid_AfterCancellationPhase_Reverts() public {
         openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openCancellation();
         openSettlement();
 
@@ -110,7 +102,6 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openCancellation();
 
         cancelBidFail(bob, abi.encodeWithSelector(SettlementSale.WalletNotInitialized.selector, bob));
@@ -120,7 +111,6 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         openCommitment();
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openCancellation();
 
         vm.prank(pauser);
@@ -140,7 +130,6 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         // Alice bids with USDT
         doBid({user: alice, amount: 2000e6, price: 10, token: usdt});
 
-        closeCommitment();
         openCancellation();
 
         cancelBidSuccess(alice);
@@ -151,7 +140,6 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
         doBid({user: bob, amount: 3000e6, price: 10, token: usdt});
 
-        closeCommitment();
         openCancellation();
 
         cancelBidSuccess(alice);
@@ -159,8 +147,8 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
 
         assertEq(usdc.balanceOf(alice), 2000e6, "alice should get USDC back");
         assertEq(usdt.balanceOf(bob), 3000e6, "bob should get USDT back");
-        assertTrue(sale.entityStateByID(aliceID).cancelled);
-        assertTrue(sale.entityStateByID(bobID).cancelled);
+        assertTrue(sale.entityStateByID(aliceID).refunded);
+        assertTrue(sale.entityStateByID(bobID).refunded);
     }
 
     function testCancelBid_FromSecondWallet_RefundsBothWallets() public {
@@ -174,21 +162,14 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         // Alice bids with second wallet using USDT (same entity)
         doBid({entityID: aliceID, user: aliceWallet2, amount: 5000e6, price: 10, token: usdt});
 
-        closeCommitment();
         openCancellation();
 
         // Second wallet cancels the entire entity's bid
         vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.BidCancelled(aliceID, aliceWallet2, 5000e6);
+        emit SettlementSale.CommitmentReduced(aliceID, alice, address(usdc), 2000e6);
 
         vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.WalletRefunded(aliceID, alice, address(usdc), 2000e6);
-
-        vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.WalletRefunded(aliceID, aliceWallet2, address(usdt), 3000e6);
-
-        vm.expectEmit(true, true, true, true, address(sale));
-        emit SettlementSale.EntityRefunded(aliceID, 5000e6);
+        emit SettlementSale.CommitmentReduced(aliceID, aliceWallet2, address(usdt), 3000e6);
 
         vm.prank(aliceWallet2);
         sale.cancelBid();
@@ -196,7 +177,6 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         // Both wallets should receive their committed amounts back
         assertEq(usdc.balanceOf(alice), 2000e6, "alice wallet1 should get USDC back");
         assertEq(usdt.balanceOf(aliceWallet2), 3000e6, "alice wallet2 should get USDT back");
-        assertTrue(sale.entityStateByID(aliceID).cancelled);
         assertTrue(sale.entityStateByID(aliceID).refunded);
     }
 
@@ -209,7 +189,6 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
         // Verify lockup is set
         assertTrue(sale.entityStateByID(aliceID).currentBid.lockup, "lockup should be enabled");
 
-        closeCommitment();
         openCancellation();
 
         // Cancel should still work and refund full amount
@@ -217,7 +196,6 @@ contract SettlementSaleCancellationTest is SettlementSaleBaseTest {
 
         // Verify refund occurred
         assertEq(usdc.balanceOf(alice), 2000e6, "alice should get full USDC refund");
-        assertTrue(sale.entityStateByID(aliceID).cancelled, "should be cancelled");
         assertTrue(sale.entityStateByID(aliceID).refunded, "should be refunded");
     }
 }

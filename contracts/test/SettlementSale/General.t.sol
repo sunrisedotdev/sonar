@@ -55,6 +55,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraSettler: settler,
             extraRefunder: refunder,
             claimRefundEnabled: true,
+            reduceCommitmentEnabled: false,
+            skipPreOpen: false,
             maxWalletsPerEntity: 50,
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
@@ -94,6 +96,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraSettler: address(0),
             extraRefunder: address(0),
             claimRefundEnabled: true,
+            reduceCommitmentEnabled: false,
+            skipPreOpen: false,
             maxWalletsPerEntity: 50,
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
@@ -130,6 +134,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraSettler: admin,
             extraRefunder: admin,
             claimRefundEnabled: true,
+            reduceCommitmentEnabled: false,
+            skipPreOpen: false,
             maxWalletsPerEntity: 50,
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
@@ -166,6 +172,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraSettler: settler,
             extraRefunder: refunder,
             claimRefundEnabled: true,
+            reduceCommitmentEnabled: false,
+            skipPreOpen: false,
             maxWalletsPerEntity: 50,
             paymentTokens: invalidTokens,
             expectedPaymentTokenDecimals: 6
@@ -193,6 +201,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraSettler: settler,
             extraRefunder: refunder,
             claimRefundEnabled: true,
+            reduceCommitmentEnabled: false,
+            skipPreOpen: false,
             maxWalletsPerEntity: 50,
             paymentTokens: duplicateTokens,
             expectedPaymentTokenDecimals: 6
@@ -216,6 +226,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraSettler: settler,
             extraRefunder: refunder,
             claimRefundEnabled: true,
+            reduceCommitmentEnabled: false,
+            skipPreOpen: false,
             maxWalletsPerEntity: 50,
             paymentTokens: emptyTokens,
             expectedPaymentTokenDecimals: 6
@@ -237,6 +249,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraSettler: settler,
             extraRefunder: refunder,
             claimRefundEnabled: true,
+            reduceCommitmentEnabled: false,
+            skipPreOpen: false,
             maxWalletsPerEntity: 50,
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
@@ -258,6 +272,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraSettler: settler,
             extraRefunder: refunder,
             claimRefundEnabled: true,
+            reduceCommitmentEnabled: false,
+            skipPreOpen: false,
             maxWalletsPerEntity: 50,
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
@@ -279,6 +295,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraSettler: settler,
             extraRefunder: refunder,
             claimRefundEnabled: true,
+            reduceCommitmentEnabled: false,
+            skipPreOpen: false,
             maxWalletsPerEntity: 50,
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
@@ -300,6 +318,8 @@ contract SettlementSaleConstructorTest is BaseTest {
             extraSettler: settler,
             extraRefunder: refunder,
             claimRefundEnabled: true,
+            reduceCommitmentEnabled: false,
+            skipPreOpen: false,
             maxWalletsPerEntity: 0,
             paymentTokens: _defaultPaymentTokens(),
             expectedPaymentTokenDecimals: 6
@@ -409,48 +429,26 @@ contract SettlementSaleStageEventsTest is SettlementSaleBaseTest {
         sale.openCommitment();
     }
 
-    function testCloseCommitment_EmitsStageChanged() public {
-        openCommitment();
-
-        vm.expectEmit(true, true, false, true);
-        emit SettlementSale.StageChanged(SettlementSale.Stage.Commitment, SettlementSale.Stage.Closed);
-        vm.prank(manager);
-        sale.closeCommitment();
-    }
-
-    function testOpenCommitment_FromClosed_EmitsStageChanged() public {
-        openCommitment();
-        closeCommitment();
-
-        vm.expectEmit(true, true, false, true);
-        emit SettlementSale.StageChanged(SettlementSale.Stage.Closed, SettlementSale.Stage.Commitment);
-        vm.prank(manager);
-        sale.openCommitment();
-    }
-
     function testOpenCancellation_EmitsStageChanged() public {
         openCommitment();
-        closeCommitment();
 
         vm.expectEmit(true, true, false, true);
-        emit SettlementSale.StageChanged(SettlementSale.Stage.Closed, SettlementSale.Stage.Cancellation);
+        emit SettlementSale.StageChanged(SettlementSale.Stage.Commitment, SettlementSale.Stage.Cancellation);
         vm.prank(manager);
         sale.openCancellation();
     }
 
-    function testOpenSettlement_FromClosed_EmitsStageChanged() public {
+    function testOpenSettlement_FromCommitment_EmitsStageChanged() public {
         openCommitment();
-        closeCommitment();
 
         vm.expectEmit(true, true, false, true);
-        emit SettlementSale.StageChanged(SettlementSale.Stage.Closed, SettlementSale.Stage.Settlement);
+        emit SettlementSale.StageChanged(SettlementSale.Stage.Commitment, SettlementSale.Stage.Settlement);
         vm.prank(manager);
         sale.openSettlement();
     }
 
     function testOpenSettlement_FromCancellation_EmitsStageChanged() public {
         openCommitment();
-        closeCommitment();
         openCancellation();
 
         vm.expectEmit(true, true, false, true);
@@ -461,7 +459,6 @@ contract SettlementSaleStageEventsTest is SettlementSaleBaseTest {
 
     function testFinalizeSettlement_EmitsStageChanged() public {
         openCommitment();
-        closeCommitment();
         openSettlement();
 
         vm.expectEmit(true, true, false, true);
@@ -538,14 +535,6 @@ contract SettlementSaleVandalTest is SettlementSaleBaseTest {
         sale.openCancellation();
     }
 
-    function testCloseCommitment_ByUnauthorizedUser_Reverts(address vandal) public {
-        vm.assume(vandal != admin);
-        vm.assume(vandal != manager);
-        vm.expectRevert(missingRoleError(vandal, sale.SALE_MANAGER_ROLE()));
-        vm.prank(vandal);
-        sale.closeCommitment();
-    }
-
     function testOpenSettlement_ByUnauthorizedUser_Reverts(address vandal) public {
         vm.assume(vandal != admin);
         vm.assume(vandal != manager);
@@ -613,18 +602,17 @@ contract SettlementSaleStageTest is SettlementSaleBaseTest {
         // Try to open commitment while in Commitment stage
         vm.expectRevert(
             encodeInvalidStage(
-                SettlementSale.Stage.Commitment, SettlementSale.Stage.PreOpen, SettlementSale.Stage.Closed
+                SettlementSale.Stage.Commitment, SettlementSale.Stage.PreOpen
             )
         );
         vm.prank(manager);
         sale.openCommitment();
 
         // Try to open commitment phase while in Cancellation stage
-        closeCommitment();
         openCancellation();
         vm.expectRevert(
             encodeInvalidStage(
-                SettlementSale.Stage.Cancellation, SettlementSale.Stage.PreOpen, SettlementSale.Stage.Closed
+                SettlementSale.Stage.Cancellation, SettlementSale.Stage.PreOpen
             )
         );
         vm.prank(manager);
@@ -634,7 +622,7 @@ contract SettlementSaleStageTest is SettlementSaleBaseTest {
         openSettlement();
         vm.expectRevert(
             encodeInvalidStage(
-                SettlementSale.Stage.Settlement, SettlementSale.Stage.PreOpen, SettlementSale.Stage.Closed
+                SettlementSale.Stage.Settlement, SettlementSale.Stage.PreOpen
             )
         );
         vm.prank(manager);
@@ -643,58 +631,24 @@ contract SettlementSaleStageTest is SettlementSaleBaseTest {
         // Try to open commitment phase while in Done stage
         finalizeSettlement();
         vm.expectRevert(
-            encodeInvalidStage(SettlementSale.Stage.Done, SettlementSale.Stage.PreOpen, SettlementSale.Stage.Closed)
+            encodeInvalidStage(SettlementSale.Stage.Done, SettlementSale.Stage.PreOpen)
         );
         vm.prank(manager);
         sale.openCommitment();
     }
 
-    function testOpenCommitment_FromClosed_Succeeds() public {
-        openCommitment();
-        closeCommitment();
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Closed));
-
-        vm.prank(manager);
-        sale.openCommitment();
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Commitment));
-    }
-
-    function testCloseCommitment_WhenNotCommitment_Reverts() public {
-        // Try to close while in PreOpen
+    function testOpenCancellation_WhenNotCommitment_Reverts() public {
+        // Try to open cancellation while in PreOpen
         vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.PreOpen, SettlementSale.Stage.Commitment));
         vm.prank(manager);
-        sale.closeCommitment();
-    }
-
-    function testOpenCancellation_WhenNotClosed_Reverts() public {
-        // Try to open cancellation while in PreOpen
-        vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.PreOpen, SettlementSale.Stage.Closed));
-        vm.prank(manager);
-        sale.openCancellation();
-
-        // Try to open cancellation while in Commitment
-        openCommitment();
-        vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.Commitment, SettlementSale.Stage.Closed));
-
-        vm.prank(manager);
         sale.openCancellation();
     }
 
-    function testOpenSettlement_WhenNotClosedOrCancellation_Reverts() public {
+    function testOpenSettlement_WhenNotCommitmentOrCancellation_Reverts() public {
         // Try while in PreOpen
         vm.expectRevert(
             encodeInvalidStage(
-                SettlementSale.Stage.PreOpen, SettlementSale.Stage.Closed, SettlementSale.Stage.Cancellation
-            )
-        );
-        vm.prank(manager);
-        sale.openSettlement();
-
-        // Try while in Commitment
-        openCommitment();
-        vm.expectRevert(
-            encodeInvalidStage(
-                SettlementSale.Stage.Commitment, SettlementSale.Stage.Closed, SettlementSale.Stage.Cancellation
+                SettlementSale.Stage.PreOpen, SettlementSale.Stage.Commitment, SettlementSale.Stage.Cancellation
             )
         );
         vm.prank(manager);
@@ -902,7 +856,6 @@ contract CommitmentDataReaderTest is SettlementSaleBaseTest {
         doBid(alice, usdc, 1000e6, 10);
         doBid(bob, usdt, 2000e6, 20);
 
-        closeCommitment();
         openSettlement();
 
         doSetAllocation(alice, usdc, 500e6);
@@ -1091,7 +1044,6 @@ contract SettlementSaleViewFunctionsTest is SettlementSaleBaseTest {
         doBid({user: alice, amount: 5000e6, price: 10, token: usdc});
         doBid({user: bob, amount: 3000e6, price: 10, token: usdt});
 
-        closeCommitment();
         openSettlement();
         doSetAllocation(alice, usdc, 2000e6);
         doSetAllocation(bob, usdt, 1000e6);
@@ -1169,7 +1121,6 @@ contract SettlementSaleViewFunctionsTest is SettlementSaleBaseTest {
         doBid({entityID: aliceID, user: wallet2, token: usdt, amount: 5000e6, price: 12});
 
         // Test settlement with multiple wallets
-        closeCommitment();
         openSettlement();
 
         // Allocate 1500 USDC from wallet1 and 2000 USDT from wallet2
@@ -1239,6 +1190,8 @@ contract SettlementSaleSingleTokenTest is BaseTest {
             extraSettler: settler,
             extraRefunder: refunder,
             claimRefundEnabled: true,
+            reduceCommitmentEnabled: false,
+            skipPreOpen: false,
             maxWalletsPerEntity: 50,
             paymentTokens: paymentTokens,
             expectedPaymentTokenDecimals: 6
@@ -1288,9 +1241,6 @@ contract SettlementSaleSingleTokenTest is BaseTest {
         assertEq(committed.length, 1);
         assertEq(committed[0].amount, 2000e6);
         assertEq(sale.totalCommittedAmount(), 2000e6);
-
-        vm.prank(manager);
-        sale.closeCommitment();
 
         vm.prank(manager);
         sale.openSettlement();
@@ -1402,7 +1352,6 @@ contract SettlementSaleViewFunctionsCoverageTest is SettlementSaleBaseTest {
         assertEq(states[0].entityID, aliceID, "first state entityID should be alice");
         assertEq(states[0].currentBid.amount, 1000e6, "alice bid amount should be 1000e6");
         assertEq(states[0].currentBid.price, 10, "alice bid price should be 10");
-        assertFalse(states[0].cancelled, "alice should not be cancelled");
         assertFalse(states[0].refunded, "alice should not be refunded");
 
         assertEq(states[1].entityID, bobID, "second state entityID should be bob");
@@ -1484,7 +1433,6 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
         openCommitment();
         doBid(alice, usdc, 1000e6, 10);
 
-        closeCommitment();
         openSettlement();
         doSetAllocation(alice, usdc, 500e6);
 
@@ -1506,7 +1454,6 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
         doBid(bob, usdt, 2000e6, 20);
         doBid(charlie, usdc, 3000e6, 30);
 
-        closeCommitment();
         openSettlement();
         doSetAllocation(alice, usdc, 500e6);
         doSetAllocation(bob, usdt, 1000e6);
@@ -1543,7 +1490,6 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
         doBid(alice, usdc, 1000e6, 10);
         doBid(alice, usdt, 2000e6, 10); // Same entity, different token
 
-        closeCommitment();
         openSettlement();
         doSetAllocation(alice, usdc, 500e6);
         doSetAllocation(alice, usdt, 800e6);
@@ -1586,7 +1532,6 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
         doBid(bob, usdt, 2000e6, 20);
         doBid(charlie, usdc, 3000e6, 30);
 
-        closeCommitment();
         openSettlement();
         doSetAllocation(alice, usdc, 500e6);
         doSetAllocation(bob, usdt, 1000e6);
@@ -1627,7 +1572,6 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
         doBid(bob, usdt, 2000e6, 20);
         doBid(charlie, usdc, 3000e6, 30);
 
-        closeCommitment();
         openSettlement();
         doSetAllocation(alice, usdc, 500e6);
         doSetAllocation(bob, usdt, 1000e6);
@@ -1670,7 +1614,6 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
         openCommitment();
         doBid(alice, usdc, 1000e6, 10);
 
-        closeCommitment();
         openSettlement();
 
         // Set initial allocation
@@ -1715,7 +1658,6 @@ contract EntityAllocationDataReaderTest is SettlementSaleBaseTest {
         // Alice bids from second wallet (same entity)
         doBid(aliceEntityID, alice2, usdt, 2000e6, 10);
 
-        closeCommitment();
         openSettlement();
 
         // Set allocations for both wallets

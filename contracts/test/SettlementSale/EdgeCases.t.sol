@@ -18,7 +18,6 @@ contract SettlementSaleEdgeCasesTest is SettlementSaleBaseTest {
         assertEq(sale.entityStateByID(aliceID).currentBid.amount, 3000e6, "total commitment should be 3000");
 
         // Close commitment phase and open settlement
-        closeCommitment();
         openSettlement();
 
         // Set allocation: U1 gets allocation of 2500

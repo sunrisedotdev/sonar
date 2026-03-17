@@ -15,7 +15,6 @@ contract SettlementSaleRefundsTest is SettlementSaleBaseTest {
         doBid({user: bob, amount: 10000e6, price: 10, token: usdt});
         doBid({user: charlie, amount: 10000e6, price: 10, token: usdt});
 
-        closeCommitment();
         openSettlement();
 
         // alice    committed 5k USDC           -> allocated 2k USDC
@@ -92,7 +91,6 @@ contract SettlementSaleRefundsTest is SettlementSaleBaseTest {
     }
 
     function testProcessRefunds_WrongStage_Reverts() public {
-        closeCommitment();
         openSettlement();
 
         bytes16[] memory entityIDs = new bytes16[](1);
@@ -313,7 +311,6 @@ contract SettlementSaleRefundsTest is SettlementSaleBaseTest {
         // Alice bids additional 3000 USDT with her second wallet (bringing her total commitment to 5000 USD)
         doBid({entityID: aliceID, user: aliceWallet2, token: usdt, amount: 5000e6, price: 10});
 
-        closeCommitment();
         openSettlement();
 
         // Set allocations per wallet/token
