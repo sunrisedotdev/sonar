@@ -600,39 +600,25 @@ contract SettlementSaleStageTest is SettlementSaleBaseTest {
         assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Commitment));
 
         // Try to open commitment while in Commitment stage
-        vm.expectRevert(
-            encodeInvalidStage(
-                SettlementSale.Stage.Commitment, SettlementSale.Stage.PreOpen
-            )
-        );
+        vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.Commitment, SettlementSale.Stage.PreOpen));
         vm.prank(manager);
         sale.openCommitment();
 
         // Try to open commitment phase while in Cancellation stage
         openCancellation();
-        vm.expectRevert(
-            encodeInvalidStage(
-                SettlementSale.Stage.Cancellation, SettlementSale.Stage.PreOpen
-            )
-        );
+        vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.Cancellation, SettlementSale.Stage.PreOpen));
         vm.prank(manager);
         sale.openCommitment();
 
         // Try to open commitment phase while in Settlement stage
         openSettlement();
-        vm.expectRevert(
-            encodeInvalidStage(
-                SettlementSale.Stage.Settlement, SettlementSale.Stage.PreOpen
-            )
-        );
+        vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.Settlement, SettlementSale.Stage.PreOpen));
         vm.prank(manager);
         sale.openCommitment();
 
         // Try to open commitment phase while in Done stage
         finalizeSettlement();
-        vm.expectRevert(
-            encodeInvalidStage(SettlementSale.Stage.Done, SettlementSale.Stage.PreOpen)
-        );
+        vm.expectRevert(encodeInvalidStage(SettlementSale.Stage.Done, SettlementSale.Stage.PreOpen));
         vm.prank(manager);
         sale.openCommitment();
     }
