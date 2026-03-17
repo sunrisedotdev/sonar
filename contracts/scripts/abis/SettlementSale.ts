@@ -6,6 +6,19 @@ export const settlementSaleAbi = [
   },
   {
     "type": "function",
+    "name": "COMMITMENT_REDUCER_ROLE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "DEFAULT_ADMIN_ROLE",
     "inputs": [],
     "outputs": [
@@ -137,13 +150,6 @@ export const settlementSaleAbi = [
   },
   {
     "type": "function",
-    "name": "closeCommitment",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "entitiesIn",
     "inputs": [
       {
@@ -187,120 +193,6 @@ export const settlementSaleAbi = [
   },
   {
     "type": "function",
-    "name": "entityStateByID",
-    "inputs": [
-      {
-        "name": "entityID",
-        "type": "bytes16",
-        "internalType": "bytes16"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct SettlementSale.EntityStateView",
-        "components": [
-          {
-            "name": "entityID",
-            "type": "bytes16",
-            "internalType": "bytes16"
-          },
-          {
-            "name": "bidTimestamp",
-            "type": "uint32",
-            "internalType": "uint32"
-          },
-          {
-            "name": "cancelled",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "refunded",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "currentBid",
-            "type": "tuple",
-            "internalType": "struct SettlementSale.Bid",
-            "components": [
-              {
-                "name": "lockup",
-                "type": "bool",
-                "internalType": "bool"
-              },
-              {
-                "name": "price",
-                "type": "uint64",
-                "internalType": "uint64"
-              },
-              {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          },
-          {
-            "name": "walletStates",
-            "type": "tuple[]",
-            "internalType": "struct SettlementSale.WalletStateView[]",
-            "components": [
-              {
-                "name": "addr",
-                "type": "address",
-                "internalType": "address"
-              },
-              {
-                "name": "entityID",
-                "type": "bytes16",
-                "internalType": "bytes16"
-              },
-              {
-                "name": "acceptedAmountByToken",
-                "type": "tuple[]",
-                "internalType": "struct TokenAmount[]",
-                "components": [
-                  {
-                    "name": "token",
-                    "type": "address",
-                    "internalType": "address"
-                  },
-                  {
-                    "name": "amount",
-                    "type": "uint256",
-                    "internalType": "uint256"
-                  }
-                ]
-              },
-              {
-                "name": "committedAmountByToken",
-                "type": "tuple[]",
-                "internalType": "struct TokenAmount[]",
-                "components": [
-                  {
-                    "name": "token",
-                    "type": "address",
-                    "internalType": "address"
-                  },
-                  {
-                    "name": "amount",
-                    "type": "uint256",
-                    "internalType": "uint256"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "entityStatesByIDs",
     "inputs": [
       {
@@ -326,11 +218,6 @@ export const settlementSaleAbi = [
             "internalType": "uint32"
           },
           {
-            "name": "cancelled",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
             "name": "refunded",
             "type": "bool",
             "internalType": "bool"
@@ -373,7 +260,7 @@ export const settlementSaleAbi = [
                 "internalType": "bytes16"
               },
               {
-                "name": "acceptedAmountByToken",
+                "name": "committedAmountByToken",
                 "type": "tuple[]",
                 "internalType": "struct TokenAmount[]",
                 "components": [
@@ -390,7 +277,24 @@ export const settlementSaleAbi = [
                 ]
               },
               {
-                "name": "committedAmountByToken",
+                "name": "cancelledAmountByToken",
+                "type": "tuple[]",
+                "internalType": "struct TokenAmount[]",
+                "components": [
+                  {
+                    "name": "token",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              },
+              {
+                "name": "acceptedAmountByToken",
                 "type": "tuple[]",
                 "internalType": "struct TokenAmount[]",
                 "components": [
@@ -445,11 +349,6 @@ export const settlementSaleAbi = [
             "internalType": "uint32"
           },
           {
-            "name": "cancelled",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
             "name": "refunded",
             "type": "bool",
             "internalType": "bool"
@@ -492,7 +391,7 @@ export const settlementSaleAbi = [
                 "internalType": "bytes16"
               },
               {
-                "name": "acceptedAmountByToken",
+                "name": "committedAmountByToken",
                 "type": "tuple[]",
                 "internalType": "struct TokenAmount[]",
                 "components": [
@@ -509,7 +408,24 @@ export const settlementSaleAbi = [
                 ]
               },
               {
-                "name": "committedAmountByToken",
+                "name": "cancelledAmountByToken",
+                "type": "tuple[]",
+                "internalType": "struct TokenAmount[]",
+                "components": [
+                  {
+                    "name": "token",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  {
+                    "name": "amount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              },
+              {
+                "name": "acceptedAmountByToken",
                 "type": "tuple[]",
                 "internalType": "struct TokenAmount[]",
                 "components": [
@@ -540,6 +456,36 @@ export const settlementSaleAbi = [
         "name": "expectedTotalAcceptedAmount",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "forceReduceCommitment",
+    "inputs": [
+      {
+        "name": "reductions",
+        "type": "tuple[]",
+        "internalType": "struct WalletTokenAmount[]",
+        "components": [
+          {
+            "name": "wallet",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
       }
     ],
     "outputs": [],
@@ -700,6 +646,16 @@ export const settlementSaleAbi = [
           },
           {
             "name": "claimRefundEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "reduceCommitmentEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "skipPreOpen",
             "type": "bool",
             "internalType": "bool"
           },
@@ -1148,6 +1104,49 @@ export const settlementSaleAbi = [
   },
   {
     "type": "function",
+    "name": "reduceCommitment",
+    "inputs": [
+      {
+        "name": "reductions",
+        "type": "tuple[]",
+        "internalType": "struct WalletTokenAmount[]",
+        "components": [
+          {
+            "name": "wallet",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "reduceCommitmentEnabled",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "renounceRole",
     "inputs": [
       {
@@ -1503,6 +1502,19 @@ export const settlementSaleAbi = [
   },
   {
     "type": "function",
+    "name": "setReduceCommitmentEnabled",
+    "inputs": [
+      {
+        "name": "enabled",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "stage",
     "inputs": [],
     "outputs": [
@@ -1549,6 +1561,44 @@ export const settlementSaleAbi = [
   {
     "type": "function",
     "name": "totalAcceptedAmountByToken",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct TokenAmount[]",
+        "components": [
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "totalCancelledAmount",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "totalCancelledAmountByToken",
     "inputs": [],
     "outputs": [
       {
@@ -1685,71 +1735,6 @@ export const settlementSaleAbi = [
   },
   {
     "type": "function",
-    "name": "walletStateByAddress",
-    "inputs": [
-      {
-        "name": "addr",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct SettlementSale.WalletStateView",
-        "components": [
-          {
-            "name": "addr",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "entityID",
-            "type": "bytes16",
-            "internalType": "bytes16"
-          },
-          {
-            "name": "acceptedAmountByToken",
-            "type": "tuple[]",
-            "internalType": "struct TokenAmount[]",
-            "components": [
-              {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
-              },
-              {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          },
-          {
-            "name": "committedAmountByToken",
-            "type": "tuple[]",
-            "internalType": "struct TokenAmount[]",
-            "components": [
-              {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
-              },
-              {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "walletStatesByAddresses",
     "inputs": [
       {
@@ -1775,7 +1760,7 @@ export const settlementSaleAbi = [
             "internalType": "bytes16"
           },
           {
-            "name": "acceptedAmountByToken",
+            "name": "committedAmountByToken",
             "type": "tuple[]",
             "internalType": "struct TokenAmount[]",
             "components": [
@@ -1792,7 +1777,24 @@ export const settlementSaleAbi = [
             ]
           },
           {
-            "name": "committedAmountByToken",
+            "name": "cancelledAmountByToken",
+            "type": "tuple[]",
+            "internalType": "struct TokenAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "acceptedAmountByToken",
             "type": "tuple[]",
             "internalType": "struct TokenAmount[]",
             "components": [
@@ -1909,31 +1911,6 @@ export const settlementSaleAbi = [
   },
   {
     "type": "event",
-    "name": "BidCancelled",
-    "inputs": [
-      {
-        "name": "entityID",
-        "type": "bytes16",
-        "indexed": true,
-        "internalType": "bytes16"
-      },
-      {
-        "name": "wallet",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "BidPlaced",
     "inputs": [
       {
@@ -1983,6 +1960,68 @@ export const settlementSaleAbi = [
         "type": "bool",
         "indexed": false,
         "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentIncreased",
+    "inputs": [
+      {
+        "name": "entityID",
+        "type": "bytes16",
+        "indexed": true,
+        "internalType": "bytes16"
+      },
+      {
+        "name": "wallet",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentReduced",
+    "inputs": [
+      {
+        "name": "entityID",
+        "type": "bytes16",
+        "indexed": true,
+        "internalType": "bytes16"
+      },
+      {
+        "name": "wallet",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -2110,6 +2149,19 @@ export const settlementSaleAbi = [
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ReduceCommitmentEnabledChanged",
+    "inputs": [
+      {
+        "name": "enabled",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
       }
     ],
     "anonymous": false
@@ -2347,11 +2399,6 @@ export const settlementSaleAbi = [
         "name": "entityID",
         "type": "bytes16",
         "internalType": "bytes16"
-      },
-      {
-        "name": "acceptedAmount",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ]
   },
@@ -2389,17 +2436,6 @@ export const settlementSaleAbi = [
   {
     "type": "error",
     "name": "AlreadyRefunded",
-    "inputs": [
-      {
-        "name": "entityID",
-        "type": "bytes16",
-        "internalType": "bytes16"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "BidAlreadyCancelled",
     "inputs": [
       {
         "name": "entityID",
@@ -2721,6 +2757,47 @@ export const settlementSaleAbi = [
       },
       {
         "name": "currentTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ReduceCommitmentDisabled",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ReductionExceedsReducibleAmount",
+    "inputs": [
+      {
+        "name": "entityID",
+        "type": "bytes16",
+        "internalType": "bytes16"
+      },
+      {
+        "name": "wallet",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "committed",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "allocated",
         "type": "uint256",
         "internalType": "uint256"
       }

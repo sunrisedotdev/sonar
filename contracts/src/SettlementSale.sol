@@ -36,10 +36,9 @@ import {TokenAmount, WalletTokenAmount} from "sales/interfaces/types.sol";
 ///
 /// 1. **PreOpen**: Initial state, no commitments allowed
 /// 2. **Commitment**: Users submit bids with price and amount
-/// 3. **Closed**: Commitment stage closes at a specified timestamp
-/// 4. **Cancellation**: Participants can cancel their bids and receive refunds
-/// 5. **Settlement**: Final allocations computed offchain are recorded onchain
-/// 6. **Done**: Refunds processed and proceeds withdrawn
+/// 3. **Cancellation**: Participants can cancel their bids and receive refunds
+/// 4. **Settlement**: Final allocations computed offchain are recorded onchain
+/// 5. **Done**: Refunds processed and proceeds withdrawn
 ///
 /// ## PreOpen Stage
 ///
@@ -58,21 +57,14 @@ import {TokenAmount, WalletTokenAmount} from "sales/interfaces/types.sol";
 /// Total commitment per entity cannot exceed the maximum amount specified in their purchase permit.
 /// Bid prices must fall within the minimum and maximum price bounds specified in the purchase permit.
 /// These price bounds are determined offchain and can change dynamically.
-/// The commitment stage closes at a specified timestamp, though admins can manually override if needed.
 ///
-/// Transitions to: Closed
-///
-/// ## Closed Stage
-///
-/// No new commitments can be submitted in this stage. The sale manager can reopen the commitment stage, proceed directly to settlement, or proceed to the cancellation or settlement stage.
-/// Note: Once the sale moves from Closed to Cancellation or Settlement, the commitment stage cannot be reopened.
-///
-/// Transitions to: Commitment, Cancellation, Settlement
+/// Transitions to: Cancellation, Settlement
 ///
 /// ## Cancellation Stage
 ///
 /// After the commitment stage closes, preliminary allocations are computed offchain and communicated to participants.
-/// During this stage, participants can cancel their bids at any time, which triggers an immediate refund of their committed amount.
+/// During this stage, participants can fully cancel their bids at any time, which triggers an immediate refund of their committed amount.
+/// If enabled by the sale manager, participants can also partially reduce specific wallet/token commitments without fully cancelling.
 ///
 /// Transitions to: Settlement
 ///
@@ -102,6 +94,8 @@ import {TokenAmount, WalletTokenAmount} from "sales/interfaces/types.sol";
 /// The `entityID` refers to an entity in the Sonar system, which can be either a legal entity or an individual.
 /// A wallet is an address used to commit funds to the sale.
 /// An entity can have multiple wallets, but each wallet is associated with exactly one entity.
+/// All wallets under the same entity are mutually trusted: any wallet can cancel or reduce commitments
+/// for any other wallet in the entity. Funds are always returned to the committing wallet, not the caller.
 ///
 /// With the exception of the emergency recovery mechanism, tokens can only be:
 /// - transferred to the contract as part of a bid
@@ -133,7 +127,7 @@ contract SettlementSale is
     IOffchainSettlement,
     IEntityAllocationDataReader,
     ITotalAllocationsReader,
-    Versioned(1, 0, 0)
+    Versioned(2, 0, 0)
 {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -159,6 +153,10 @@ contract SettlementSale is
 
     /// @notice The role allowed to refund entities.
     bytes32 public constant REFUNDER_ROLE = keccak256("REFUNDER_ROLE");
+
+    /// @notice The role allowed to reduce commitments on behalf of entities.
+    /// @dev This is not granted by default. It should be granted manually by the DEFAULT_ADMIN_ROLE when needed.
+    bytes32 public constant COMMITMENT_REDUCER_ROLE = keccak256("COMMITMENT_REDUCER_ROLE");
 
     // Initialization errors
     error InvalidPaymentTokenDecimals(address token, uint256 got, uint256 want);
@@ -187,16 +185,21 @@ contract SettlementSale is
     error InvalidPaymentToken(address token);
 
     // Settlement errors
-    error AllocationAlreadySet(bytes16 entityID, uint256 acceptedAmount);
+    error AllocationAlreadySet(bytes16 entityID);
     error AllocationExceedsCommitment(
         bytes16 entityID, address wallet, address token, uint256 allocation, uint256 commitment
     );
     error WalletNotAssociatedWithEntity(address wallet, bytes16 entityID);
     error UnexpectedTotalAcceptedAmount(uint256 got, uint256 want);
 
+    // Cancellation errors
+    error ReduceCommitmentDisabled();
+    error ReductionExceedsReducibleAmount(
+        bytes16 entityID, address wallet, address token, uint256 amount, uint256 committed, uint256 allocated
+    );
+
     // Refund errors
     error AlreadyRefunded(bytes16 entityID);
-    error BidAlreadyCancelled(bytes16 entityID);
     error ClaimRefundDisabled();
 
     // Withdrawal errors
@@ -215,7 +218,8 @@ contract SettlementSale is
     event EntityInitialized(bytes16 indexed entityID, address indexed wallet);
     event WalletInitialized(bytes16 indexed entityID, address indexed wallet);
     event BidPlaced(bytes16 indexed entityID, address indexed wallet, Bid bid);
-    event BidCancelled(bytes16 indexed entityID, address indexed wallet, uint256 amount);
+    event CommitmentIncreased(bytes16 indexed entityID, address indexed wallet, address indexed token, uint256 amount);
+    event CommitmentReduced(bytes16 indexed entityID, address indexed wallet, address indexed token, uint256 amount);
     event AllocationSet(
         bytes16 indexed entityID, address indexed wallet, address indexed token, uint256 acceptedAmount
     );
@@ -224,16 +228,23 @@ contract SettlementSale is
     event RefundedEntitySkipped(bytes16 indexed entityID);
     event ProceedsWithdrawn(address indexed receiver, address indexed token, uint256 amount);
     event ProceedsReceiverChanged(address indexed previousReceiver, address indexed newReceiver);
+
     event ClaimRefundEnabledChanged(bool enabled);
     event MaxWalletsPerEntityChanged(uint8 previousMax, uint8 newMax);
     event PausedStateChanged(bool paused);
     event TokensRecovered(address indexed token, uint256 amount, address indexed to);
+    event ReduceCommitmentEnabledChanged(bool enabled);
 
     /// @notice The state of a wallet in the sale.
-    /// @dev This tracks the wallet's committed and accepted amounts for each payment token.
+    /// @dev This tracks the wallet's committed, cancelled, and accepted amounts for each payment token.
     struct WalletState {
-        /// The amount of each payment token that has been committed to the commitment stage of the sale, tracked separately by token.
+        /// The amount of each payment token currently committed to the sale, tracked separately by token.
+        /// This is decremented when commitments are cancelled during the Cancellation stage.
         mapping(IERC20 => uint256) committedAmountByToken;
+        /// The amount of each payment token that has been cancelled during the Cancellation stage.
+        /// Tracked for audit purposes. The sum of committedAmountByToken and cancelledAmountByToken
+        /// for a given token equals the original amount committed.
+        mapping(IERC20 => uint256) cancelledAmountByToken;
         /// The amount of each payment token that has been accepted from the wallet to purchase tokens after clearing the sale.
         /// The accepted amounts will be withdrawn as proceeds at the end of the sale.
         /// The difference per token, i.e. `committedAmountByToken[token] - acceptedAmountByToken[token]`, will be refunded to the wallet.
@@ -245,11 +256,10 @@ contract SettlementSale is
     struct EntityState {
         /// The timestamp of the last bid placed by the entity.
         uint32 bidTimestamp;
-        /// Whether the entity cancelled their bid during the cancellation stage. This is tracked mostly for audit purposes and is not used for any logic.
-        bool cancelled;
-        /// Whether the entity was refunded.
+        /// Whether the entity was fully refunded (either via full cancellation or Done-stage refund processing).
         bool refunded;
         /// The active bid of the entity in the commitment stage of the sale, including price, total amount, and lockup preference.
+        /// The amount is decremented when commitments are cancelled during the Cancellation stage.
         Bid currentBid;
         /// The set of wallets that the entity has used to commit funds to the sale.
         EnumerableSet.AddressSet wallets;
@@ -278,7 +288,6 @@ contract SettlementSale is
     enum Stage {
         PreOpen,
         Commitment,
-        Closed,
         Cancellation,
         Settlement,
         Done
@@ -313,27 +322,40 @@ contract SettlementSale is
     /// @notice The current stage of the sale.
     Stage public stage;
 
-    /// @notice The amount of each payment token that has been committed to the sale, across all entities, tracked separately by token.
+    /// @notice The amount of each payment token currently committed to the sale, across all entities, tracked separately by token.
     /// @dev This is the sum of all `_entityStateByID[entityID].walletStates[wallet].committedAmountByToken[token]` over all entities and wallets.
-    /// Note: It is monotonically increasing during the commitment stage and will not decrease on refunds/cancellations. Those are tracked separately by `totalRefundedAmountByToken`.
+    /// It increases during the commitment stage and decreases when commitments are cancelled during the cancellation stage.
     mapping(IERC20 => uint256) internal _totalCommittedAmountByToken;
 
     /// @notice Returns the total committed amount for each payment token across all entities.
-    /// @dev It is monotonically increasing and will not decrease on refunds/cancellations. Those are tracked separately by `totalRefundedAmount()`.
+    /// @dev Decreases when commitments are cancelled. Cancellations are tracked separately by `totalCancelledAmountByToken()`.
     function totalCommittedAmountByToken() external view returns (TokenAmount[] memory) {
         return _toTokenAmounts(_totalCommittedAmountByToken);
     }
 
     /// @notice Returns the total committed amount across all payment tokens.
-    /// @dev This is computed by summing totalCommittedAmountByToken over all payment tokens.
-    /// Note: It is monotonically increasing and will not decrease on refunds/cancellations. Those are tracked separately by `totalRefundedAmount()`.
+    /// @dev Decreases when commitments are cancelled. Cancellations are tracked separately by `totalCancelledAmount()`.
     function totalCommittedAmount() external view returns (uint256) {
         return _sumByToken(_totalCommittedAmountByToken);
     }
 
+    /// @notice The amount of each payment token that has been cancelled during the cancellation stage, across all entities.
+    /// @dev This is mainly used for audit purposes and is not used for any logic.
+    mapping(IERC20 => uint256) internal _totalCancelledAmountByToken;
+
+    /// @notice Returns the total cancelled amount for each payment token across all entities.
+    function totalCancelledAmountByToken() external view returns (TokenAmount[] memory) {
+        return _toTokenAmounts(_totalCancelledAmountByToken);
+    }
+
+    /// @notice Returns the total cancelled amount across all payment tokens.
+    function totalCancelledAmount() external view returns (uint256) {
+        return _sumByToken(_totalCancelledAmountByToken);
+    }
+
     /// @notice The amount of refunds processed, across all entities, tracked separately by token.
     /// @dev For each token, this is the sum of all `WalletState.committedAmountByToken[token] - WalletState.acceptedAmountByToken[token]` over all refunded entities.
-    /// @dev This is mainly used for audit purposes and is not used for any logic.
+    /// @dev This is mainly used for audit purposes and is not used for any logic. Does not include cancellation refunds (tracked by `_totalCancelledAmountByToken`).
     mapping(IERC20 => uint256) internal _totalRefundedAmountByToken;
 
     /// @notice Returns the total refunded amount for each payment token across all entities.
@@ -386,6 +408,11 @@ contract SettlementSale is
     /// @dev If disabled, only addresses with the REFUNDER_ROLE can process refunds.
     bool public claimRefundEnabled;
 
+    /// @notice Whether reducing commitments is enabled during the `Cancellation` stage.
+    /// @dev When enabled, entities can reduce their commitment via `reduceCommitment()` without fully cancelling.
+    /// Full cancellation via `cancelBid()` is always available regardless of this setting.
+    bool public reduceCommitmentEnabled;
+
     /// @notice The list of all entity IDs that have participated in the sale.
     bytes16[] internal _entityIDs;
 
@@ -408,6 +435,8 @@ contract SettlementSale is
         address purchasePermitSigner;
         address proceedsReceiver;
         bool claimRefundEnabled;
+        bool reduceCommitmentEnabled;
+        bool skipPreOpen;
         uint8 maxWalletsPerEntity;
         IERC20Metadata[] paymentTokens;
         uint256 expectedPaymentTokenDecimals;
@@ -441,6 +470,7 @@ contract SettlementSale is
         saleUUID = init.saleUUID;
         proceedsReceiver = init.proceedsReceiver;
         claimRefundEnabled = init.claimRefundEnabled;
+        reduceCommitmentEnabled = init.reduceCommitmentEnabled;
         maxWalletsPerEntity = init.maxWalletsPerEntity;
 
         if (init.paymentTokens.length == 0) {
@@ -484,23 +514,27 @@ contract SettlementSale is
         }
 
         for (uint256 i = 0; i < init.extraManagers.length; i++) {
+            if (init.extraManagers[i] == address(0)) {
+                revert ZeroAddress();
+            }
             _grantRole(SALE_MANAGER_ROLE, init.extraManagers[i]);
         }
 
         for (uint256 i = 0; i < init.extraPausers.length; i++) {
+            if (init.extraPausers[i] == address(0)) {
+                revert ZeroAddress();
+            }
             _grantRole(PAUSER_ROLE, init.extraPausers[i]);
+        }
+
+        if (init.skipPreOpen) {
+            _setStage(Stage.Commitment);
         }
     }
 
     /// @notice Moves the sale to the `Commitment` stage, allowing participants to submit bids.
-    /// @dev Can be called from `PreOpen` (first open) or `Closed` (reopen after closing).
-    function openCommitment() external onlyRole(SALE_MANAGER_ROLE) onlyStages(Stage.PreOpen, Stage.Closed) {
+    function openCommitment() external onlyRole(SALE_MANAGER_ROLE) onlyStage(Stage.PreOpen) {
         _setStage(Stage.Commitment);
-    }
-
-    /// @notice Moves the sale to the `Closed` stage, preventing any new bids from being submitted.
-    function closeCommitment() external onlyRole(SALE_MANAGER_ROLE) onlyStage(Stage.Commitment) {
-        _setStage(Stage.Closed);
     }
 
     /// @notice Tracks entities that placed bids in the sale.
@@ -623,6 +657,7 @@ contract SettlementSale is
 
     /// @notice Processes a bid during the `Commitment` stage, validating the purchase permit, any constraints specified on the permit, and updating the bid.
     /// @dev The minimum and maximum total bid amount and the minimum and maximum price are specified on the purchase permit (`minAmount`, `maxAmount`, `minPrice`, and `maxPrice`, respectively).
+    /// `minAmount` is enforced only at bid submission. It is not stored onchain and does not constrain subsequent reductions during the `Cancellation` stage.
     function _processBid(
         IERC20 token,
         Bid calldata newBid,
@@ -665,8 +700,9 @@ contract SettlementSale is
         }
 
         EntityState storage state = _entityStateByID[purchasePermit.saleSpecificEntityID];
-        // additional safety check: to avoid any bookkeeping issues, we disallow new bids for entities that have already been refunded.
-        // this can theoretically happen if the commitment stage was reopened after already refunding some entities.
+        // since already refunded entities cannot be refunded again, we disallow new bids for them to avoid any bookkeeping issues.
+        // while this cannot happen in the normal flow of the sale, it is theoretically possible if the commitment stage is reopened
+        // through unsafeSetStage after some entities have already been refunded.
         if (state.refunded) {
             revert AlreadyRefunded(purchasePermit.saleSpecificEntityID);
         }
@@ -699,7 +735,8 @@ contract SettlementSale is
         // updating global state
         _totalCommittedAmountByToken[token] += amountDelta;
 
-        emit BidPlaced(purchasePermit.saleSpecificEntityID, msg.sender, newBid);
+        emit BidPlaced(purchasePermit.saleSpecificEntityID, wallet, newBid);
+        emit CommitmentIncreased(purchasePermit.saleSpecificEntityID, wallet, address(token), amountDelta);
 
         return amountDelta;
     }
@@ -727,12 +764,14 @@ contract SettlementSale is
     }
 
     /// @notice Moves the sale to the `Cancellation` stage, allowing participants to cancel their bids and receive refunds.
-    function openCancellation() external onlyRole(SALE_MANAGER_ROLE) onlyStage(Stage.Closed) {
+    function openCancellation() external onlyRole(SALE_MANAGER_ROLE) onlyStage(Stage.Commitment) {
         _setStage(Stage.Cancellation);
     }
 
-    /// @notice Cancels a bid during the `Cancellation` stage, allowing participants to cancel their bids and receive refunds.
-    /// @dev This differs from a refund in the `Done` stage in that it can only be triggered by the wallet itself and additionally marks the bid as cancelled.
+    /// @notice Fully cancels an entity's bid during the `Cancellation` stage, refunding all unaccepted committed amounts.
+    /// @dev Can be called by any wallet associated with the entity.
+    /// Always available regardless of `reduceCommitmentEnabled`.
+    /// For intentional partial reductions, use `reduceCommitment()` instead.
     function cancelBid() external onlyStage(Stage.Cancellation) onlyUnpaused {
         bytes16 entityID = _entityIDByAddress[msg.sender];
         if (entityID == bytes16(0)) {
@@ -740,19 +779,103 @@ contract SettlementSale is
         }
 
         EntityState storage state = _entityStateByID[entityID];
-        if (state.cancelled) {
-            revert BidAlreadyCancelled(entityID);
+        if (state.refunded) {
+            revert AlreadyRefunded(entityID);
         }
 
-        state.cancelled = true;
-        emit BidCancelled(entityID, msg.sender, state.currentBid.amount);
+        // Build cancellation entries for all non-zero wallet/token pairs
+        address[] memory wallets = state.wallets.values();
+        uint256 numTokens = _paymentTokens.length;
+        for (uint256 i = 0; i < wallets.length; i++) {
+            WalletState storage walletState = state.walletStates[wallets[i]];
 
-        _refund(entityID);
+            for (uint256 j = 0; j < numTokens; j++) {
+                IERC20 token = _paymentTokens[j];
+                uint256 amount = walletState.committedAmountByToken[token] - walletState.acceptedAmountByToken[token];
+
+                if (amount > 0) {
+                    _reduceCommitment(entityID, wallets[i], token, amount);
+                }
+            }
+        }
+    }
+
+    /// @notice Partially reduces specific wallet/token commitments during the `Cancellation` stage.
+    /// @dev Only processes the caller-supplied tuples. Any wallet/token pairs not included in `reductions` are left
+    /// unchanged, and the entity's remaining committed balance will be carried into settlement.
+    /// For full cancellation, use `cancelBid()` which reads all pairs from contract storage.
+    /// @dev Requires `reduceCommitmentEnabled`. The caller must be a wallet associated with the entity.
+    /// @dev No minimum floor is enforced on the resulting commitment. The `minAmount` constraint from the purchase permit
+    /// applies only at bid submission and entities may reduce below that threshold here.
+    /// @param reductions Array of (wallet, token, amount) tuples specifying what to reduce.
+    function reduceCommitment(WalletTokenAmount[] calldata reductions)
+        external
+        onlyStage(Stage.Cancellation)
+        onlyUnpaused
+    {
+        if (!reduceCommitmentEnabled) {
+            revert ReduceCommitmentDisabled();
+        }
+
+        bytes16 entityID = _entityIDByAddress[msg.sender];
+        if (entityID == bytes16(0)) {
+            revert WalletNotInitialized(msg.sender);
+        }
+
+        EntityState storage state = _entityStateByID[entityID];
+        if (state.refunded) {
+            revert AlreadyRefunded(entityID);
+        }
+
+        for (uint256 i = 0; i < reductions.length; i++) {
+            WalletTokenAmount calldata c = reductions[i];
+            _reduceCommitment(entityID, c.wallet, IERC20(c.token), c.amount);
+        }
+    }
+
+    /// @notice Reduces a wallet's commitment for a given token by `amount` and transfers the funds back.
+    function _reduceCommitment(bytes16 entityID, address wallet, IERC20 token, uint256 amount) internal {
+        EntityState storage state = _entityStateByID[entityID];
+        if (state.refunded) {
+            revert AlreadyRefunded(entityID);
+        }
+
+        if (!state.wallets.contains(wallet)) {
+            revert WalletNotAssociatedWithEntity(wallet, entityID);
+        }
+
+        if (!_isValidPaymentToken[token]) {
+            revert InvalidPaymentToken(address(token));
+        }
+
+        if (amount == 0) {
+            revert ZeroAmount();
+        }
+
+        WalletState storage walletState = state.walletStates[wallet];
+        uint256 committed = walletState.committedAmountByToken[token];
+        uint256 allocated = walletState.acceptedAmountByToken[token];
+        if (amount > committed - allocated) {
+            revert ReductionExceedsReducibleAmount(entityID, wallet, address(token), amount, committed, allocated);
+        }
+
+        walletState.committedAmountByToken[token] -= amount;
+        walletState.cancelledAmountByToken[token] += amount;
+        _totalCommittedAmountByToken[token] -= amount;
+        _totalCancelledAmountByToken[token] += amount;
+        state.currentBid.amount -= amount;
+
+        if (state.currentBid.amount == 0) {
+            state.refunded = true;
+        }
+
+        emit CommitmentReduced(entityID, wallet, address(token), amount);
+        token.safeTransfer(wallet, amount);
     }
 
     /// @notice Moves the sale to the `Settlement` stage, allowing the settler to set allocations.
-    /// @dev Can be called during the `Closed` stage (skipping the cancellation stage) or the `Cancellation` stage.
-    function openSettlement() external onlyRole(SALE_MANAGER_ROLE) onlyStages(Stage.Closed, Stage.Cancellation) {
+    /// @dev Can be called during the `Commitment` stage (skipping the cancellation stage) or the `Cancellation` stage.
+    function openSettlement() external onlyRole(SALE_MANAGER_ROLE) onlyStages(Stage.Commitment, Stage.Cancellation) {
         _setStage(Stage.Settlement);
     }
 
@@ -809,9 +932,7 @@ contract SettlementSale is
         uint256 prevAcceptedAmountForToken = walletState.acceptedAmountByToken[token];
         if (prevAcceptedAmountForToken > 0) {
             if (!allowOverwrite) {
-                revert AllocationAlreadySet(
-                    allocation.saleSpecificEntityID, _sumByToken(walletState.acceptedAmountByToken)
-                );
+                revert AllocationAlreadySet(allocation.saleSpecificEntityID);
             }
 
             // reset global counter
@@ -981,6 +1102,12 @@ contract SettlementSale is
         emit ClaimRefundEnabledChanged(enabled);
     }
 
+    /// @notice Sets whether reducing commitments is enabled during the `Cancellation` stage.
+    function setReduceCommitmentEnabled(bool enabled) external onlyRole(SALE_MANAGER_ROLE) {
+        reduceCommitmentEnabled = enabled;
+        emit ReduceCommitmentEnabledChanged(enabled);
+    }
+
     /// @notice Sets the maximum number of wallets that can be associated with a single entity.
     /// @param max The new maximum. Must be > 0.
     function setMaxWalletsPerEntity(uint8 max) external onlyRole(SALE_MANAGER_ROLE) {
@@ -1042,11 +1169,12 @@ contract SettlementSale is
     struct WalletStateView {
         address addr;
         bytes16 entityID;
-        TokenAmount[] acceptedAmountByToken;
         TokenAmount[] committedAmountByToken;
+        TokenAmount[] cancelledAmountByToken;
+        TokenAmount[] acceptedAmountByToken;
     }
 
-    function walletStateByAddress(address addr) public view returns (WalletStateView memory) {
+    function _walletStateViewByAddress(address addr) internal view returns (WalletStateView memory) {
         bytes16 entityID = _entityIDByAddress[addr];
         if (entityID == bytes16(0)) {
             revert WalletNotInitialized(addr);
@@ -1057,6 +1185,7 @@ contract SettlementSale is
             addr: addr,
             entityID: entityID,
             committedAmountByToken: _toTokenAmounts(state.walletStates[addr].committedAmountByToken),
+            cancelledAmountByToken: _toTokenAmounts(state.walletStates[addr].cancelledAmountByToken),
             acceptedAmountByToken: _toTokenAmounts(state.walletStates[addr].acceptedAmountByToken)
         });
     }
@@ -1064,7 +1193,7 @@ contract SettlementSale is
     function walletStatesByAddresses(address[] memory addrs) public view returns (WalletStateView[] memory) {
         WalletStateView[] memory states = new WalletStateView[](addrs.length);
         for (uint256 i = 0; i < addrs.length; i++) {
-            states[i] = walletStateByAddress(addrs[i]);
+            states[i] = _walletStateViewByAddress(addrs[i]);
         }
         return states;
     }
@@ -1072,21 +1201,19 @@ contract SettlementSale is
     struct EntityStateView {
         bytes16 entityID;
         uint32 bidTimestamp;
-        bool cancelled;
         bool refunded;
         Bid currentBid;
         WalletStateView[] walletStates;
     }
 
     /// @notice Returns the state of an entity.
-    function entityStateByID(bytes16 entityID) public view returns (EntityStateView memory) {
+    function _entityStateViewByID(bytes16 entityID) internal view returns (EntityStateView memory) {
         EntityState storage state = _entityStateByID[entityID];
         address[] memory wallets = state.wallets.values();
 
         return EntityStateView({
             entityID: entityID,
             bidTimestamp: state.bidTimestamp,
-            cancelled: state.cancelled,
             refunded: state.refunded,
             currentBid: state.currentBid,
             walletStates: walletStatesByAddresses(wallets)
@@ -1097,7 +1224,7 @@ contract SettlementSale is
     function entityStatesByIDs(bytes16[] calldata entityIDs) external view returns (EntityStateView[] memory) {
         EntityStateView[] memory states = new EntityStateView[](entityIDs.length);
         for (uint256 i = 0; i < entityIDs.length; i++) {
-            states[i] = entityStateByID(entityIDs[i]);
+            states[i] = _entityStateViewByID(entityIDs[i]);
         }
         return states;
     }
@@ -1106,7 +1233,7 @@ contract SettlementSale is
     function entityStatesIn(uint256 from, uint256 to) external view returns (EntityStateView[] memory) {
         EntityStateView[] memory states = new EntityStateView[](to - from);
         for (uint256 i = from; i < to; i++) {
-            states[i - from] = entityStateByID(entityAt(i));
+            states[i - from] = _entityStateViewByID(entityAt(i));
         }
         return states;
     }
@@ -1227,9 +1354,26 @@ contract SettlementSale is
 
     /// @notice Recovers any ERC20 tokens that are sent to the contract.
     /// @dev This can be used to recover any tokens that are sent to the contract by mistake.
+    /// Use `forceReduceCommitment` which updates accounting state instead if possible.
     function recoverTokens(IERC20 token, uint256 amount, address to) external onlyRole(TOKEN_RECOVERER_ROLE) {
         emit TokensRecovered(address(token), amount, to);
         token.safeTransfer(to, amount);
+    }
+
+    /// @notice Sale operator initiated reduction of wallet commitments, bypassing stage and pause restrictions.
+    /// @dev This should be preferred over `recoverTokens()` for committed payment tokens, since it
+    /// correctly updates all accounting state (committed/cancelled amounts, bid totals, global counters).
+    function forceReduceCommitment(WalletTokenAmount[] calldata reductions) external onlyRole(COMMITMENT_REDUCER_ROLE) {
+        for (uint256 i = 0; i < reductions.length; i++) {
+            WalletTokenAmount calldata c = reductions[i];
+
+            bytes16 entityID = _entityIDByAddress[c.wallet];
+            if (entityID == bytes16(0)) {
+                revert WalletNotInitialized(c.wallet);
+            }
+
+            _reduceCommitment(entityID, c.wallet, IERC20(c.token), c.amount);
+        }
     }
 
     /// @notice Checks if the contract supports an interface.
