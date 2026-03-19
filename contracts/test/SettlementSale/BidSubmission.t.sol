@@ -548,15 +548,14 @@ contract SettlementSaleBidTest is SettlementSaleBidTestBase {
     function testBid_AfterClose_Reverts() public {
         bidSuccess({user: alice, price: 10, amount: 1000e6, token: usdc});
 
-        closeCommitment();
-        assertEq(uint8(sale.stage()), uint8(SettlementSale.Stage.Closed));
+        openCancellation();
 
         bidFail({
             user: alice,
             price: 10,
             amount: 1000e6,
             token: usdc,
-            err: encodeInvalidStage(SettlementSale.Stage.Closed, SettlementSale.Stage.Commitment)
+            err: encodeInvalidStage(SettlementSale.Stage.Cancellation, SettlementSale.Stage.Commitment)
         });
     }
 
@@ -771,7 +770,6 @@ contract SettlementSaleBidAfterRefundTest is SettlementSaleBidTestBase {
         // Alice places a bid
         doBid({user: alice, amount: 2000e6, price: 10, token: usdc});
 
-        closeCommitment();
         openCancellation();
 
         // Alice cancels (gets refunded)

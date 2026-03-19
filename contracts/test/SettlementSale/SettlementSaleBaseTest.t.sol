@@ -58,6 +58,14 @@ contract TestableSettlementSale is SettlementSale {
     function getEntityID(address addr) public view returns (bytes16) {
         return _entityIDByAddress[addr];
     }
+
+    function entityStateByID(bytes16 entityID) public view returns (EntityStateView memory) {
+        return _entityStateViewByID(entityID);
+    }
+
+    function walletStateByAddress(address addr) public view returns (WalletStateView memory) {
+        return _walletStateViewByAddress(addr);
+    }
 }
 
 /// @dev Helper to create a TestableSettlementSale using the clone pattern.
@@ -121,6 +129,8 @@ contract SettlementSaleBaseTest is BaseTest {
             extraSettler: settler,
             extraRefunder: refunder,
             claimRefundEnabled: true,
+            reduceCommitmentEnabled: false,
+            skipPreOpen: false,
             maxWalletsPerEntity: 50,
             paymentTokens: paymentTokens,
             expectedPaymentTokenDecimals: 6
@@ -586,11 +596,6 @@ contract SettlementSaleBaseTest is BaseTest {
     function openCommitment() public {
         vm.prank(manager);
         sale.openCommitment();
-    }
-
-    function closeCommitment() internal {
-        vm.prank(manager);
-        sale.closeCommitment();
     }
 
     function openCancellation() public {
