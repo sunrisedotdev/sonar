@@ -2,3 +2,5 @@ node_modules
 dist
 contracts
 pnpm-lock.yaml
+# DOLATER: run prettier against framework dirs (currently excluded because they use their own configs)
+examples/framework

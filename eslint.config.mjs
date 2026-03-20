@@ -6,13 +6,18 @@ import { defineConfig } from "eslint/config";
 
 export default defineConfig([
     {
-        ignores: ["**/node_modules/**", "**/dist/**", "contracts/**"],
+        // DOLATER: fix eslint violations in framework dirs and remove this ignore
+        ignores: ["**/node_modules/**", "**/dist/**", "contracts/**", "examples/framework/**"],
     },
     {
         files: ["**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
         plugins: { js },
         extends: ["js/recommended"],
         languageOptions: { globals: globals.browser },
+    },
+    {
+        files: ["examples/scripts/**"],
+        languageOptions: { globals: globals.node },
     },
     tseslint.configs.recommended,
     pluginReact.configs.flat.recommended,

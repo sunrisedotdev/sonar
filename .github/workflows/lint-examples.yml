@@ -1,0 +1,33 @@
+name: Lint Examples
+
+on:
+  pull_request:
+    paths:
+      - "examples/**"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [react-evm, nextjs-evm]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install ${{ matrix.app }}
+        run: pnpm --dir examples/framework/${{ matrix.app }} install --frozen-lockfile
+
+      - name: Lint ${{ matrix.app }}
+        run: pnpm --dir examples/framework/${{ matrix.app }} lint
+
+      - name: Build ${{ matrix.app }}
+        run: pnpm --dir examples/framework/${{ matrix.app }} build
