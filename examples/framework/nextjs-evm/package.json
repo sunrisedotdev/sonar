@@ -1,0 +1,39 @@
+{
+  "name": "sonar-example-nextjs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@echoxyz/sonar-core": "^0.14.1",
+    "@echoxyz/sonar-react": "^0.13.1",
+    "@tanstack/react-query": "^5.90.12",
+    "connectkit": "^1.9.1",
+    "next": "^15.5.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "wagmi": "^2.19.5"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/node": "^20.19.26",
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "15.5.4",
+    "tailwindcss": "^4.1.17",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "zod": "^3.25.76"
+    }
+  },
+  "packageManager": "pnpm@10.15.0+sha512.486ebc259d3e999a4e8691ce03b5cac4a71cbeca39372a9b762cb500cfdf0873e2cb16abe3d951b1ee2cf012503f027b98b6584e4df22524e0c7450d9ec7aa7b"
+}
