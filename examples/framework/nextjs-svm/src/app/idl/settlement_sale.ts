@@ -1,0 +1,126 @@
+export const IDL = {
+  address: "AFxt4o8Y81eRALVuvRWgnQQS8UthHWedfjJnqCU69THq",
+  metadata: {
+    name: "settlement_sale",
+    version: "0.1.0",
+    spec: "0.1.0",
+    description: "Sonar settlement sale program",
+  },
+  instructions: [
+    {
+      name: "placeBid",
+      discriminator: [238, 77, 148, 91, 200, 151, 92, 146],
+      accounts: [
+        { name: "bidder", writable: true, signer: true },
+        { name: "sale", writable: true },
+        { name: "entityState", writable: true },
+        { name: "walletBinding", writable: true },
+        { name: "bidderTokenAccount", writable: true },
+        { name: "vault", writable: true },
+        { name: "paymentTokenMint" },
+        { name: "tokenProgram" },
+        { name: "systemProgram" },
+        { name: "instructions" },
+      ],
+      args: [
+        { name: "permit", type: { defined: { name: "PurchasePermitV3" } } },
+        { name: "amount", type: "u64" },
+        { name: "price", type: "u64" },
+        { name: "lockup", type: "bool" },
+      ],
+    },
+  ],
+  accounts: [
+    {
+      name: "SettlementSale",
+      discriminator: [38, 117, 82, 234, 79, 111, 15, 74],
+    },
+    {
+      name: "EntityState",
+      discriminator: [92, 218, 188, 5, 237, 215, 13, 253],
+    },
+    {
+      name: "WalletBinding",
+      discriminator: [51, 211, 204, 185, 168, 68, 52, 176],
+    },
+  ],
+  types: [
+    {
+      name: "PurchasePermitV3",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "saleSpecificEntityId", type: { array: ["u8", 16] } },
+          { name: "saleUuid", type: { array: ["u8", 16] } },
+          { name: "wallet", type: { array: ["u8", 32] } },
+          { name: "expiresAt", type: "u64" },
+          { name: "minAmount", type: "u64" },
+          { name: "maxAmount", type: "u64" },
+          { name: "minPrice", type: "u64" },
+          { name: "maxPrice", type: "u64" },
+          { name: "opensAt", type: "u64" },
+          { name: "closesAt", type: "u64" },
+          { name: "payload", type: { vec: "u8" } },
+        ],
+      },
+    },
+    {
+      name: "SettlementSale",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "saleUuid", type: { array: ["u8", 16] } },
+          { name: "permitSigner", type: "publicKey" },
+          { name: "paymentTokenMint", type: "publicKey" },
+          { name: "vault", type: "publicKey" },
+          { name: "authority", type: "publicKey" },
+          { name: "proceedsReceiver", type: "publicKey" },
+          { name: "stage", type: { defined: { name: "Stage" } } },
+          { name: "bump", type: "u8" },
+          { name: "vaultBump", type: "u8" },
+          { name: "isPaused", type: "bool" },
+          { name: "claimRefundEnabled", type: "bool" },
+          { name: "reduceCommitmentEnabled", type: "bool" },
+          { name: "maxWalletsPerEntity", type: "u8" },
+          { name: "totalCommitted", type: "u64" },
+          { name: "totalCancelled", type: "u64" },
+          { name: "totalAccepted", type: "u64" },
+          { name: "totalRefunded", type: "u64" },
+          { name: "totalWithdrawn", type: "u64" },
+        ],
+      },
+    },
+    {
+      name: "EntityState",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "isInitialized", type: "bool" },
+          { name: "entityId", type: { array: ["u8", 16] } },
+          { name: "sale", type: "publicKey" },
+          { name: "currentAmount", type: "u64" },
+          { name: "acceptedAmount", type: "u64" },
+          { name: "currentPrice", type: "u64" },
+          { name: "lockup", type: "bool" },
+          { name: "refunded", type: "bool" },
+          { name: "walletCount", type: "u8" },
+          { name: "lastBidTimestamp", type: "u64" },
+          { name: "bump", type: "u8" },
+        ],
+      },
+    },
+    {
+      name: "Stage",
+      type: {
+        kind: "enum",
+        variants: [
+          { name: "PreOpen" },
+          { name: "Commitment" },
+          { name: "Cancellation" },
+          { name: "Settlement" },
+          { name: "Done" },
+        ],
+      },
+    },
+  ],
+} as const;
