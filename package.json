@@ -8,7 +8,8 @@
         "changeset": "changeset",
         "version-packages": "changeset version",
         "prepare-release": "./scripts/prepare-release.sh",
-        "gen-abis": "./scripts/gen-abis.sh"
+        "gen-abis": "./scripts/gen-abis.sh",
+        "examples:generate": "node examples/scripts/generate-example.mjs"
     },
     "devDependencies": {
         "@changesets/cli": "^2.29.7",

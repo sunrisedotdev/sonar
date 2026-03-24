@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [react-evm, nextjs-evm]
+        app: [react-evm, nextjs-evm, react-svm]
     steps:
       - uses: actions/checkout@v4
 
@@ -21,6 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
           cache: pnpm
 
       - name: Install ${{ matrix.app }}
