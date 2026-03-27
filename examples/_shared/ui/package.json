@@ -1,0 +1,19 @@
+{
+  "name": "@examples/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*"
+  },
+  "typesVersions": {
+    "*": {
+      "*": ["./src/*"]
+    }
+  },
+  "peerDependencies": {
+    "@echoxyz/sonar-core": "*",
+    "@echoxyz/sonar-react": "*",
+    "react": "*"
+  }
+}

@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { ConnectKitButton } from "connectkit";
 import { useSonarAuth, useSonarEntities } from "@echoxyz/sonar-react";
-import { saleUUID, sonarConfig } from "../config";
+import { saleUUID, sonarConfig, paymentTokenAddress } from "../config";
 import { useAccount } from "wagmi";
-import CommitCard from "../components/sale/CommitCard";
 import { SaleEligibility } from "@echoxyz/sonar-core";
 import { AuthenticationSection } from "../components/auth/AuthenticationSection";
-import { EntityCard } from "../components/entity/EntityCard";
-import { EntitiesList } from "../components/registration/EntitiesList";
-import { EligibilityResults } from "../components/registration/EligibilityResults";
-import { CommitmentDataCard } from "../components/sale/CommitmentDataCard";
+import { useSaleContract } from "../hooks";
+import CommitCard, { ChainAdapterResult } from "@examples/ui/components/sale/CommitCard";
+import { EntityCard } from "@examples/ui/components/entity/EntityCard";
+import { EntitiesList } from "@examples/ui/components/registration/EntitiesList";
+import { EligibilityResults } from "@examples/ui/components/registration/EligibilityResults";
+import { CommitmentDataCard } from "@examples/ui/components/sale/CommitmentDataCard";
 
 export function Home() {
   const [saleIsLive, setSaleIsLive] = useState(false);
@@ -49,6 +50,19 @@ export function Home() {
   const selectedEntity = entities?.find((e) => e.EntityID === selectedEntityId) ?? entities?.[0];
 
   const isEligible = selectedEntity && selectedEntity.SaleEligibility === SaleEligibility.ELIGIBLE;
+
+  const { commitWithPermit, entityState, entityStateError, awaitingTxReceipt, txReceipt, awaitingTxReceiptError } =
+    useSaleContract((selectedEntity?.SaleSpecificEntityID ?? "0x") as `0x${string}`);
+
+  const adapter: ChainAdapterResult = {
+    commitWithPermit: (params) => commitWithPermit({ ...params, token: paymentTokenAddress }),
+    entityCurrentAmount: entityState?.currentBid?.amount,
+    entityStateError: entityStateError ?? null,
+    pending: awaitingTxReceipt,
+    confirmed: txReceipt?.status === "success",
+    txId: txReceipt?.transactionHash ?? null,
+    pendingError: awaitingTxReceiptError ?? null,
+  };
 
   const EntitySection = () => {
     if (!address || !authenticated) {
@@ -235,8 +249,9 @@ export function Home() {
                   <h2 className="text-xl font-semibold text-gray-900">Commit funds</h2>
                   <CommitCard
                     entityID={selectedEntity.EntityID}
-                    saleSpecificEntityID={selectedEntity.SaleSpecificEntityID}
                     walletAddress={address}
+                    saleUUID={saleUUID}
+                    adapter={adapter}
                   />
                 </div>
               )}

@@ -17,7 +17,15 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@examples/ui/*": ["./node_modules/@examples/ui/src/*"],
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react/jsx-dev-runtime": ["./node_modules/@types/react/jsx-dev-runtime.d.ts"],
+      "wagmi": ["./node_modules/wagmi"],
+      "wagmi/*": ["./node_modules/wagmi/*"],
+      "@echoxyz/sonar-core": ["./node_modules/@echoxyz/sonar-core"],
+      "@echoxyz/sonar-react": ["./node_modules/@echoxyz/sonar-react"]
     }
   },
   "include": ["src"],
