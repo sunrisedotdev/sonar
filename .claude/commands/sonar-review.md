@@ -20,13 +20,7 @@ git log --oneline main..HEAD
 
 If there are unstaged changes, also review those with `git diff`.
 
-### Step 2: Review Against the Knowledge Base
-
-Read the review knowledge base at `.claude/review-knowledge-base.md` to understand the team's review standards.
-
-Apply every category from the knowledge base systematically to the diff. For each file changed, check against ALL applicable rules.
-
-### Step 3: Output Format
+### Step 2: Output Format
 
 Produce a review structured as follows:
 
