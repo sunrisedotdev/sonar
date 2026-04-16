@@ -34,10 +34,6 @@ export function Provider({ children }: { children: React.ReactNode }) {
         'See .env.example for details.'
       );
     }
-
-    console.warn("example warning");
-
-    console.log('Provider.baseRPCURL: <', baseRPCURL, '>:', !!baseRPCURL);
   }, []);
 
 
