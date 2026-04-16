@@ -32,8 +32,7 @@ export const Provider = ({ children }: { children: React.ReactNode }) => {
     if (!baseRPCURL) {
       console.warn(
         '[sonar-example] No RPC URL configured. The app is using the public Base Sepolia ' +
-        'endpoint, which is rate-limited. Set NEXT_PUBLIC_BASE_RPC_URL in your .env file. ' +
-        'See .env.example for details.'
+        'endpoint, which is rate-limited. Set NEXT_PUBLIC_BASE_RPC_URL in your .env file.'
       );
     }
   }, []);
