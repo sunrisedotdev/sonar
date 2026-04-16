@@ -8,5 +8,5 @@ interface ImportMetaEnv {
   readonly VITE_ECHO_API_URL: string;
   readonly VITE_SALE_UUID: string;
   readonly VITE_SALE_CONTRACT_ADDRESS: string;
-  readonly VITE_BASE_RPC_URL: string;
+  readonly VITE_BASE_RPC_URL: string | undefined;
 }
