@@ -6,6 +6,7 @@ import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-tok
 import type { GeneratePurchasePermitResponse } from "@echoxyz/sonar-core";
 import { PROGRAM_ID, PAYMENT_TOKEN_MINT, saleUUID } from "@/lib/config";
 import { IDL } from "@/app/idl/settlement_sale";
+import { parse as uuidParse } from "uuid";
 
 interface SolanaPermitJSON {
   SaleSpecificEntityID: string;
@@ -30,16 +31,12 @@ interface SettlementSaleAccount {
   vault: PublicKey;
 }
 
-function parseUUID(uuid: string): number[] {
-  const hex = uuid.replace(/-/g, "");
-  const bytes: number[] = [];
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes.push(parseInt(hex.slice(i, i + 2), 16));
-  }
-  return bytes;
+function parseIdBytes(id: string): Uint8Array {
+  const s = id.replace(/^0x/i, "");
+  return s.includes("-") ? uuidParse(s) : Buffer.from(s, "hex");
 }
 
-export function usePlaceBid(saleSpecificEntityID: string) {
+export function useSaleContract(saleSpecificEntityID: string) {
   const { connection } = useConnection();
   const wallet = useAnchorWallet();
 
@@ -52,12 +49,12 @@ export function usePlaceBid(saleSpecificEntityID: string) {
   const programPublicKey = useMemo(() => new PublicKey(PROGRAM_ID), []);
 
   const { salePDA, entityStatePDA } = useMemo(() => {
-    const saleUuidBytes = parseUUID(saleUUID);
+    const saleUuidBytes = parseIdBytes(saleUUID);
     const [salePDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("settlement_sale"), Buffer.from(saleUuidBytes)],
       programPublicKey
     );
-    const saleEntityIdBytes = parseUUID(saleSpecificEntityID);
+    const saleEntityIdBytes = parseIdBytes(saleSpecificEntityID);
     const [entityStatePDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("entity_state"), salePDA.toBuffer(), Buffer.from(saleEntityIdBytes)],
       programPublicKey
@@ -76,8 +73,7 @@ export function usePlaceBid(saleSpecificEntityID: string) {
           wallet ?? ({ publicKey: PublicKey.default } as any),
           { commitment: "confirmed" }
         );
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const program = new Program(IDL as any, provider);
+        const program = new Program(IDL, provider);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const state = (await (program.account as any).entityState.fetchNullable(entityStatePDA)) as EntityStateAccount | null;
         if (!cancelled) {
@@ -112,11 +108,18 @@ export function usePlaceBid(saleSpecificEntityID: string) {
       const program = new Program(IDL as any, provider);
 
       const permit = purchasePermitResp.PermitJSON as unknown as SolanaPermitJSON;
-      const saleEntityIdArr = parseUUID(permit.SaleSpecificEntityID);
-      const saleUuidArr = parseUUID(permit.SaleUUID);
+      const saleEntityIdArr = parseIdBytes(permit.SaleSpecificEntityID);
+      const saleUuidArr = parseIdBytes(permit.SaleUUID);
+
+      // Re-derive entityStatePDA from the permit's SaleSpecificEntityID, not the prop,
+      // since the program validates the account against the permit's entity ID.
+      const [permitEntityStatePDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("entity_state"), salePDA.toBuffer(), Buffer.from(saleEntityIdArr)],
+        programPublicKey
+      );
       const walletBytes = Array.from(new PublicKey(permit.Wallet).toBytes());
       const payloadHex = permit.Payload.replace(/^0x/, "");
-      const payloadBytes = payloadHex.length > 0 ? Array.from(Buffer.from(payloadHex, "hex")) : [];
+      const payloadBytes = payloadHex.length > 0 ? Buffer.from(payloadHex, "hex") : Buffer.from([]);
 
       const permitData = {
         saleSpecificEntityId: saleEntityIdArr,
@@ -133,9 +136,8 @@ export function usePlaceBid(saleSpecificEntityID: string) {
       };
 
       // Borsh-encode the permit to build the Ed25519 verify instruction
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const coder = new BorshCoder(IDL as any);
-      const messageBytes = coder.types.encode("PurchasePermitV3", permitData);
+      const coder = new BorshCoder(IDL);
+      const messageBytes = coder.types.encode("purchasePermitV3", permitData);
 
       // Fetch sale account for the permit signer and vault public keys
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -164,7 +166,7 @@ export function usePlaceBid(saleSpecificEntityID: string) {
         .accounts({
           bidder: wallet.publicKey,
           sale: salePDA,
-          entityState: entityStatePDA,
+          entityState: permitEntityStatePDA,
           walletBinding: walletBindingPDA,
           bidderTokenAccount,
           vault: saleAccount.vault,

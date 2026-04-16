@@ -5,7 +5,7 @@ import { UseSonarPurchaseResultNotReadyToPurchase, UseSonarPurchaseResultReadyTo
 import { useState } from "react";
 import { saleUUID } from "@/lib/config";
 import { useSonarPurchase } from "../../hooks/use-sonar-purchase";
-import { usePlaceBid } from "../../hooks/use-place-bid";
+import { useSaleContract } from "../../hooks/use-sale-contract";
 
 function readinessConfig(
   sonarPurchaser: UseSonarPurchaseResultReadyToPurchase | UseSonarPurchaseResultNotReadyToPurchase
@@ -60,7 +60,7 @@ function CommitSection({
   generatePurchasePermit: () => Promise<GeneratePurchasePermitResponse>;
 }) {
   const { commitWithPermit, awaitingTxReceipt, confirmed, txSignature, committedAmount, entityStateError } =
-    usePlaceBid(saleSpecificEntityID);
+    useSaleContract(saleSpecificEntityID);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | undefined>(undefined);
