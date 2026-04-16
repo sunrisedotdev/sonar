@@ -5,7 +5,9 @@ import { AnchorProvider, BN, BorshCoder, Program } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import type { GeneratePurchasePermitResponse } from "@echoxyz/sonar-core";
 import { PROGRAM_ID, PAYMENT_TOKEN_MINT, saleUUID } from "../config";
-import { IDL } from "../idl/settlement_sale";
+import { IDL, IDL_CAMEL } from "../idl/settlement_sale";
+import { parse as uuidParse } from "uuid";
+import bs58 from "bs58";
 
 interface SolanaPermitJSON {
   SaleSpecificEntityID: string;
@@ -30,16 +32,12 @@ interface SettlementSaleAccount {
   vault: PublicKey;
 }
 
-function parseUUID(uuid: string): number[] {
-  const hex = uuid.replace(/-/g, "");
-  const bytes: number[] = [];
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes.push(parseInt(hex.slice(i, i + 2), 16));
-  }
-  return bytes;
+function parseIdBytes(id: string): Uint8Array {
+  const s = id.replace(/^0x/i, "");
+  return s.includes("-") ? uuidParse(s) : Buffer.from(s, "hex");
 }
 
-export function usePlaceBid(saleSpecificEntityID: string) {
+export function useSaleContract(saleSpecificEntityID: string) {
   const { connection } = useConnection();
   const wallet = useAnchorWallet();
 
@@ -52,12 +50,12 @@ export function usePlaceBid(saleSpecificEntityID: string) {
   const programPublicKey = useMemo(() => new PublicKey(PROGRAM_ID), []);
 
   const { salePDA, entityStatePDA } = useMemo(() => {
-    const saleUuidBytes = parseUUID(saleUUID);
+    const saleUuidBytes = parseIdBytes(saleUUID);
     const [salePDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("settlement_sale"), Buffer.from(saleUuidBytes)],
       programPublicKey
     );
-    const saleEntityIdBytes = parseUUID(saleSpecificEntityID);
+    const saleEntityIdBytes = parseIdBytes(saleSpecificEntityID);
     const [entityStatePDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("entity_state"), salePDA.toBuffer(), Buffer.from(saleEntityIdBytes)],
       programPublicKey
@@ -112,8 +110,15 @@ export function usePlaceBid(saleSpecificEntityID: string) {
       const program = new Program(IDL as any, provider);
 
       const permit = purchasePermitResp.PermitJSON as unknown as SolanaPermitJSON;
-      const saleEntityIdArr = parseUUID(permit.SaleSpecificEntityID);
-      const saleUuidArr = parseUUID(permit.SaleUUID);
+      const saleEntityIdArr = parseIdBytes(permit.SaleSpecificEntityID);
+      const saleUuidArr = parseIdBytes(permit.SaleUUID);
+
+      // Re-derive entityStatePDA from the permit's SaleSpecificEntityID, not the prop,
+      // since the program validates the account against the permit's entity ID.
+      const [permitEntityStatePDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("entity_state"), salePDA.toBuffer(), Buffer.from(saleEntityIdArr)],
+        programPublicKey
+      );
       const walletBytes = Array.from(new PublicKey(permit.Wallet).toBytes());
       const payloadHex = permit.Payload.replace(/^0x/, "");
       const payloadBytes = payloadHex.length > 0 ? Array.from(Buffer.from(payloadHex, "hex")) : [];
@@ -134,11 +139,12 @@ export function usePlaceBid(saleSpecificEntityID: string) {
 
       // Borsh-encode the permit to build the Ed25519 verify instruction
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const coder = new BorshCoder(IDL as any);
-      const messageBytes = coder.types.encode("PurchasePermitV3", permitData);
+      const coder = new BorshCoder(IDL_CAMEL as any);
+      const messageBytes = coder.types.encode("purchasePermitV3", permitData);
 
       // Fetch sale account for the permit signer and vault public keys
-      const saleAccount = (await (program.account as any).settlementSale.fetch(salePDA)) as SettlementSaleAccount; // eslint-disable-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const saleAccount = (await (program.account as any).settlementSale.fetch(salePDA)) as SettlementSaleAccount;
 
       const sigHex = purchasePermitResp.Signature.replace(/^0x/, "");
       const signatureBytes = Buffer.from(sigHex, "hex");
@@ -163,7 +169,7 @@ export function usePlaceBid(saleSpecificEntityID: string) {
         .accounts({
           bidder: wallet.publicKey,
           sale: salePDA,
-          entityState: entityStatePDA,
+          entityState: permitEntityStatePDA,
           walletBinding: walletBindingPDA,
           bidderTokenAccount,
           vault: saleAccount.vault,
@@ -181,8 +187,19 @@ export function usePlaceBid(saleSpecificEntityID: string) {
       tx.recentBlockhash = blockhash;
 
       const signed = await wallet.signTransaction(tx);
-      const sig = await connection.sendRawTransaction(signed.serialize());
+      // Compute the transaction ID before sending — it's the base58-encoded
+      // first signature, so we have it regardless of send errors.
+      const rawSig = signed.signatures[0]?.signature;
+      if (!rawSig) throw new Error("Transaction not signed");
+      const sig = bs58.encode(rawSig);
       setTxSignature(sig);
+      try {
+        await connection.sendRawTransaction(signed.serialize());
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!msg.includes("already been processed")) throw e;
+        // Transaction already landed before the RPC retry fired — proceed to confirm.
+      }
 
       setAwaitingTxReceipt(true);
       await connection.confirmTransaction(sig, "confirmed");
