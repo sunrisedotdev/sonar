@@ -37,6 +37,9 @@ By default, the app uses the public Base Sepolia RPC endpoint, which is *rate-li
 
 For production or any meaningful testing, set the env var `NEXT_PUBLIC_BASE_RPC_URL` to your RPC endpoint from [Alchemy](https://www.alchemy.com/), [Infura](https://www.infura.io/), or [QuickNode](https://www.quicknode.com/).
 
+**Be careful!** Exposing an RPC URL on the frontend allows anyone to extract and use your private RPC keys.
+Only used scoped and rate-limited API keys, never expose your master private keys.
+
 ## What This Example Demonstrates
 
 - **OAuth authentication with Sonar** via a secure backend flow with PKCE
