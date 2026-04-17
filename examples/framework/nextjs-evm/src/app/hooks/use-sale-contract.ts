@@ -33,8 +33,6 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
       commitmentAmount: bigint;
       commitmentAmountIncrement: bigint;
     }) => {
-      console.log("commitWithPermit.commitmentAmount", commitmentAmount);
-      console.log("commitWithPermit.commitmentAmountIncrement", commitmentAmountIncrement);
       if (!("OpensAt" in purchasePermitResp.PermitJSON)) {
         throw new Error("Invalid purchase permit response");
       }

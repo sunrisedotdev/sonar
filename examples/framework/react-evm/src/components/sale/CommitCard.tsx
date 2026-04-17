@@ -1,5 +1,5 @@
 import { PrePurchaseFailureReason, GeneratePurchasePermitResponse, EntityID, Hex } from "@echoxyz/sonar-core";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { paymentTokenAddress, saleUUID } from "../../config";
 import {
   useSonarPurchase,
@@ -85,6 +85,14 @@ function CommitSection({
 
   const isFirstCommit = currentCommitmentRaw === 0n;
 
+  const [showInput, setShowInput] = useState(true);
+
+  useEffect(() => {
+    if (txReceipt?.status === "success") {
+      setShowInput(false);
+    }
+  }, [txReceipt]);
+
   const purchase = async () => {
     setLoading(true);
     setError(undefined);
@@ -115,40 +123,52 @@ function CommitSection({
             <span className="font-semibold text-gray-900">{currentCommitmentFormatted} USDC</span>
           </p>
         )}
-        <div className="flex flex-col gap-1">
-          <label htmlFor="commitAmount" className="text-sm text-gray-700">
-            {isFirstCommit ? "USDC to commit" : "Additional USDC to commit"}
-          </label>
-          <input
-            id="commitAmount"
-            type="number"
-            min="0"
-            value={humanReadableAmount}
-            onChange={(e) => setHumanReadableAmount(e.target.value)}
-            disabled={loading || awaitingTxReceipt}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-            placeholder="Enter amount"
-          />
-          {!isFirstCommit && isValidAmount && (
-            <p className="text-sm text-gray-500">
-              New total: <span className="font-semibold text-gray-700">{newTotalFormatted} USDC</span>
-            </p>
-          )}
-        </div>
-        <button
-          disabled={loading || awaitingTxReceipt || !isValidAmount}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={purchase}
-        >
-          <p className="text-gray-100">{loading || awaitingTxReceipt ? "Loading..." : "Commit"}</p>
-        </button>
-
-        {awaitingTxReceipt && !txReceipt && <p className="text-gray-900">Waiting for transaction receipt...</p>}
-        {txReceipt?.status === "success" && <p className="text-green-500">Commitment successful</p>}
-        {txReceipt?.status === "reverted" && <p className="text-red-500">Commitment reverted</p>}
-        {error && <p className="text-red-500 wrap-anywhere">{error.message}</p>}
-        {awaitingTxReceiptError && <p className="text-red-500 wrap-anywhere">{awaitingTxReceiptError.message}</p>}
-        {entityStateError && <p className="text-red-500 wrap-anywhere">{entityStateError.message}</p>}
+        {showInput ? (
+          <>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="commitAmount" className="text-sm text-gray-700">
+                {isFirstCommit ? "USDC to commit" : "Additional USDC to commit"}
+              </label>
+              <input
+                id="commitAmount"
+                type="number"
+                min="0"
+                value={humanReadableAmount}
+                onChange={(e) => setHumanReadableAmount(e.target.value)}
+                disabled={loading || awaitingTxReceipt}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                placeholder="Enter amount"
+              />
+              {!isFirstCommit && isValidAmount && (
+                <p className="text-sm text-gray-500">
+                  New total: <span className="font-semibold text-gray-700">{newTotalFormatted} USDC</span>
+                </p>
+              )}
+            </div>
+            <button
+              disabled={loading || awaitingTxReceipt || !isValidAmount}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={purchase}
+            >
+              <p className="text-gray-100">{loading || awaitingTxReceipt ? "Loading..." : "Commit"}</p>
+            </button>
+            {awaitingTxReceipt && !txReceipt && <p className="text-gray-900">Waiting for transaction receipt...</p>}
+            {txReceipt?.status === "reverted" && <p className="text-red-500">Commitment reverted</p>}
+            {error && <p className="text-red-500 wrap-anywhere">{error.message}</p>}
+            {awaitingTxReceiptError && <p className="text-red-500 wrap-anywhere">{awaitingTxReceiptError.message}</p>}
+            {entityStateError && <p className="text-red-500 wrap-anywhere">{entityStateError.message}</p>}
+          </>
+        ) : (
+          <button
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors w-fit"
+            onClick={() => {
+              setHumanReadableAmount("1");
+              setShowInput(true);
+            }}
+          >
+            <p className="text-gray-100">Commit more</p>
+          </button>
+        )}
       </div>
     </div>
   );
