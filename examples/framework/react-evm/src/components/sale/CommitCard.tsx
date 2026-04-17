@@ -99,7 +99,7 @@ function CommitSection({
     try {
       const purchasePermitResp = await generatePurchasePermit();
       const increment = BigInt(Math.floor(parseFloat(humanReadableAmount) * 1e6));
-      // Note: The current commitment raw could be stale if there are race conditions is there is a concurrent commitment from this entity.
+      // Note: The current commitment raw could be stale if there is a concurrent commitment from this entity.
       const newTotal = currentCommitmentRaw + increment; 
       await commitWithPermit({
         purchasePermitResp,
