@@ -44,7 +44,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
       });
 
       const approveHash = await writeContractAsync(approveRequest);
-      await waitForTransactionReceipt(config, { hash: approveHash });
+      const approveReceipt = await waitForTransactionReceipt(config, { hash: approveHash });
 
       const bidArgs = [
         token,
@@ -71,6 +71,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
         abi: settlementSaleAbi,
         functionName: "replaceBidWithApproval",
         args: bidArgs,
+        blockNumber: approveReceipt.blockNumber,
       });
 
       const bidHash = await writeContractAsync(bidRequest);
