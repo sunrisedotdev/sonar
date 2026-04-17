@@ -25,12 +25,16 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
     async ({
       purchasePermitResp,
       token,
-      amount,
+      commitmentAmount,
+      commitmentAmountIncrement,
     }: {
       purchasePermitResp: GeneratePurchasePermitResponse;
       token: `0x${string}`;
-      amount: bigint;
+      commitmentAmount: bigint;
+      commitmentAmountIncrement: bigint;
     }) => {
+      console.log("commitWithPermit.commitmentAmount", commitmentAmount);
+      console.log("commitWithPermit.commitmentAmountIncrement", commitmentAmountIncrement);
       if (!("OpensAt" in purchasePermitResp.PermitJSON)) {
         throw new Error("Invalid purchase permit response");
       }
@@ -40,7 +44,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
         address: token,
         abi: ERC20Abi,
         functionName: "approve",
-        args: [saleContract, amount],
+        args: [saleContract, commitmentAmountIncrement],
       });
 
       const approveHash = await writeContractAsync(approveRequest);
@@ -48,7 +52,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
 
       const bidArgs = [
         token,
-        { lockup: false, price: BigInt(0), amount: amount },
+        { lockup: false, price: BigInt(0), amount: commitmentAmount },
         {
           saleSpecificEntityID: permit.SaleSpecificEntityID,
           saleUUID: permit.SaleUUID,
@@ -90,9 +94,16 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
     },
   });
 
+  const currentCommitmentRaw: bigint = entityStates?.[0]?.currentBid?.amount ?? BigInt(0);
+  const currentCommitmentFormatted = (Number(currentCommitmentRaw) / 1e6).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
   return {
-    entityState: entityStates?.[0],
     entityStateError,
+    currentCommitmentRaw,
+    currentCommitmentFormatted,
     commitWithPermit,
     awaitingTxReceipt,
     txReceipt,

@@ -60,41 +60,64 @@ function CommitSection({
   saleSpecificEntityID: Hex;
   generatePurchasePermit: () => Promise<GeneratePurchasePermitResponse>;
 }) {
-  const { commitWithPermit, entityState, entityStateError, awaitingTxReceipt, txReceipt, awaitingTxReceiptError } =
-    useSaleContract(saleSpecificEntityID);
+  const {
+    commitWithPermit,
+    currentCommitmentRaw,
+    currentCommitmentFormatted,
+    entityStateError,
+    awaitingTxReceipt,
+    txReceipt,
+    awaitingTxReceiptError,
+  } = useSaleContract(saleSpecificEntityID);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | undefined>(undefined);
   const [humanReadableAmount, setHumanReadableAmount] = useState<string>("1");
+
+  const parsedAmount = parseFloat(humanReadableAmount);
+  const isValidAmount = humanReadableAmount !== "" && !isNaN(parsedAmount) && parsedAmount > 0;
+  const incrementRaw = isValidAmount ? BigInt(Math.floor(parsedAmount * 1e6)) : 0n;
+  const newTotalRaw = currentCommitmentRaw + incrementRaw;
+  const newTotalFormatted = (Number(newTotalRaw) / 1e6).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const isFirstCommit = currentCommitmentRaw === 0n;
 
   const purchase = async () => {
     setLoading(true);
     setError(undefined);
     try {
       const purchasePermitResp = await generatePurchasePermit();
-      const amount = BigInt(Math.floor(parseFloat(humanReadableAmount) * 1e6));
+      const increment = BigInt(Math.floor(parseFloat(humanReadableAmount) * 1e6));
+      // Note: The current commitment raw could be stale if there are race conditions is there is a concurrent commitment from this entity.
+      const newTotal = currentCommitmentRaw + increment; 
       await commitWithPermit({
-        purchasePermitResp: purchasePermitResp,
+        purchasePermitResp,
         token: paymentTokenAddress,
-        amount,
+        commitmentAmount: newTotal,
+        commitmentAmountIncrement: increment,
       });
-    } catch (error) {
-      setError(error as Error);
+    } catch (err) {
+      setError(err as Error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Get the committed amount for the payment token
-  const committedAmount = entityState?.currentBid?.amount;
-
-  // TODO: could fetch and show the user their allocation
   return (
     <div className="flex flex-col gap-4 items-center">
       <div className="flex flex-col gap-2">
+        {!isFirstCommit && (
+          <p className="text-sm text-gray-600">
+            Current commitment:{" "}
+            <span className="font-semibold text-gray-900">{currentCommitmentFormatted} USDC</span>
+          </p>
+        )}
         <div className="flex flex-col gap-1">
           <label htmlFor="commitAmount" className="text-sm text-gray-700">
-            USDC to commit (replaces existing commitment)
+            {isFirstCommit ? "USDC to commit" : "Additional USDC to commit"}
           </label>
           <input
             id="commitAmount"
@@ -106,9 +129,14 @@ function CommitSection({
             className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
             placeholder="Enter amount"
           />
+          {!isFirstCommit && isValidAmount && (
+            <p className="text-sm text-gray-500">
+              New total: <span className="font-semibold text-gray-700">{newTotalFormatted} USDC</span>
+            </p>
+          )}
         </div>
         <button
-          disabled={loading || awaitingTxReceipt || !humanReadableAmount || parseFloat(humanReadableAmount) <= 0}
+          disabled={loading || awaitingTxReceipt || !isValidAmount}
           className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={purchase}
         >
@@ -120,17 +148,7 @@ function CommitSection({
         {txReceipt?.status === "reverted" && <p className="text-red-500">Commitment reverted</p>}
         {error && <p className="text-red-500 wrap-anywhere">{error.message}</p>}
         {awaitingTxReceiptError && <p className="text-red-500 wrap-anywhere">{awaitingTxReceiptError.message}</p>}
-      </div>
-
-      <div className="bg-white p-2 rounded-md w-fit">
-        {entityStateError ? (
-          <p className="text-red-500 wrap-anywhere">{entityStateError.message}</p>
-        ) : (
-          <p className="text-gray-900">
-            Current committed amount:{" "}
-            {committedAmount !== undefined ? `${Number(committedAmount) / 1e6} USDC` : "Loading..."}
-          </p>
-        )}
+        {entityStateError && <p className="text-red-500 wrap-anywhere">{entityStateError.message}</p>}
       </div>
     </div>
   );
