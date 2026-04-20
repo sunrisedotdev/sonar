@@ -1,0 +1,875 @@
+{
+  "address": "3XxHCh947y1PAMK5y8oecBtaLU7TtTj9r4yMYwzFbJYs",
+  "metadata": {
+    "name": "settlement_sale",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Settlement Sale program for Sonar public sales on Solana"
+  },
+  "instructions": [
+    {
+      "name": "place_bid",
+      "docs": [
+        "Places or updates a bid in the sale.",
+        "",
+        "Verifies the Ed25519 signature via instruction introspection,",
+        "validates the permit, checks entity ownership, enforces monotonic",
+        "constraints and lockup rules, and transfers tokens to the vault."
+      ],
+      "discriminator": [
+        238,
+        77,
+        148,
+        91,
+        200,
+        151,
+        92,
+        146
+      ],
+      "accounts": [
+        {
+          "name": "bidder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "entity_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  116,
+                  105,
+                  116,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "arg",
+                "path": "permit.sale_specific_entity_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet_binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bidder_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payment_token_mint"
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "instructions",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "permit",
+          "type": {
+            "defined": {
+              "name": "PurchasePermitV3"
+            }
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "price",
+          "type": "u64"
+        },
+        {
+          "name": "lockup",
+          "type": "bool"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "EntityState",
+      "discriminator": [
+        92,
+        218,
+        188,
+        5,
+        237,
+        215,
+        13,
+        253
+      ]
+    },
+    {
+      "name": "SettlementSale",
+      "discriminator": [
+        38,
+        117,
+        82,
+        234,
+        79,
+        111,
+        15,
+        74
+      ]
+    }
+  ],
+  "types": [
+    {
+      "name": "EntityState",
+      "docs": [
+        "Tracks an entity's bid state within a sale.",
+        "",
+        "An entity can receive contributions from multiple wallets (additive).",
+        "The total amount is the sum of all wallet contributions.",
+        "",
+        "Seeds: [\"entity_state\", sale.key(), entity_id]"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "is_initialized",
+            "docs": [
+              "Whether this entity state has been initialized.",
+              "",
+              "Required because `init_if_needed` doesn't distinguish first-time creation",
+              "from subsequent loads in instruction logic."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "entity_id",
+            "docs": [
+              "Unique identifier for this entity (UUID as bytes)."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "sale",
+            "docs": [
+              "The sale this entity belongs to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "current_amount",
+            "docs": [
+              "Current committed amount (monotonic: can only increase during Commitment)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "accepted_amount",
+            "docs": [
+              "Total amount accepted (allocated) across all wallets for this entity.",
+              "Updated during Settlement when allocations are set."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "current_price",
+            "docs": [
+              "Current bid price (monotonic: can only increase)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "lockup",
+            "docs": [
+              "Whether this entity has opted into lockup. Once true, cannot be set false."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "refunded",
+            "docs": [
+              "Whether this entity has been fully refunded (cancellation or Done-stage refund).",
+              "Prevents new bids on an already-cancelled entity."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "total_refunded",
+            "docs": [
+              "Total amount refunded to wallets on this entity during the Done stage.",
+              "When this equals `current_amount - accepted_amount`, all wallets have been refunded."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "wallet_count",
+            "docs": [
+              "Number of distinct wallets that have contributed to this entity.",
+              "Used to enforce max_wallets_per_entity."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "last_bid_timestamp",
+            "docs": [
+              "Unix timestamp of the last bid."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PurchasePermitV3",
+      "docs": [
+        "PurchasePermitV3 for Solana.",
+        "Uses a 32-byte Solana pubkey for the wallet field."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale_specific_entity_id",
+            "docs": [
+              "The sale-specific entity ID (UUID as bytes)."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "sale_uuid",
+            "docs": [
+              "The sale UUID."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "wallet",
+            "docs": [
+              "The Solana wallet pubkey (32 bytes)."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "expires_at",
+            "docs": [
+              "Unix timestamp when this permit expires."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "min_amount",
+            "docs": [
+              "Minimum bid amount allowed."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "max_amount",
+            "docs": [
+              "Maximum bid amount allowed."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "min_price",
+            "docs": [
+              "Minimum price allowed."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "max_price",
+            "docs": [
+              "Maximum price allowed."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "opens_at",
+            "docs": [
+              "Unix timestamp when the commitment window opens."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "closes_at",
+            "docs": [
+              "Unix timestamp when the commitment window closes."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "payload",
+            "docs": [
+              "Opaque payload bytes for off-chain use. Not decoded by the program."
+            ],
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SettlementSale",
+      "docs": [
+        "Configuration and global state account for a SettlementSale.",
+        "",
+        "Seeds: [\"settlement_sale\", sale_uuid]"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale_uuid",
+            "docs": [
+              "Unique identifier for this sale (UUID as bytes)."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "permit_signer",
+            "docs": [
+              "Public key of the backend permit signer (Ed25519)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "payment_token_mint",
+            "docs": [
+              "SPL token mint for payments (e.g., USDC)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "docs": [
+              "Token account (vault) that holds committed funds."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "docs": [
+              "Admin authority that can manage this sale."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "proceeds_receiver",
+            "docs": [
+              "Receives the accepted (non-refunded) proceeds after settlement."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "stage",
+            "docs": [
+              "Current lifecycle stage."
+            ],
+            "type": {
+              "defined": {
+                "name": "Stage"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed for the sale account."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "docs": [
+              "PDA bump seed for the vault account."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "is_paused",
+            "docs": [
+              "Whether the sale is currently paused (emergency use)."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "claim_refund_enabled",
+            "docs": [
+              "Whether wallets can self-service their Done-stage refunds via `claim_refund`."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "reduce_commitment_enabled",
+            "docs": [
+              "Whether wallets can partially reduce their commitment via `reduce_commitment`."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "max_wallets_per_entity",
+            "docs": [
+              "Maximum number of distinct wallets that can contribute to one entity."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "total_committed",
+            "docs": [
+              "Total amount committed across all entities (decreases on cancellation)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_cancelled",
+            "docs": [
+              "Total amount cancelled during the Cancellation stage (audit tracking)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_accepted",
+            "docs": [
+              "Total amount accepted (allocated) during Settlement."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_refunded",
+            "docs": [
+              "Total amount refunded during the Done stage."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_withdrawn",
+            "docs": [
+              "Total amount withdrawn to the proceeds receiver."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Stage",
+      "docs": [
+        "The lifecycle stages of a settlement sale.",
+        "",
+        "Transitions (same as EVM):",
+        "PreOpen -> Commitment -> Cancellation -> Settlement -> Done",
+        "`-> Settlement -> Done"
+      ],
+      "repr": {
+        "kind": "rust"
+      },
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "PreOpen"
+          },
+          {
+            "name": "Commitment"
+          },
+          {
+            "name": "Cancellation"
+          },
+          {
+            "name": "Settlement"
+          },
+          {
+            "name": "Done"
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidEd25519Instruction",
+      "msg": "Ed25519 program instruction not found or invalid"
+    },
+    {
+      "code": 6001,
+      "name": "UnauthorizedSigner",
+      "msg": "The permit signer is not authorized"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidWallet",
+      "msg": "Permit wallet doesn't match transaction signer"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidSaleUuid",
+      "msg": "Permit sale_uuid doesn't match sale"
+    },
+    {
+      "code": 6004,
+      "name": "PermitExpired",
+      "msg": "Permit has expired"
+    },
+    {
+      "code": 6005,
+      "name": "BidTooEarly",
+      "msg": "Bid submitted before the commitment window opens"
+    },
+    {
+      "code": 6006,
+      "name": "BidTooLate",
+      "msg": "Bid submitted after the commitment window closes"
+    },
+    {
+      "code": 6007,
+      "name": "BidBelowMinAmount",
+      "msg": "Bid amount is below the permit minimum"
+    },
+    {
+      "code": 6008,
+      "name": "BidExceedsMaxAmount",
+      "msg": "Bid amount exceeds the permit maximum"
+    },
+    {
+      "code": 6009,
+      "name": "PriceBelowMinPrice",
+      "msg": "Bid price is below the permit minimum"
+    },
+    {
+      "code": 6010,
+      "name": "PriceExceedsMaxPrice",
+      "msg": "Bid price exceeds the permit maximum"
+    },
+    {
+      "code": 6011,
+      "name": "ZeroAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6012,
+      "name": "AmountCannotDecrease",
+      "msg": "Bid amount cannot decrease from previous bid"
+    },
+    {
+      "code": 6013,
+      "name": "PriceCannotDecrease",
+      "msg": "Bid price cannot decrease from previous bid"
+    },
+    {
+      "code": 6014,
+      "name": "BidMustHaveLockup",
+      "msg": "This entity must opt into lockup as required by the permit"
+    },
+    {
+      "code": 6015,
+      "name": "BidLockupCannotBeUndone",
+      "msg": "Lockup cannot be removed once set on a bid"
+    },
+    {
+      "code": 6016,
+      "name": "EntityIdMismatch",
+      "msg": "Entity ID in permit doesn't match entity state"
+    },
+    {
+      "code": 6017,
+      "name": "AlreadyRefunded",
+      "msg": "Entity has already been refunded"
+    },
+    {
+      "code": 6018,
+      "name": "WalletAlreadyRefunded",
+      "msg": "This wallet has already been refunded"
+    },
+    {
+      "code": 6019,
+      "name": "WalletBoundToDifferentEntity",
+      "msg": "Wallet is already bound to a different entity"
+    },
+    {
+      "code": 6020,
+      "name": "MaxWalletsPerEntityExceeded",
+      "msg": "Maximum number of wallets per entity exceeded"
+    },
+    {
+      "code": 6021,
+      "name": "InvalidTokenAccountOwner",
+      "msg": "Invalid token account owner"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidTokenMint",
+      "msg": "Invalid token mint"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidStage",
+      "msg": "Operation not permitted in the current sale stage"
+    },
+    {
+      "code": 6024,
+      "name": "SalePaused",
+      "msg": "Sale is paused"
+    },
+    {
+      "code": 6025,
+      "name": "ReduceCommitmentDisabled",
+      "msg": "Reduce commitment is not enabled for this sale"
+    },
+    {
+      "code": 6026,
+      "name": "ReductionExceedsCommitment",
+      "msg": "Reduction amount exceeds committed amount"
+    },
+    {
+      "code": 6027,
+      "name": "ClaimRefundDisabled",
+      "msg": "Claim refund is not enabled for this sale"
+    },
+    {
+      "code": 6028,
+      "name": "AllocationExceedsCommitment",
+      "msg": "Allocation exceeds the wallet's committed amount"
+    },
+    {
+      "code": 6029,
+      "name": "UnexpectedTotalAcceptedAmount",
+      "msg": "Total accepted amount does not match expected value"
+    },
+    {
+      "code": 6030,
+      "name": "WithdrawalExceedsAvailable",
+      "msg": "Withdrawal amount exceeds available proceeds"
+    },
+    {
+      "code": 6031,
+      "name": "UnsupportedTokenProgram",
+      "msg": "Token-2022 mints are not supported"
+    },
+    {
+      "code": 6032,
+      "name": "ZeroProceedsReceiver",
+      "msg": "Proceeds receiver cannot be the zero address"
+    },
+    {
+      "code": 6033,
+      "name": "ZeroPermitSigner",
+      "msg": "Permit signer cannot be the zero address"
+    },
+    {
+      "code": 6034,
+      "name": "MaxWalletsPerEntityZero",
+      "msg": "Max wallets per entity must be greater than zero"
+    },
+    {
+      "code": 6035,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6036,
+      "name": "SerializationError",
+      "msg": "Failed to serialize data"
+    },
+    {
+      "code": 6037,
+      "name": "InvalidPermitStructure",
+      "msg": "Permit has invalid structure (e.g., min > max or opens > closes)"
+    },
+    {
+      "code": 6038,
+      "name": "InvalidClockTimestamp",
+      "msg": "Clock timestamp is invalid"
+    },
+    {
+      "code": 6039,
+      "name": "AccountDataMismatch",
+      "msg": "Account data does not match expected values"
+    },
+    {
+      "code": 6040,
+      "name": "AllocationAlreadySet",
+      "msg": "Allocation already set; pass allow_overwrite to replace"
+    },
+    {
+      "code": 6041,
+      "name": "ZeroAuthority",
+      "msg": "New authority cannot be the zero address"
+    },
+    {
+      "code": 6042,
+      "name": "RoleNotHeld",
+      "msg": "Role is not held by this operator"
+    },
+    {
+      "code": 6043,
+      "name": "RoleAlreadyGranted",
+      "msg": "Role is already granted to this operator"
+    },
+    {
+      "code": 6044,
+      "name": "Ed25519InstructionMissing",
+      "msg": "Ed25519 instruction is missing at the expected preceding position"
+    },
+    {
+      "code": 6045,
+      "name": "Ed25519WrongProgram",
+      "msg": "Instruction at expected Ed25519 position has wrong program ID"
+    },
+    {
+      "code": 6046,
+      "name": "Ed25519MultipleSignatures",
+      "msg": "Ed25519 instruction must contain exactly one signature"
+    },
+    {
+      "code": 6047,
+      "name": "Ed25519MalformedData",
+      "msg": "Ed25519 instruction data is malformed or uses external data references"
+    },
+    {
+      "code": 6048,
+      "name": "Ed25519MessageMismatch",
+      "msg": "Signed message does not match expected permit bytes"
+    }
+  ]
+}

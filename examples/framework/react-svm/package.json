@@ -1,0 +1,41 @@
+{
+  "name": "sonar-example-react-svm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@echoxyz/sonar-core": "^0.14.1",
+    "@echoxyz/sonar-react": "^0.13.1",
+    "@solana/spl-token": "^0.4.13",
+    "@solana/wallet-adapter-react": "^0.15.35",
+    "@solana/wallet-adapter-react-ui": "^0.9.35",
+    "@solana/web3.js": "^1.98.2",
+    "@tanstack/react-query": "^5.90.12",
+    "bs58": "^6.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@tailwindcss/postcss": "^4",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.39.2",
+    "globals": "^17.0.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "typescript-eslint": "^8.52.0",
+    "vite": "^6.0.7",
+    "vite-plugin-node-polyfills": "^0.22.0"
+  },
+  "packageManager": "pnpm@10.15.0+sha512.486ebc259d3e999a4e8691ce03b5cac4a71cbeca39372a9b762cb500cfdf0873e2cb16abe3d951b1ee2cf012503f027b98b6584e4df22524e0c7450d9ec7aa7b"
+}

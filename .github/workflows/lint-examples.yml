@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [react-evm, nextjs-evm, nextjs-svm]
+        app: [react-evm, nextjs-evm, react-svm, nextjs-svm]
     steps:
       - uses: actions/checkout@v4
 
