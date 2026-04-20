@@ -92,16 +92,16 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
     },
   });
 
-  const currentCommitmentRaw: bigint = entityStates?.[0]?.currentBid?.amount ?? 0n;
-  const currentCommitmentFormatted = (Number(currentCommitmentRaw) / 1e6).toLocaleString(undefined, {
+  const currentTotalRaw: bigint = entityStates?.[0]?.currentBid?.amount ?? 0n;
+  const currentTotalHumanReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
   return {
     entityStateError,
-    currentCommitmentRaw,
-    currentCommitmentFormatted,
+    currentTotalRaw,
+    currentTotalHumanReadableStr,
     commitWithPermit,
     awaitingTxReceipt,
     txReceipt,

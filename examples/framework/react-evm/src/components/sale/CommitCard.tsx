@@ -62,8 +62,8 @@ function CommitSection({
 }) {
   const {
     commitWithPermit,
-    currentCommitmentRaw,
-    currentCommitmentFormatted,
+    currentTotalRaw,
+    currentTotalHumanReadableStr,
     entityStateError,
     awaitingTxReceipt,
     txReceipt,
@@ -72,18 +72,18 @@ function CommitSection({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | undefined>(undefined);
-  const [humanReadableAmount, setHumanReadableAmount] = useState<string>("1");
+  const [incrementHumanReadableStr, setIncrementHumanReadableStr] = useState<string>("1");
 
-  const parsedAmount = parseFloat(humanReadableAmount);
-  const isValidAmount = humanReadableAmount !== "" && !isNaN(parsedAmount) && parsedAmount > 0;
-  const incrementRaw = isValidAmount ? BigInt(Math.floor(parsedAmount * 1e6)) : 0n;
-  const newTotalRaw = currentCommitmentRaw + incrementRaw;
-  const newTotalFormatted = (Number(newTotalRaw) / 1e6).toLocaleString(undefined, {
+  const parsedIncrementAmount = parseFloat(incrementHumanReadableStr);
+  const isIncrementAmountValid = incrementHumanReadableStr !== "" && !isNaN(parsedIncrementAmount) && parsedIncrementAmount > 0;
+  const incrementRaw = isIncrementAmountValid ? BigInt(Math.floor(parsedIncrementAmount * 1e6)) : 0n;
+  const newTotalRaw = currentTotalRaw + incrementRaw;
+  const newTotalHumanReadableStr = (Number(newTotalRaw) / 1e6).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
-  const isFirstCommit = currentCommitmentRaw === 0n;
+  const isFirstCommit = currentTotalRaw === 0n;
 
   const [showInput, setShowInput] = useState(true);
 
@@ -98,9 +98,9 @@ function CommitSection({
     setError(undefined);
     try {
       const purchasePermitResp = await generatePurchasePermit();
-      const increment = BigInt(Math.floor(parseFloat(humanReadableAmount) * 1e6));
+      const increment = BigInt(Math.floor(parseFloat(incrementHumanReadableStr) * 1e6));
       // Note: The current commitment raw could be stale if there is a concurrent commitment from this entity.
-      const newTotal = currentCommitmentRaw + increment; 
+      const newTotal = currentTotalRaw + increment; 
       await commitWithPermit({
         purchasePermitResp,
         token: paymentTokenAddress,
@@ -120,7 +120,7 @@ function CommitSection({
         {!isFirstCommit && (
           <p className="text-sm text-gray-600">
             Current commitment:{" "}
-            <span className="font-semibold text-gray-900">{currentCommitmentFormatted} USDC</span>
+            <span className="font-semibold text-gray-900">{currentTotalHumanReadableStr} USDC</span>
           </p>
         )}
         {showInput ? (
@@ -133,20 +133,20 @@ function CommitSection({
                 id="commitAmount"
                 type="number"
                 min="0"
-                value={humanReadableAmount}
-                onChange={(e) => setHumanReadableAmount(e.target.value)}
+                value={incrementHumanReadableStr}
+                onChange={(e) => setIncrementHumanReadableStr(e.target.value)}
                 disabled={loading || awaitingTxReceipt}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 placeholder="Enter amount"
               />
-              {!isFirstCommit && isValidAmount && (
+              {!isFirstCommit && isIncrementAmountValid && (
                 <p className="text-sm text-gray-500">
-                  New total: <span className="font-semibold text-gray-700">{newTotalFormatted} USDC</span>
+                  New total: <span className="font-semibold text-gray-700">{newTotalHumanReadableStr} USDC</span>
                 </p>
               )}
             </div>
             <button
-              disabled={loading || awaitingTxReceipt || !isValidAmount}
+              disabled={loading || awaitingTxReceipt || !isIncrementAmountValid}
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={purchase}
             >
@@ -162,7 +162,7 @@ function CommitSection({
           <button
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors w-fit"
             onClick={() => {
-              setHumanReadableAmount("1");
+              setIncrementHumanReadableStr("1");
               setShowInput(true);
             }}
           >
