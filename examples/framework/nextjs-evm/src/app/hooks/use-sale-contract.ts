@@ -50,7 +50,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
 
       const bidArgs = [
         token,
-        { lockup: false, price: BigInt(0), amount: commitmentAmount },
+        { lockup: false, price: 0n, amount: commitmentAmount },
         {
           saleSpecificEntityID: permit.SaleSpecificEntityID,
           saleUUID: permit.SaleUUID,
@@ -92,7 +92,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
     },
   });
 
-  const currentCommitmentRaw: bigint = entityStates?.[0]?.currentBid?.amount ?? BigInt(0);
+  const currentCommitmentRaw: bigint = entityStates?.[0]?.currentBid?.amount ?? 0n;
   const currentCommitmentFormatted = (Number(currentCommitmentRaw) / 1e6).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

@@ -75,14 +75,14 @@ function CommitSection({
 
   const parsedAmount = parseFloat(humanReadableAmount);
   const isValidAmount = humanReadableAmount !== "" && !isNaN(parsedAmount) && parsedAmount > 0;
-  const incrementRaw = isValidAmount ? BigInt(Math.floor(parsedAmount * 1e6)) : BigInt(0);
+  const incrementRaw = isValidAmount ? BigInt(Math.floor(parsedAmount * 1e6)) : 0n;
   const newTotalRaw = currentCommitmentRaw + incrementRaw;
   const newTotalFormatted = (Number(newTotalRaw) / 1e6).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
-  const isFirstCommit = currentCommitmentRaw === BigInt(0);
+  const isFirstCommit = currentCommitmentRaw === 0n;
 
   const [showInput, setShowInput] = useState(true);
 
