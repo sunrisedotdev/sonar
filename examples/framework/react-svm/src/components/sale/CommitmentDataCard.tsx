@@ -8,7 +8,7 @@ function formatAmount(amount: bigint, decimals: number): string {
 }
 
 function calculateCommitmentTotal(amounts: WalletTokenAmount[]): bigint {
-  return amounts.reduce((sum, item) => sum + BigInt(item.Amount), BigInt(0));
+  return amounts.reduce((sum, item) => sum + BigInt(item.Amount), 0n);
 }
 
 // The timestamp is a string in ISO 8601 format

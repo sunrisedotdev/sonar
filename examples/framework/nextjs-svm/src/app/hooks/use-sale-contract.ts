@@ -77,7 +77,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const state = (await (program.account as any).entityState.fetchNullable(entityStatePDA)) as EntityStateAccount | null;
         if (!cancelled) {
-          setCommittedAmount(state ? BigInt(state.currentAmount.toString()) : BigInt(0));
+          setCommittedAmount(state ? BigInt(state.currentAmount.toString()) : 0n);
           setEntityStateError(undefined);
         }
       } catch (err) {
@@ -96,10 +96,11 @@ export function useSaleContract(saleSpecificEntityID: string) {
   const commitWithPermit = useCallback(
     async ({
       purchasePermitResp,
-      amount,
+      commitmentAmount,
     }: {
       purchasePermitResp: GeneratePurchasePermitResponse;
-      amount: bigint;
+      commitmentAmount: bigint;
+      commitmentAmountIncrement: bigint;
     }) => {
       if (!wallet) throw new Error("Wallet not connected");
 
@@ -162,7 +163,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const placeBidIx = await (program.methods as any)
-        .placeBid(permitData, new BN(amount.toString()), new BN(0), false)
+        .placeBid(permitData, new BN(commitmentAmount.toString()), new BN(0), false)
         .accounts({
           bidder: wallet.publicKey,
           sale: salePDA,
@@ -195,12 +196,19 @@ export function useSaleContract(saleSpecificEntityID: string) {
     [wallet, connection, salePDA, entityStatePDA, programPublicKey]
   );
 
+  const currentTotalRaw: bigint = committedAmount ?? 0n;
+  const currentTotalHumanReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
   return {
     commitWithPermit,
     txSignature,
     confirmed,
     awaitingTxReceipt,
-    committedAmount,
+    currentTotalRaw,
+    currentTotalHumanReadableStr,
     entityStateError,
   };
 }
