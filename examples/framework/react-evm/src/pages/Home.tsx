@@ -4,6 +4,7 @@ import { useSonarAuth, useSonarEntities } from "@echoxyz/sonar-react";
 import { saleUUID, sonarConfig } from "../config";
 import { useAccount } from "wagmi";
 import CommitCard from "../components/sale/CommitCard";
+import CancelCard from "../components/sale/CancelCard";
 import { SaleEligibility } from "@echoxyz/sonar-core";
 import { AuthenticationSection } from "../components/auth/AuthenticationSection";
 import { EntityCard } from "../components/entity/EntityCard";
@@ -11,23 +12,23 @@ import { EntitiesList } from "../components/registration/EntitiesList";
 import { EligibilityResults } from "../components/registration/EligibilityResults";
 import { CommitmentDataCard } from "../components/sale/CommitmentDataCard";
 
+type SalePhase = "presale" | "live" | "cancelled";
+
 export function Home() {
-  const [saleIsLive, setSaleIsLive] = useState(false);
+  const [salePhase, setSalePhase] = useState<SalePhase>("presale");
   const [selectedEntityId, setSelectedEntityId] = useState<string | undefined>(undefined);
 
-  // Load sale state from localStorage
+  // Load sale phase from localStorage
   useEffect(() => {
-    const stored = localStorage.getItem("sale_is_live");
-    if (stored === "true") {
-      setSaleIsLive(true);
+    const stored = localStorage.getItem("sale_phase");
+    if (stored === "live" || stored === "cancelled" || stored === "presale") {
+      setSalePhase(stored);
     }
   }, []);
 
-  // Save sale state to localStorage
-  const toggleSaleLive = () => {
-    const newState = !saleIsLive;
-    setSaleIsLive(newState);
-    localStorage.setItem("sale_is_live", String(newState));
+  const handlePhaseChange = (phase: SalePhase) => {
+    setSalePhase(phase);
+    localStorage.setItem("sale_phase", phase);
   };
 
   // Auth and data hooks
@@ -146,16 +147,15 @@ export function Home() {
       <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-700 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 py-2 flex items-center justify-between">
           <span className="text-gray-400 text-sm font-medium">Demo Controls</span>
-          <button
-            onClick={toggleSaleLive}
-            className={`px-4 py-1.5 rounded-md font-medium text-sm transition-colors ${
-              saleIsLive
-                ? "bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/50"
-                : "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/50"
-            }`}
+          <select
+            value={salePhase}
+            onChange={(e) => handlePhaseChange(e.target.value as SalePhase)}
+            className="px-3 py-1.5 rounded-md font-medium text-sm bg-gray-800 border border-gray-600 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
           >
-            {saleIsLive ? "🟢 Sale Live" : "⏳ Pre-Sale"}
-          </button>
+            <option value="presale">⏳ Pre-Sale</option>
+            <option value="live">🟢 Sale Live</option>
+            <option value="cancelled">🔴 Cancelled</option>
+          </select>
         </div>
       </div>
 
@@ -167,8 +167,8 @@ export function Home() {
               <h1 className="text-3xl font-bold text-gray-900">Easy Company Token Sale</h1>
             </div>
 
-            {/* Countdown Banner */}
-            {!saleIsLive && (
+            {/* Phase Banner */}
+            {salePhase === "presale" && (
               <div className="bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
                 <div className="text-center">
                   <p className="text-blue-900 font-semibold text-lg">Sale Starting Soon</p>
@@ -177,17 +177,26 @@ export function Home() {
               </div>
             )}
 
-            {saleIsLive && (
+            {salePhase === "live" && (
               <div className="bg-linear-to-r bg-green-50 border border-green-200 rounded-lg p-6">
                 <div className="text-center">
                   <p className="text-green-700 font-semibold text-lg">The sale is now live!</p>
                 </div>
               </div>
             )}
+
+            {salePhase === "cancelled" && (
+              <div className="bg-linear-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-6">
+                <div className="text-center">
+                  <p className="text-red-700 font-semibold text-lg">The sale has been cancelled</p>
+                  <p className="text-red-600">You may cancel your bid to receive a full refund of your committed funds</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Registration Phase */}
-          {!saleIsLive && (
+          {salePhase === "presale" && (
             <div className="flex flex-col gap-8">
               <AuthenticationSection ready={ready} authenticated={authenticated} login={login} logout={logout} />
 
@@ -217,7 +226,7 @@ export function Home() {
           )}
 
           {/* Sale Phase */}
-          {saleIsLive && (
+          {salePhase === "live" && (
             <div className="flex flex-col gap-8">
               {/* Connection Buttons */}
               <AuthenticationSection ready={ready} authenticated={authenticated} login={login} logout={logout} />
@@ -246,6 +255,29 @@ export function Home() {
                 <h2 className="text-xl font-semibold text-gray-900">Sale Commitment Data</h2>
                 <CommitmentDataCard saleUUID={saleUUID} />
               </div>
+            </div>
+          )}
+
+          {/* Cancellation Phase */}
+          {salePhase === "cancelled" && (
+            <div className="flex flex-col gap-8">
+              {/* Connection Buttons */}
+              <AuthenticationSection ready={ready} authenticated={authenticated} login={login} logout={logout} />
+              <ConnectKitButton />
+
+              {/* Entity Information */}
+              <div className="flex flex-col gap-4">
+                <h2 className="text-xl font-semibold text-gray-900">Your Entity Information</h2>
+                <EntitySection />
+              </div>
+
+              {/* Cancel Card */}
+              {address && selectedEntity && (
+                <div className="flex flex-col gap-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Cancel Your Bid</h2>
+                  <CancelCard saleSpecificEntityID={selectedEntity.SaleSpecificEntityID} />
+                </div>
+              )}
             </div>
           )}
         </div>
