@@ -66,14 +66,14 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
       ] as const;
 
       // TODO could also show an example of using the replaceBidWithPermit function instead of the replaceBidWithApproval function
-      const { request: bidRequest } = await simulateContract(config, {
+      // Skipping simulateContract here to avoid stale-state issues on distributed RPC nodes:
+      // the approval was just confirmed, but a load-balanced node may not have that block yet.
+      const bidHash = await writeContractAsync({
         address: saleContract,
         abi: settlementSaleAbi,
         functionName: "replaceBidWithApproval",
         args: bidArgs,
       });
-
-      const bidHash = await writeContractAsync(bidRequest);
 
       setTxHash(bidHash);
     },
