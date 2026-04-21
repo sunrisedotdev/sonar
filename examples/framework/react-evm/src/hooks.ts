@@ -92,6 +92,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
     },
   });
 
+  const isEntityStateLoaded = entityStates !== undefined;
   const currentTotalRaw: bigint = entityStates?.[0]?.currentBid?.amount ?? 0n;
   const currentTotalHumanReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
     minimumFractionDigits: 2,
@@ -100,6 +101,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
 
   return {
     entityStateError,
+    isEntityStateLoaded,
     currentTotalRaw,
     currentTotalHumanReadableStr,
     commitWithPermit,

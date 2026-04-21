@@ -42,7 +42,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
   const wallet = useAnchorWallet();
 
   const [txSignature, setTxSignature] = useState<string | undefined>();
-  const [confirmed, setConfirmed] = useState(false);
+  const [confirmedTxSignature, setConfirmedTxSignature] = useState<string | undefined>();
   const [awaitingTxReceipt, setAwaitingTxReceipt] = useState(false);
   const [committedAmount, setCommittedAmount] = useState<bigint | undefined>();
   const [entityStateError, setEntityStateError] = useState<Error | undefined>();
@@ -102,6 +102,9 @@ export function useSaleContract(saleSpecificEntityID: string) {
     }: {
       purchasePermitResp: GeneratePurchasePermitResponse;
       commitmentAmount: bigint;
+      // The program transfers tokens within the same signed transaction using the
+      // bidder's wallet authority, so no prior delegate approval is needed and the
+      // increment is accepted here only for API consistency with the EVM hook.
       commitmentAmountIncrement: bigint;
     }) => {
       if (!wallet) throw new Error("Wallet not connected");
@@ -204,12 +207,13 @@ export function useSaleContract(saleSpecificEntityID: string) {
 
       setAwaitingTxReceipt(true);
       await connection.confirmTransaction(sig, "confirmed");
-      setConfirmed(true);
+      setConfirmedTxSignature(sig);
       setAwaitingTxReceipt(false);
     },
     [wallet, connection, salePDA, entityStatePDA, programPublicKey]
   );
 
+  const isEntityStateLoaded = committedAmount !== undefined;
   const currentTotalRaw: bigint = committedAmount ?? 0n;
   const currentTotalHumanReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
     minimumFractionDigits: 2,
@@ -219,8 +223,9 @@ export function useSaleContract(saleSpecificEntityID: string) {
   return {
     commitWithPermit,
     txSignature,
-    confirmed,
+    confirmedTxSignature,
     awaitingTxReceipt,
+    isEntityStateLoaded,
     currentTotalRaw,
     currentTotalHumanReadableStr,
     entityStateError,
