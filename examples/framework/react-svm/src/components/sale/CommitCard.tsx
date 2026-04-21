@@ -102,7 +102,6 @@ function CommitSection({
       await commitWithPermit({
         purchasePermitResp,
         newTotalRaw,
-        incrementRaw,
       });
     } catch (err) {
       setError(err as Error);

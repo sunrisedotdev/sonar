@@ -100,10 +100,6 @@ export function useSaleContract(saleSpecificEntityID: string) {
     }: {
       purchasePermitResp: GeneratePurchasePermitResponse;
       newTotalRaw: bigint;
-      // The program transfers tokens within the same signed transaction using the
-      // bidder's wallet authority, so no prior delegate approval is needed and the
-      // increment is accepted here only for API consistency with the EVM hook.
-      incrementRaw: bigint;
     }) => {
       if (!wallet) throw new Error("Wallet not connected");
 
