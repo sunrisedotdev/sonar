@@ -65,20 +65,20 @@ function CommitSection({
     confirmedTxSignature,
     isEntityStateLoaded,
     currentTotalRaw,
-    currentTotalHumanReadableStr,
+    currentTotalReadableStr,
     entityStateError,
     awaitingTxReceipt,
   } = useSaleContract(saleSpecificEntityID);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | undefined>(undefined);
-  const [humanReadableIncrementAmount, setHumanReadableIncrementAmount] = useState<string>("1");
+  const [incrementReadableStr, setIncrementReadableStr] = useState<string>("1");
 
-  const parsedIncrementAmount = parseFloat(humanReadableIncrementAmount);
-  const isIncrementAmountValid = humanReadableIncrementAmount !== "" && !isNaN(parsedIncrementAmount) && parsedIncrementAmount > 0;
-  const incrementRaw = isIncrementAmountValid ? BigInt(Math.floor(parsedIncrementAmount * 1e6)) : 0n;
+  const incrementReadable = parseFloat(incrementReadableStr);
+  const isIncrementAmountValid = incrementReadableStr !== "" && !isNaN(incrementReadable) && incrementReadable > 0;
+  const incrementRaw = isIncrementAmountValid ? BigInt(Math.floor(incrementReadable * 1e6)) : 0n;
   const newTotalRaw = currentTotalRaw + incrementRaw;
-  const newTotalFormatted = (Number(newTotalRaw) / 1e6).toLocaleString(undefined, {
+  const newTotalReadableStr = (Number(newTotalRaw) / 1e6).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -101,8 +101,8 @@ function CommitSection({
       // Note: The current commitment raw could be stale if there is a concurrent commitment from this entity.
       await commitWithPermit({
         purchasePermitResp,
-        commitmentAmount: newTotalRaw,
-        commitmentAmountIncrement: incrementRaw,
+        newTotalRaw,
+        incrementRaw,
       });
     } catch (err) {
       setError(err as Error);
@@ -117,7 +117,7 @@ function CommitSection({
         {hasExistingCommitment && (
           <p className="text-sm text-gray-600">
             Current commitment:{" "}
-            <span className="font-semibold text-gray-900">{currentTotalHumanReadableStr} USDC</span>
+            <span className="font-semibold text-gray-900">{currentTotalReadableStr} USDC</span>
           </p>
         )}
         {showInput ? (
@@ -130,15 +130,15 @@ function CommitSection({
                 id="commitAmount"
                 type="number"
                 min="0"
-                value={humanReadableIncrementAmount}
-                onChange={(e) => setHumanReadableIncrementAmount(e.target.value)}
+                value={incrementReadableStr}
+                onChange={(e) => setIncrementReadableStr(e.target.value)}
                 disabled={loading || awaitingTxReceipt}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 placeholder="Enter amount"
               />
               {hasExistingCommitment && isIncrementAmountValid && (
                 <p className="text-sm text-gray-500">
-                  New total: <span className="font-semibold text-gray-700">{newTotalFormatted} USDC</span>
+                  New total: <span className="font-semibold text-gray-700">{newTotalReadableStr} USDC</span>
                 </p>
               )}
             </div>
@@ -157,7 +157,7 @@ function CommitSection({
           <button
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors w-fit"
             onClick={() => {
-              setHumanReadableIncrementAmount("1");
+              setIncrementReadableStr("1");
               setError(undefined);
               setShowInput(true);
             }}

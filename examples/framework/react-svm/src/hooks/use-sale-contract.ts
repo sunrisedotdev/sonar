@@ -98,14 +98,14 @@ export function useSaleContract(saleSpecificEntityID: string) {
   const commitWithPermit = useCallback(
     async ({
       purchasePermitResp,
-      commitmentAmount,
+      newTotalRaw,
     }: {
       purchasePermitResp: GeneratePurchasePermitResponse;
-      commitmentAmount: bigint;
+      newTotalRaw: bigint;
       // The program transfers tokens within the same signed transaction using the
       // bidder's wallet authority, so no prior delegate approval is needed and the
       // increment is accepted here only for API consistency with the EVM hook.
-      commitmentAmountIncrement: bigint;
+      incrementRaw: bigint;
     }) => {
       if (!wallet) throw new Error("Wallet not connected");
 
@@ -169,7 +169,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const placeBidIx = await (program.methods as any)
-        .placeBid(permitData, new BN(commitmentAmount.toString()), new BN(0), false)
+        .placeBid(permitData, new BN(newTotalRaw.toString()), new BN(0), false)
         .accounts({
           bidder: wallet.publicKey,
           sale: salePDA,
@@ -215,7 +215,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
 
   const isEntityStateLoaded = committedAmount !== undefined;
   const currentTotalRaw: bigint = committedAmount ?? 0n;
-  const currentTotalHumanReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
+  const currentTotalReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -227,7 +227,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
     awaitingTxReceipt,
     isEntityStateLoaded,
     currentTotalRaw,
-    currentTotalHumanReadableStr,
+    currentTotalReadableStr,
     entityStateError,
   };
 }
