@@ -36,7 +36,7 @@ Faucets:
 
 By default, the app uses the public Solana devnet RPC endpoint, which is *rate-limited and not suitable for production use*.
 
-For production or any meaningful testing, set the env var `VITE_RPC_URL` to your RPC endpoint from [Helius](https://www.helius.dev/), [QuickNode](https://www.quicknode.com/), or [Alchemy](https://www.alchemy.com/).
+For production or any meaningful testing, set the env var `VITE_RPC_URL` to your private RPC endpoint from [Helius](https://www.helius.dev/), [QuickNode](https://www.quicknode.com/), [Alchemy](https://www.alchemy.com/), or similar.
 
 **Be careful!** Exposing an RPC URL on the frontend allows anyone to extract and use your private RPC keys.
 Only use scoped and rate-limited API keys, never expose your master private keys.

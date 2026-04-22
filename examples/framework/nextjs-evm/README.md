@@ -35,7 +35,7 @@ Faucets:
 
 By default, the app uses the public Base Sepolia RPC endpoint, which is *rate-limited and not suitable for production use*.
 
-For production or any meaningful testing, set the env var `NEXT_PUBLIC_BASE_RPC_URL` to your RPC endpoint from [Alchemy](https://www.alchemy.com/), [Infura](https://www.infura.io/), or [QuickNode](https://www.quicknode.com/).
+For production or any meaningful testing, set the env var `NEXT_PUBLIC_BASE_RPC_URL` to your private RPC endpoint from [Alchemy](https://www.alchemy.com/), [Infura](https://www.infura.io/), [QuickNode](https://www.quicknode.com/), or similar.
 
 **Be careful!** Exposing an RPC URL on the frontend allows anyone to extract and use your private RPC keys.
 Only use scoped and rate-limited API keys, never expose your master private keys.
