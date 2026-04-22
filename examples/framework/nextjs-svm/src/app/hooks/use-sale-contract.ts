@@ -5,7 +5,7 @@ import { AnchorProvider, BN, BorshCoder, Program } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import type { GeneratePurchasePermitResponse } from "@echoxyz/sonar-core";
 import { PROGRAM_ID, PAYMENT_TOKEN_MINT, saleUUID } from "@/lib/config";
-import { IDL } from "@/app/idl/settlement_sale";
+import { IDL, IDL_CAMEL } from "@/app/idl/settlement_sale";
 import { parse as uuidParse } from "uuid";
 
 interface SolanaPermitJSON {
@@ -136,7 +136,8 @@ export function useSaleContract(saleSpecificEntityID: string) {
       };
 
       // Borsh-encode the permit to build the Ed25519 verify instruction
-      const coder = new BorshCoder(IDL);
+      const coder = new BorshCoder(IDL_CAMEL);
+
       const messageBytes = coder.types.encode("purchasePermitV3", permitData);
 
       // Fetch sale account for the permit signer and vault public keys
