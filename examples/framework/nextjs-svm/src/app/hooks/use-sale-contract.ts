@@ -5,7 +5,7 @@ import { AnchorProvider, BN, BorshCoder, Program } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import type { GeneratePurchasePermitResponse } from "@echoxyz/sonar-core";
 import { PROGRAM_ID, PAYMENT_TOKEN_MINT, saleUUID } from "@/lib/config";
-import { IDL } from "@/app/idl/settlement_sale";
+import { IDL, IDL_CAMEL } from "@/app/idl/settlement_sale";
 import { parse as uuidParse } from "uuid";
 
 interface SolanaPermitJSON {
@@ -41,7 +41,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
   const wallet = useAnchorWallet();
 
   const [txSignature, setTxSignature] = useState<string | undefined>();
-  const [confirmed, setConfirmed] = useState(false);
+  const [confirmedTxSignature, setConfirmedTxSignature] = useState<string | undefined>();
   const [awaitingTxReceipt, setAwaitingTxReceipt] = useState(false);
   const [committedAmount, setCommittedAmount] = useState<bigint | undefined>();
   const [entityStateError, setEntityStateError] = useState<Error | undefined>();
@@ -77,7 +77,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const state = (await (program.account as any).entityState.fetchNullable(entityStatePDA)) as EntityStateAccount | null;
         if (!cancelled) {
-          setCommittedAmount(state ? BigInt(state.currentAmount.toString()) : BigInt(0));
+          setCommittedAmount(state ? BigInt(state.currentAmount.toString()) : 0n);
           setEntityStateError(undefined);
         }
       } catch (err) {
@@ -96,10 +96,10 @@ export function useSaleContract(saleSpecificEntityID: string) {
   const commitWithPermit = useCallback(
     async ({
       purchasePermitResp,
-      amount,
+      newTotalRaw,
     }: {
       purchasePermitResp: GeneratePurchasePermitResponse;
-      amount: bigint;
+      newTotalRaw: bigint;
     }) => {
       if (!wallet) throw new Error("Wallet not connected");
 
@@ -136,7 +136,8 @@ export function useSaleContract(saleSpecificEntityID: string) {
       };
 
       // Borsh-encode the permit to build the Ed25519 verify instruction
-      const coder = new BorshCoder(IDL);
+      const coder = new BorshCoder(IDL_CAMEL);
+
       const messageBytes = coder.types.encode("purchasePermitV3", permitData);
 
       // Fetch sale account for the permit signer and vault public keys
@@ -162,7 +163,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const placeBidIx = await (program.methods as any)
-        .placeBid(permitData, new BN(amount.toString()), new BN(0), false)
+        .placeBid(permitData, new BN(newTotalRaw.toString()), new BN(0), false)
         .accounts({
           bidder: wallet.publicKey,
           sale: salePDA,
@@ -189,18 +190,27 @@ export function useSaleContract(saleSpecificEntityID: string) {
 
       setAwaitingTxReceipt(true);
       await connection.confirmTransaction(sig, "confirmed");
-      setConfirmed(true);
+      setConfirmedTxSignature(sig);
       setAwaitingTxReceipt(false);
     },
     [wallet, connection, salePDA, entityStatePDA, programPublicKey]
   );
 
+  const isEntityStateLoaded = committedAmount !== undefined;
+  const currentTotalRaw: bigint = committedAmount ?? 0n;
+  const currentTotalReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
   return {
     commitWithPermit,
     txSignature,
-    confirmed,
+    confirmedTxSignature,
     awaitingTxReceipt,
-    committedAmount,
+    isEntityStateLoaded,
+    currentTotalRaw,
+    currentTotalReadableStr,
     entityStateError,
   };
 }

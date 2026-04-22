@@ -2,7 +2,7 @@
 
 import { PrePurchaseFailureReason, GeneratePurchasePermitResponse, EntityID } from "@echoxyz/sonar-core";
 import { UseSonarPurchaseResultNotReadyToPurchase, UseSonarPurchaseResultReadyToPurchase } from "@echoxyz/sonar-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { saleUUID } from "@/lib/config";
 import { useSonarPurchase } from "../../hooks/use-sonar-purchase";
 import { useSaleContract } from "../../hooks/use-sale-contract";
@@ -59,22 +59,51 @@ function CommitSection({
   saleSpecificEntityID: string;
   generatePurchasePermit: () => Promise<GeneratePurchasePermitResponse>;
 }) {
-  const { commitWithPermit, awaitingTxReceipt, confirmed, txSignature, committedAmount, entityStateError } =
-    useSaleContract(saleSpecificEntityID);
+  const {
+    commitWithPermit,
+    confirmedTxSignature,
+    isEntityStateLoaded,
+    currentTotalRaw,
+    currentTotalReadableStr,
+    entityStateError,
+    awaitingTxReceipt,
+  } = useSaleContract(saleSpecificEntityID);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | undefined>(undefined);
-  const [humanReadableAmount, setHumanReadableAmount] = useState<string>("1");
+  const [incrementReadableStr, setIncrementReadableStr] = useState<string>("1");
+
+  const incrementReadable = parseFloat(incrementReadableStr);
+  const isIncrementAmountValid = incrementReadableStr !== "" && !isNaN(incrementReadable) && incrementReadable > 0;
+  const incrementRaw = isIncrementAmountValid ? BigInt(Math.floor(incrementReadable * 1e6)) : 0n;
+  const newTotalRaw = currentTotalRaw + incrementRaw;
+  const newTotalReadableStr = (Number(newTotalRaw) / 1e6).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const hasExistingCommitment = isEntityStateLoaded && currentTotalRaw > 0n;
+
+  const [showInput, setShowInput] = useState(true);
+
+  useEffect(() => {
+    if (confirmedTxSignature) {
+      setShowInput(false);
+    }
+  }, [confirmedTxSignature]);
 
   const purchase = async () => {
     setLoading(true);
     setError(undefined);
     try {
       const purchasePermitResp = await generatePurchasePermit();
-      const amount = BigInt(Math.floor(parseFloat(humanReadableAmount) * 1e6));
-      await commitWithPermit({ purchasePermitResp: purchasePermitResp, amount });
-    } catch (error) {
-      setError(error as Error);
+      // Note: The current commitment raw could be stale if there is a concurrent commitment from this entity.
+      await commitWithPermit({
+        purchasePermitResp,
+        newTotalRaw,
+      });
+    } catch (err) {
+      setError(err as Error);
     } finally {
       setLoading(false);
     }
@@ -83,43 +112,56 @@ function CommitSection({
   return (
     <div className="flex flex-col gap-4 items-center">
       <div className="flex flex-col gap-2">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="commitAmount" className="text-sm text-gray-700">
-            USDC to commit (replaces existing commitment)
-          </label>
-          <input
-            id="commitAmount"
-            type="number"
-            min="0"
-            value={humanReadableAmount}
-            onChange={(e) => setHumanReadableAmount(e.target.value)}
-            disabled={loading || awaitingTxReceipt}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-            placeholder="Enter amount"
-          />
-        </div>
-        <button
-          disabled={loading || awaitingTxReceipt || !humanReadableAmount || parseFloat(humanReadableAmount) <= 0}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={purchase}
-        >
-          <p className="text-gray-100">{loading || awaitingTxReceipt ? "Loading..." : "Commit"}</p>
-        </button>
-
-        {awaitingTxReceipt && !confirmed && <p className="text-gray-900">Waiting for confirmation...</p>}
-        {confirmed && txSignature && <p className="text-green-500">Commitment successful</p>}
-        {error && <p className="text-red-500 wrap-anywhere">{error.message}</p>}
-        {entityStateError && <p className="text-red-500 wrap-anywhere">{entityStateError.message}</p>}
-      </div>
-
-      <div className="bg-white p-2 rounded-md w-fit">
-        {entityStateError ? (
-          <p className="text-red-500 wrap-anywhere">{entityStateError.message}</p>
-        ) : (
-          <p className="text-gray-900">
-            Current committed amount:{" "}
-            {committedAmount !== undefined ? `${Number(committedAmount) / 1e6} USDC` : "Loading..."}
+        {hasExistingCommitment && (
+          <p className="text-sm text-gray-600">
+            Current commitment:{" "}
+            <span className="font-semibold text-gray-900">{currentTotalReadableStr} USDC</span>
           </p>
+        )}
+        {showInput ? (
+          <>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="commitAmount" className="text-sm text-gray-700">
+                {hasExistingCommitment ? "Additional USDC to commit" : "USDC to commit"}
+              </label>
+              <input
+                id="commitAmount"
+                type="number"
+                min="0"
+                value={incrementReadableStr}
+                onChange={(e) => setIncrementReadableStr(e.target.value)}
+                disabled={loading || awaitingTxReceipt}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                placeholder="Enter amount"
+              />
+              {hasExistingCommitment && isIncrementAmountValid && (
+                <p className="text-sm text-gray-500">
+                  New total: <span className="font-semibold text-gray-700">{newTotalReadableStr} USDC</span>
+                </p>
+              )}
+            </div>
+            <button
+              disabled={loading || awaitingTxReceipt || !isIncrementAmountValid}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={purchase}
+            >
+              <p className="text-gray-100">{loading || awaitingTxReceipt ? "Loading..." : "Commit"}</p>
+            </button>
+            {awaitingTxReceipt && <p className="text-gray-900">Waiting for confirmation...</p>}
+            {error && <p className="text-red-500 wrap-anywhere">{error.message}</p>}
+            {entityStateError && <p className="text-red-500 wrap-anywhere">{entityStateError.message}</p>}
+          </>
+        ) : (
+          <button
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors w-fit"
+            onClick={() => {
+              setIncrementReadableStr("1");
+              setError(undefined);
+              setShowInput(true);
+            }}
+          >
+            <p className="text-gray-100">Commit more</p>
+          </button>
         )}
       </div>
     </div>

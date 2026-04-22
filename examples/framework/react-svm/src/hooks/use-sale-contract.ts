@@ -42,7 +42,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
   const wallet = useAnchorWallet();
 
   const [txSignature, setTxSignature] = useState<string | undefined>();
-  const [confirmed, setConfirmed] = useState(false);
+  const [confirmedTxSignature, setConfirmedTxSignature] = useState<string | undefined>();
   const [awaitingTxReceipt, setAwaitingTxReceipt] = useState(false);
   const [committedAmount, setCommittedAmount] = useState<bigint | undefined>();
   const [entityStateError, setEntityStateError] = useState<Error | undefined>();
@@ -79,7 +79,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const state = (await (program.account as any).entityState.fetchNullable(entityStatePDA)) as EntityStateAccount | null;
         if (!cancelled) {
-          setCommittedAmount(state ? BigInt(state.currentAmount.toString()) : BigInt(0));
+          setCommittedAmount(state ? BigInt(state.currentAmount.toString()) : 0n);
           setEntityStateError(undefined);
         }
       } catch (err) {
@@ -98,10 +98,10 @@ export function useSaleContract(saleSpecificEntityID: string) {
   const commitWithPermit = useCallback(
     async ({
       purchasePermitResp,
-      amount,
+      newTotalRaw,
     }: {
       purchasePermitResp: GeneratePurchasePermitResponse;
-      amount: bigint;
+      newTotalRaw: bigint;
     }) => {
       if (!wallet) throw new Error("Wallet not connected");
 
@@ -165,7 +165,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const placeBidIx = await (program.methods as any)
-        .placeBid(permitData, new BN(amount.toString()), new BN(0), false)
+        .placeBid(permitData, new BN(newTotalRaw.toString()), new BN(0), false)
         .accounts({
           bidder: wallet.publicKey,
           sale: salePDA,
@@ -203,18 +203,27 @@ export function useSaleContract(saleSpecificEntityID: string) {
 
       setAwaitingTxReceipt(true);
       await connection.confirmTransaction(sig, "confirmed");
-      setConfirmed(true);
+      setConfirmedTxSignature(sig);
       setAwaitingTxReceipt(false);
     },
     [wallet, connection, salePDA, entityStatePDA, programPublicKey]
   );
 
+  const isEntityStateLoaded = committedAmount !== undefined;
+  const currentTotalRaw: bigint = committedAmount ?? 0n;
+  const currentTotalReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
   return {
     commitWithPermit,
     txSignature,
-    confirmed,
+    confirmedTxSignature,
     awaitingTxReceipt,
-    committedAmount,
+    isEntityStateLoaded,
+    currentTotalRaw,
+    currentTotalReadableStr,
     entityStateError,
   };
 }

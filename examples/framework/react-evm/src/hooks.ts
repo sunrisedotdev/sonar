@@ -25,11 +25,13 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
     async ({
       purchasePermitResp,
       token,
-      amount,
+      newTotalRaw,
+      incrementRaw,
     }: {
       purchasePermitResp: GeneratePurchasePermitResponse;
       token: `0x${string}`;
-      amount: bigint;
+      newTotalRaw: bigint;
+      incrementRaw: bigint;
     }) => {
       if (!("OpensAt" in purchasePermitResp.PermitJSON)) {
         throw new Error("Invalid purchase permit response");
@@ -40,7 +42,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
         address: token,
         abi: ERC20Abi,
         functionName: "approve",
-        args: [saleContract, amount],
+        args: [saleContract, incrementRaw],
       });
 
       const approveHash = await writeContractAsync(approveRequest);
@@ -48,7 +50,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
 
       const bidArgs = [
         token,
-        { lockup: false, price: 0n, amount: amount },
+        { lockup: false, price: 0n, amount: newTotalRaw },
         {
           saleSpecificEntityID: permit.SaleSpecificEntityID,
           saleUUID: permit.SaleUUID,
@@ -90,9 +92,18 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
     },
   });
 
+  const isEntityStateLoaded = entityStates !== undefined;
+  const currentTotalRaw: bigint = entityStates?.[0]?.currentBid?.amount ?? 0n;
+  const currentTotalReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
   return {
-    entityState: entityStates?.[0],
     entityStateError,
+    isEntityStateLoaded,
+    currentTotalRaw,
+    currentTotalReadableStr,
     commitWithPermit,
     awaitingTxReceipt,
     txReceipt,

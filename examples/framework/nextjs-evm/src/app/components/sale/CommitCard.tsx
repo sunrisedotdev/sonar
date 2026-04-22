@@ -2,7 +2,7 @@
 
 import { PrePurchaseFailureReason, GeneratePurchasePermitResponse, EntityID, Hex } from "@echoxyz/sonar-core";
 import { UseSonarPurchaseResultNotReadyToPurchase, UseSonarPurchaseResultReadyToPurchase } from "@echoxyz/sonar-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { saleUUID, paymentTokenAddress } from "@/lib/config";
 import { useSonarPurchase } from "../../hooks/use-sonar-purchase";
 import { useSaleContract } from "../../hooks/use-sale-contract";
@@ -59,23 +59,51 @@ function CommitSection({
   saleSpecificEntityID: Hex;
   generatePurchasePermit: () => Promise<GeneratePurchasePermitResponse>;
 }) {
-  const { commitWithPermit, entityState, entityStateError, awaitingTxReceipt, txReceipt, awaitingTxReceiptError } =
-    useSaleContract(saleSpecificEntityID);
+  const {
+    commitWithPermit,
+    isEntityStateLoaded,
+    currentTotalRaw,
+    currentTotalReadableStr,
+    entityStateError,
+    awaitingTxReceipt,
+    txReceipt,
+    awaitingTxReceiptError,
+  } = useSaleContract(saleSpecificEntityID);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | undefined>(undefined);
-  const [humanReadableAmount, setHumanReadableAmount] = useState<string>("1");
+  const [incrementReadableStr, setIncrementReadableStr] = useState<string>("1");
+
+  const incrementReadable = parseFloat(incrementReadableStr);
+  const isIncrementAmountValid = incrementReadableStr !== "" && !isNaN(incrementReadable) && incrementReadable > 0;
+  const incrementRaw = isIncrementAmountValid ? BigInt(Math.floor(incrementReadable * 1e6)) : 0n;
+  const newTotalRaw = currentTotalRaw + incrementRaw;
+  const newTotalReadableStr = (Number(newTotalRaw) / 1e6).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const hasExistingCommitment = isEntityStateLoaded && currentTotalRaw > 0n;
+
+  const [showInput, setShowInput] = useState(true);
+
+  useEffect(() => {
+    if (txReceipt?.status === "success") {
+      setShowInput(false);
+    }
+  }, [txReceipt]);
 
   const purchase = async () => {
     setLoading(true);
     setError(undefined);
     try {
       const purchasePermitResp = await generatePurchasePermit();
-      const amount = BigInt(Math.floor(parseFloat(humanReadableAmount) * 1e6));
+      // Note: The current commitment raw could be stale if there is a concurrent commitment from this entity.
       await commitWithPermit({
-        purchasePermitResp: purchasePermitResp,
+        purchasePermitResp,
         token: paymentTokenAddress,
-        amount,
+        newTotalRaw,
+        incrementRaw,
       });
     } catch (err) {
       setError(err as Error);
@@ -84,51 +112,61 @@ function CommitSection({
     }
   };
 
-  // Get the committed amount for the payment token
-  const committedAmount = entityState?.currentBid?.amount;
-
-  // TODO: could fetch and show the user their allocation
   return (
     <div className="flex flex-col gap-4 items-center">
       <div className="flex flex-col gap-2">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="commitAmount" className="text-sm text-gray-700">
-            USDC to commit (replaces existing commitment)
-          </label>
-          <input
-            id="commitAmount"
-            type="number"
-            min="0"
-            value={humanReadableAmount}
-            onChange={(e) => setHumanReadableAmount(e.target.value)}
-            disabled={loading || awaitingTxReceipt}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-            placeholder="Enter amount"
-          />
-        </div>
-        <button
-          disabled={loading || awaitingTxReceipt || !humanReadableAmount || parseFloat(humanReadableAmount) <= 0}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={purchase}
-        >
-          <p className="text-gray-100">{loading || awaitingTxReceipt ? "Loading..." : "Commit"}</p>
-        </button>
-
-        {awaitingTxReceipt && !txReceipt && <p className="text-gray-900">Waiting for transaction receipt...</p>}
-        {txReceipt?.status === "success" && <p className="text-green-500">Commitment successful</p>}
-        {txReceipt?.status === "reverted" && <p className="text-red-500">Commitment reverted</p>}
-        {error && <p className="text-red-500 wrap-anywhere">{error.message}</p>}
-        {awaitingTxReceiptError && <p className="text-red-500 wrap-anywhere">{awaitingTxReceiptError.message}</p>}
-      </div>
-
-      <div className="bg-white p-2 rounded-md w-fit">
-        {entityStateError ? (
-          <p className="text-red-500 wrap-anywhere">{entityStateError.message}</p>
-        ) : (
-          <p className="text-gray-900">
-            Current committed amount:{" "}
-            {committedAmount !== undefined ? `${Number(committedAmount) / 1e6} USDC` : "Loading..."}
+        {hasExistingCommitment && (
+          <p className="text-sm text-gray-600">
+            Current commitment:{" "}
+            <span className="font-semibold text-gray-900">{currentTotalReadableStr} USDC</span>
           </p>
+        )}
+        {showInput ? (
+          <>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="commitAmount" className="text-sm text-gray-700">
+                {hasExistingCommitment ? "Additional USDC to commit" : "USDC to commit"}
+              </label>
+              <input
+                id="commitAmount"
+                type="number"
+                min="0"
+                value={incrementReadableStr}
+                onChange={(e) => setIncrementReadableStr(e.target.value)}
+                disabled={loading || awaitingTxReceipt}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                placeholder="Enter amount"
+              />
+              {hasExistingCommitment && isIncrementAmountValid && (
+                <p className="text-sm text-gray-500">
+                  New total: <span className="font-semibold text-gray-700">{newTotalReadableStr} USDC</span>
+                </p>
+              )}
+            </div>
+            <button
+              disabled={loading || awaitingTxReceipt || !isIncrementAmountValid}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={purchase}
+            >
+              <p className="text-gray-100">{loading || awaitingTxReceipt ? "Loading..." : "Commit"}</p>
+            </button>
+            {awaitingTxReceipt && !txReceipt && <p className="text-gray-900">Waiting for transaction receipt...</p>}
+            {txReceipt?.status === "reverted" && <p className="text-red-500">Commitment reverted</p>}
+            {error && <p className="text-red-500 wrap-anywhere">{error.message}</p>}
+            {awaitingTxReceiptError && <p className="text-red-500 wrap-anywhere">{awaitingTxReceiptError.message}</p>}
+            {entityStateError && <p className="text-red-500 wrap-anywhere">{entityStateError.message}</p>}
+          </>
+        ) : (
+          <button
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors w-fit"
+            onClick={() => {
+              setIncrementReadableStr("1");
+              setError(undefined);
+              setShowInput(true);
+            }}
+          >
+            <p className="text-gray-100">Commit more</p>
+          </button>
         )}
       </div>
     </div>
