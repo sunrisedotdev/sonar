@@ -32,6 +32,15 @@ Faucets:
 - USDC: <https://faucet.circle.com/>
 - SOL: <https://faucet.solana.com/>
 
+### RPC Configuration
+
+By default, the app uses the public Solana devnet RPC endpoint, which is *rate-limited and not suitable for production use*.
+
+For production or any meaningful testing, set the env var `VITE_RPC_URL` to your RPC endpoint from [Helius](https://www.helius.dev/), [QuickNode](https://www.quicknode.com/), or [Alchemy](https://www.alchemy.com/).
+
+**Be careful!** Exposing an RPC URL on the frontend allows anyone to extract and use your private RPC keys.
+Only use scoped and rate-limited API keys, never expose your master private keys.
+
 ## What This Example Demonstrates
 
 - **Provider setup** — configuring `SonarProvider` with the Solana wallet adapter and React Query
