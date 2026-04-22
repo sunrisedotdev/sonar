@@ -4,7 +4,6 @@ import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 import { SonarProvider } from "@echoxyz/sonar-react";
 import { sonarConfig, baseRPCURL } from "./config";
 import { baseSepolia } from "wagmi/chains";
-import { useEffect } from "react";
 
 const config = createConfig(
   getDefaultConfig({
@@ -26,15 +25,6 @@ const config = createConfig(
 const queryClient = new QueryClient();
 
 export function Provider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    if (!baseRPCURL) {
-      console.warn(
-        '[sonar-example] No RPC URL configured. The app is using the public Base Sepolia ' +
-        'endpoint, which is rate-limited. Set VITE_BASE_RPC_URL in your .env file.'
-      );
-    }
-  }, []);
-
   return (
     <SonarProvider config={sonarConfig}>
       <WagmiProvider config={config}>
