@@ -31,6 +31,15 @@ Faucets:
 - USDC: <https://faucet.circle.com/>
 - ETH: <https://docs.base.org/base-chain/tools/network-faucets>
 
+### RPC Configuration
+
+By default, the app uses the public Base Sepolia RPC endpoint, which is *rate-limited and not suitable for production use*.
+
+For production or any meaningful testing, set the env var `NEXT_PUBLIC_BASE_RPC_URL` to your private RPC endpoint from [Alchemy](https://www.alchemy.com/), [Infura](https://www.infura.io/), [QuickNode](https://www.quicknode.com/), or similar.
+
+**Be careful!** Exposing an RPC URL on the frontend allows anyone to extract and use your private RPC keys.
+Only use scoped and rate-limited API keys, never expose your master private keys.
+
 ## What This Example Demonstrates
 
 - **OAuth authentication with Sonar** via a secure backend flow with PKCE

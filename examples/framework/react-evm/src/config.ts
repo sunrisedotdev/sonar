@@ -14,3 +14,4 @@ export const saleContract =
 export const paymentTokenAddress =
   (import.meta.env.VITE_PAYMENT_TOKEN_ADDRESS as Hex) ?? "0x0000000000000000000000000000000000000000";
 export const sonarHomeURL = new URL(`/sonar/${saleUUID}/home`, sonarConfig.frontendURL);
+export const baseRPCURL = import.meta.env.VITE_BASE_RPC_URL || undefined;
