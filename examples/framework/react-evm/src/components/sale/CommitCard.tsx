@@ -8,8 +8,10 @@ import {
 } from "@echoxyz/sonar-react";
 import { useSaleContract } from "../../hooks";
 
+const COMMITMENT_STAGE = 1;
+
 function readinessConfig(
-  sonarPurchaser: UseSonarPurchaseResultReadyToPurchase | UseSonarPurchaseResultNotReadyToPurchase
+  sonarPurchaser: UseSonarPurchaseResultReadyToPurchase | UseSonarPurchaseResultNotReadyToPurchase,
 ) {
   const okConfig = (msg: string) => ({
     fgCol: "text-green-800",
@@ -40,11 +42,11 @@ function readinessConfig(
       return warningConfig("The connected wallet is not eligible for this sale. Connect a different wallet.");
     case PrePurchaseFailureReason.MAX_WALLETS_USED:
       return warningConfig(
-        "Maximum number of wallets reached — This entity can't use the connected wallet. Use a previous wallet."
+        "Maximum number of wallets reached — This entity can't use the connected wallet. Use a previous wallet.",
       );
     case PrePurchaseFailureReason.WALLET_NOT_LINKED:
       return warningConfig(
-        "Wallet not linked — The connected wallet is not linked to your entity. Please link it first."
+        "Wallet not linked — The connected wallet is not linked to your entity. Please link it first.",
       );
     case PrePurchaseFailureReason.SALE_NOT_ACTIVE:
       return errorConfig("The sale is not currently active.");
@@ -71,6 +73,7 @@ function CommitSection({
     awaitingTxReceiptError,
     isWrongChain,
     usdcBalance,
+    contractStage,
   } = useSaleContract(saleSpecificEntityID);
 
   const [loading, setLoading] = useState(false);
@@ -88,6 +91,7 @@ function CommitSection({
 
   const hasExistingCommitment = isEntityStateLoaded && currentTotalRaw > 0n;
   const hasInsufficientBalance = usdcBalance != null && isIncrementAmountValid && incrementRaw > usdcBalance;
+  const notInCommitmentStage = contractStage !== undefined && contractStage !== COMMITMENT_STAGE;
 
   const [showInput, setShowInput] = useState(true);
 
@@ -128,9 +132,26 @@ function CommitSection({
       <div className="flex flex-col gap-2">
         {hasExistingCommitment && (
           <p className="text-sm text-gray-600">
-            Current commitment:{" "}
-            <span className="font-semibold text-gray-900">{currentTotalReadableStr} USDC</span>
+            Current commitment: <span className="font-semibold text-gray-900">{currentTotalReadableStr} USDC</span>
           </p>
+        )}
+        {notInCommitmentStage && (
+          <div className="bg-amber-50 border border-amber-200 p-3 rounded-md w-full">
+            <p className="text-amber-800 text-sm font-medium">Contract not in Commitment stage</p>
+            <p className="text-amber-700 text-sm mt-1">
+              The Commit button is only active during the Commitment stage. Use the founder&apos;s dashboard to open the
+              commitment period (<code className="font-mono bg-amber-100 px-1 rounded">openCommitment</code>). See the{" "}
+              <a
+                href="https://docs.echo.xyz/sonar/reference/contracts/settlement-sale"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                contract docs
+              </a>
+              .
+            </p>
+          </div>
         )}
         {showInput ? (
           <>
@@ -155,7 +176,7 @@ function CommitSection({
               )}
             </div>
             <button
-              disabled={loading || awaitingTxReceipt || !isIncrementAmountValid || hasInsufficientBalance}
+              disabled={loading || awaitingTxReceipt || !isIncrementAmountValid || hasInsufficientBalance || notInCommitmentStage}
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={purchase}
             >
