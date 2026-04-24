@@ -8,6 +8,108 @@
   },
   "instructions": [
     {
+      "name": "cancel_bid",
+      "docs": [
+        "Cancels the caller's entire bid and refunds their committed tokens.",
+        "",
+        "On Solana each wallet must call this independently, unlike the EVM",
+        "contract which cancels all entity wallets in one transaction."
+      ],
+      "discriminator": [40, 243, 190, 217, 208, 253, 86, 206],
+      "accounts": [
+        {
+          "name": "bidder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [115, 101, 116, 116, 108, 101, 109, 101, 110, 116, 95, 115, 97, 108, 101]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "entity_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [101, 110, 116, 105, 116, 121, 95, 115, 116, 97, 116, 101]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "wallet_binding.entity_id",
+                "account": "WalletBinding"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet_binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [119, 97, 108, 108, 101, 116, 95, 98, 105, 110, 100, 105, 110, 103]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bidder_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [118, 97, 117, 108, 116]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payment_token_mint"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "place_bid",
       "docs": [
         "Places or updates a bid in the sale.",
@@ -214,16 +316,11 @@
     },
     {
       "name": "SettlementSale",
-      "discriminator": [
-        38,
-        117,
-        82,
-        234,
-        79,
-        111,
-        15,
-        74
-      ]
+      "discriminator": [38, 117, 82, 234, 79, 111, 15, 74]
+    },
+    {
+      "name": "WalletBinding",
+      "discriminator": [51, 211, 204, 185, 168, 68, 52, 176]
     }
   ],
   "types": [
@@ -588,6 +685,23 @@
             ],
             "type": "u64"
           }
+        ]
+      }
+    },
+    {
+      "name": "WalletBinding",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "sale", "type": "pubkey" },
+          { "name": "entity_id", "type": { "array": ["u8", 16] } },
+          { "name": "wallet", "type": "pubkey" },
+          { "name": "contributed_amount", "type": "u64" },
+          { "name": "cancelled_amount", "type": "u64" },
+          { "name": "accepted_amount", "type": "u64" },
+          { "name": "refunded", "type": "bool" },
+          { "name": "is_initialized", "type": "bool" },
+          { "name": "bump", "type": "u8" }
         ]
       }
     },
