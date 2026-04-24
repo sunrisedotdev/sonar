@@ -1,39 +1,33 @@
-import { Hex } from "@echoxyz/sonar-core";
+"use client";
+
 import { useState } from "react";
-import { useSaleContract } from "../../hooks";
+import { useSaleContract } from "../../hooks/use-sale-contract";
 
 const CANCELLATION_STAGE = 2;
 
-function CancelSection({ saleSpecificEntityID }: { saleSpecificEntityID: Hex }) {
-  const {
-    cancelBid,
-    contractStage,
-    entityState,
-    entityStateError,
-    awaitingTxReceipt,
-    txReceipt,
-    awaitingTxReceiptError,
-  } = useSaleContract(saleSpecificEntityID);
+function CancelSection({ saleSpecificEntityID }: { saleSpecificEntityID: string }) {
+  const { cancelBid, contractStage, committedAmount, entityStateError, awaitingTxReceipt } =
+    useSaleContract(saleSpecificEntityID);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | undefined>(undefined);
+  const [cancelSuccess, setCancelSuccess] = useState(false);
 
   const isCancellationStage = contractStage === CANCELLATION_STAGE;
+  const hasCommitment = committedAmount !== undefined && committedAmount > 0n;
 
   const cancel = async () => {
     setLoading(true);
     setError(undefined);
     try {
       await cancelBid();
+      setCancelSuccess(true);
     } catch (err) {
       setError(err as Error);
     } finally {
       setLoading(false);
     }
   };
-
-  const committedAmount = entityState?.currentBid?.amount;
-  const hasCommitment = committedAmount !== undefined && committedAmount > BigInt(0);
 
   return (
     <div className="flex flex-col gap-4 items-center">
@@ -85,18 +79,14 @@ function CancelSection({ saleSpecificEntityID }: { saleSpecificEntityID: Hex }) 
         </div>
       )}
 
-      {awaitingTxReceipt && !txReceipt && <p className="text-gray-900">Waiting for transaction receipt...</p>}
-      {txReceipt?.status === "success" && (
-        <p className="text-green-500">Cancellation successful — your funds have been refunded</p>
-      )}
-      {txReceipt?.status === "reverted" && <p className="text-red-500">Cancellation reverted</p>}
+      {awaitingTxReceipt && <p className="text-gray-900">Waiting for transaction confirmation...</p>}
+      {cancelSuccess && <p className="text-green-500">Cancellation successful — your funds have been refunded</p>}
       {error && <p className="text-red-500 wrap-anywhere">{error.message}</p>}
-      {awaitingTxReceiptError && <p className="text-red-500 wrap-anywhere">{awaitingTxReceiptError.message}</p>}
     </div>
   );
 }
 
-function CancelCard({ saleSpecificEntityID }: { saleSpecificEntityID: Hex }) {
+function CancelCard({ saleSpecificEntityID }: { saleSpecificEntityID: string }) {
   return (
     <div className="flex flex-col gap-4 p-4 bg-linear-to-r from-indigo-50 to-blue-50 rounded-lg border border-indigo-200">
       <CancelSection saleSpecificEntityID={saleSpecificEntityID} />

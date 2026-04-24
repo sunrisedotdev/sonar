@@ -12,7 +12,7 @@ import { EntitiesList } from "../components/registration/EntitiesList";
 import { EligibilityResults } from "../components/registration/EligibilityResults";
 import { CommitmentDataCard } from "../components/sale/CommitmentDataCard";
 
-type SalePhase = "presale" | "live" | "cancelled";
+type SalePhase = "presale" | "live" | "cancellation";
 
 export function Home() {
   const [salePhase, setSalePhase] = useState<SalePhase>("presale");
@@ -21,7 +21,7 @@ export function Home() {
   // Load sale phase from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("sale_phase");
-    if (stored === "live" || stored === "cancelled" || stored === "presale") {
+    if (stored === "live" || stored === "cancellation" || stored === "presale") {
       setSalePhase(stored);
     }
   }, []);
@@ -83,9 +83,7 @@ export function Home() {
         <div className="flex flex-col gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-6 w-full">
           <div>
             <p className="text-yellow-800 font-medium">No Entity Found</p>
-            <p className="text-yellow-700">
-              No entity found for this account.
-            </p>
+            <p className="text-yellow-700">No entity found for this account.</p>
           </div>
           <div>
             <a
@@ -154,7 +152,7 @@ export function Home() {
           >
             <option value="presale">⏳ Pre-Sale</option>
             <option value="live">🟢 Sale Live</option>
-            <option value="cancelled">🔴 Cancelled</option>
+            <option value="cancellation">🟡 Cancellation</option>
           </select>
         </div>
       </div>
@@ -185,11 +183,11 @@ export function Home() {
               </div>
             )}
 
-            {salePhase === "cancelled" && (
-              <div className="bg-linear-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-6">
+            {salePhase === "cancellation" && (
+              <div className="bg-linear-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg p-6">
                 <div className="text-center">
-                  <p className="text-red-700 font-semibold text-lg">The sale has been cancelled</p>
-                  <p className="text-red-600">You may cancel your bid to receive a full refund of your committed funds</p>
+                  <p className="text-amber-800 font-semibold text-lg">Cancellation Period</p>
+                  <p className="text-amber-700">Commitments can be cancelled during this period</p>
                 </div>
               </div>
             )}
@@ -259,7 +257,7 @@ export function Home() {
           )}
 
           {/* Cancellation Phase */}
-          {salePhase === "cancelled" && (
+          {salePhase === "cancellation" && (
             <div className="flex flex-col gap-8">
               {/* Connection Buttons */}
               <AuthenticationSection ready={ready} authenticated={authenticated} login={login} logout={logout} />
