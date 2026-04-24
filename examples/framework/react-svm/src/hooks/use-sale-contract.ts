@@ -30,6 +30,18 @@ interface EntityStateAccount {
 interface SettlementSaleAccount {
   permitSigner: PublicKey;
   vault: PublicKey;
+  stage: unknown;
+}
+
+function stageToNumber(stage: unknown): number {
+  if (typeof stage === "object" && stage !== null) {
+    const key = Object.keys(stage as object)[0];
+    const map: Record<string, number> = {
+      preOpen: 0, commitment: 1, cancellation: 2, settlement: 3, done: 4,
+    };
+    return map[key] ?? -1;
+  }
+  return -1;
 }
 
 function parseIdBytes(id: string): Uint8Array {
@@ -47,6 +59,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
   const [committedAmount, setCommittedAmount] = useState<bigint | undefined>();
   const [entityStateError, setEntityStateError] = useState<Error | undefined>();
   const [usdcBalance, setUsdcBalance] = useState<bigint | undefined>();
+  const [contractStage, setContractStage] = useState<number | undefined>();
 
   const programPublicKey = useMemo(() => new PublicKey(PROGRAM_ID), []);
 
@@ -79,9 +92,12 @@ export function useSaleContract(saleSpecificEntityID: string) {
         const program = new Program(IDL as any, provider);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const state = (await (program.account as any).entityState.fetchNullable(entityStatePDA)) as EntityStateAccount | null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const saleAccount = (await (program.account as any).settlementSale.fetchNullable(salePDA)) as SettlementSaleAccount | null;
         if (!cancelled) {
           setCommittedAmount(state ? BigInt(state.currentAmount.toString()) : 0n);
           setEntityStateError(undefined);
+          if (saleAccount) setContractStage(stageToNumber(saleAccount.stage));
         }
 
         if (!cancelled && wallet && PAYMENT_TOKEN_MINT) {
@@ -222,6 +238,50 @@ export function useSaleContract(saleSpecificEntityID: string) {
     [wallet, connection, salePDA, entityStatePDA, programPublicKey]
   );
 
+  const cancelBid = useCallback(async () => {
+    if (!wallet) throw new Error("Wallet not connected");
+
+    const provider = new AnchorProvider(connection, wallet, { commitment: "confirmed" });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const program = new Program(IDL as any, provider);
+
+    const bidderTokenAccount = getAssociatedTokenAddressSync(new PublicKey(PAYMENT_TOKEN_MINT), wallet.publicKey);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tx = await (program.methods as any)
+      .cancelBid()
+      .accounts({
+        bidder: wallet.publicKey,
+        sale: salePDA,
+        bidderTokenAccount,
+        paymentTokenMint: new PublicKey(PAYMENT_TOKEN_MINT),
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .transaction();
+
+    tx.feePayer = wallet.publicKey;
+    const { blockhash } = await connection.getLatestBlockhash();
+    tx.recentBlockhash = blockhash;
+
+    const signed = await wallet.signTransaction(tx);
+    // Compute sig before sending — same pattern as commitWithPermit
+    const rawSig = signed.signatures[0]?.signature;
+    if (!rawSig) throw new Error("Transaction not signed");
+    const sig = bs58.encode(rawSig);
+    setTxSignature(sig);
+    try {
+      await connection.sendRawTransaction(signed.serialize());
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes("already been processed")) throw e;
+    }
+
+    setAwaitingTxReceipt(true);
+    await connection.confirmTransaction(sig, "confirmed");
+    setConfirmedTxSignature(sig);
+    setAwaitingTxReceipt(false);
+  }, [wallet, connection, salePDA]);
+
   const isEntityStateLoaded = committedAmount !== undefined;
   const currentTotalRaw: bigint = committedAmount ?? 0n;
   const currentTotalReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
@@ -231,6 +291,9 @@ export function useSaleContract(saleSpecificEntityID: string) {
 
   return {
     commitWithPermit,
+    cancelBid,
+    contractStage,
+    committedAmount,
     txSignature,
     confirmedTxSignature,
     awaitingTxReceipt,
