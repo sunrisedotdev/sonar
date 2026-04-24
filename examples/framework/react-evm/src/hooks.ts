@@ -122,12 +122,13 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
   });
 
   const isEntityStateLoaded = entityStates !== undefined;
-  const currentTotalRaw: bigint = entityStates?.[0]?.currentBid?.amount ?? 0n;
+  const entityState = entityStates?.[0];
+  const currentTotalRaw: bigint = entityState?.currentBid?.amount ?? 0n;
   const currentTotalReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
-  
+
   const { data: contractStage } = useReadContract({
     address: saleContract,
     abi: settlementSaleAbi,
@@ -140,6 +141,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
   return {
     entityStateError,
     isEntityStateLoaded,
+    entityState,
     currentTotalRaw,
     currentTotalReadableStr,
     commitWithPermit,
