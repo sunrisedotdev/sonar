@@ -121,7 +121,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
       );
       const walletBytes = Array.from(new PublicKey(permit.Wallet).toBytes());
       const payloadHex = permit.Payload.replace(/^0x/, "");
-      const payloadBytes = payloadHex.length > 0 ? Array.from(Buffer.from(payloadHex, "hex")) : [];
+      const payloadBytes = payloadHex.length > 0 ? Buffer.from(payloadHex, "hex") : Buffer.from([]);
 
       const permitData = {
         saleSpecificEntityId: saleEntityIdArr,
