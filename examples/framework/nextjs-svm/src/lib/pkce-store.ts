@@ -46,18 +46,18 @@ class InMemoryPKCEStore implements PKCEStore {
   }
 }
 
-// Singleton instance - can be swapped for a different implementation
-let pkceStoreInstance: PKCEStore | null = null;
+// Use globalThis to survive Next.js dev-mode hot module reloads.
+const g = globalThis as typeof globalThis & { __pkceStore?: PKCEStore };
 
 /**
  * Get the PKCE store instance.
  * This factory function allows swapping implementations without changing call sites.
  */
 export function getPKCEStore(): PKCEStore {
-  if (!pkceStoreInstance) {
-    pkceStoreInstance = new InMemoryPKCEStore();
+  if (!g.__pkceStore) {
+    g.__pkceStore = new InMemoryPKCEStore();
   }
-  return pkceStoreInstance;
+  return g.__pkceStore;
 }
 
 /**
@@ -65,7 +65,7 @@ export function getPKCEStore(): PKCEStore {
  * Useful for swapping to a database-backed store.
  */
 export function setPKCEStore(store: PKCEStore): void {
-  pkceStoreInstance = store;
+  g.__pkceStore = store;
 }
 
 const PKCE_TTL_MS = 10 * 60 * 1000; // 10 minutes
