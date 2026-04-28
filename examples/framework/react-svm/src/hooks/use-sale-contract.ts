@@ -183,7 +183,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
       const tx = new Transaction();
       tx.add(ed25519Ix, placeBidIx);
       tx.feePayer = wallet.publicKey;
-      const { blockhash } = await connection.getLatestBlockhash();
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
       tx.recentBlockhash = blockhash;
 
       const signed = await wallet.signTransaction(tx);
@@ -202,7 +202,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
       }
 
       setAwaitingTxReceipt(true);
-      await connection.confirmTransaction(sig, "confirmed");
+      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, "confirmed");
       setConfirmedTxSignature(sig);
       setAwaitingTxReceipt(false);
     },
