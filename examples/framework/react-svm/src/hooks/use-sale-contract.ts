@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
 import { Ed25519Program, PublicKey, SYSVAR_INSTRUCTIONS_PUBKEY, SystemProgram, Transaction } from "@solana/web3.js";
 import { AnchorProvider, BN, BorshCoder, Program } from "@coral-xyz/anchor";
-import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, createAssociatedTokenAccountIdempotentInstruction } from "@solana/spl-token";
 import type { GeneratePurchasePermitResponse } from "@echoxyz/sonar-core";
 import { PROGRAM_ID, PAYMENT_TOKEN_MINT, saleUUID } from "../config";
 import { IDL, IDL_CAMEL } from "../idl/settlement_sale";
@@ -180,8 +180,15 @@ export function useSaleContract(saleSpecificEntityID: string) {
         })
         .instruction();
 
+      const createAtaIx = createAssociatedTokenAccountIdempotentInstruction(
+        wallet.publicKey,
+        bidderTokenAccount,
+        wallet.publicKey,
+        new PublicKey(PAYMENT_TOKEN_MINT),
+      );
+
       const tx = new Transaction();
-      tx.add(ed25519Ix, placeBidIx);
+      tx.add(createAtaIx, ed25519Ix, placeBidIx);
       tx.feePayer = wallet.publicKey;
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
       tx.recentBlockhash = blockhash;
