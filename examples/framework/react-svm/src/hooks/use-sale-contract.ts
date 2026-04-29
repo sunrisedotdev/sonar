@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
 import { Ed25519Program, PublicKey, SYSVAR_INSTRUCTIONS_PUBKEY, SystemProgram, Transaction } from "@solana/web3.js";
 import { AnchorProvider, BN, BorshCoder, Program } from "@coral-xyz/anchor";
-import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import type { GeneratePurchasePermitResponse } from "@echoxyz/sonar-core";
 import { PROGRAM_ID, PAYMENT_TOKEN_MINT, saleUUID } from "../config";
 import { IDL, IDL_CAMEL } from "../idl/settlement_sale";
@@ -46,6 +46,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
   const [awaitingTxReceipt, setAwaitingTxReceipt] = useState(false);
   const [committedAmount, setCommittedAmount] = useState<bigint | undefined>();
   const [entityStateError, setEntityStateError] = useState<Error | undefined>();
+  const [usdcBalance, setUsdcBalance] = useState<bigint | undefined>();
 
   const programPublicKey = useMemo(() => new PublicKey(PROGRAM_ID), []);
 
@@ -81,6 +82,18 @@ export function useSaleContract(saleSpecificEntityID: string) {
         if (!cancelled) {
           setCommittedAmount(state ? BigInt(state.currentAmount.toString()) : 0n);
           setEntityStateError(undefined);
+        }
+
+        if (!cancelled && wallet && PAYMENT_TOKEN_MINT) {
+          try {
+            const ata = getAssociatedTokenAddressSync(new PublicKey(PAYMENT_TOKEN_MINT), wallet.publicKey);
+            const ataAccount = await getAccount(connection, ata);
+            if (!cancelled) setUsdcBalance(ataAccount.amount);
+          } catch {
+            if (!cancelled) setUsdcBalance(0n);
+          }
+        } else if (!cancelled) {
+          setUsdcBalance(0n);
         }
       } catch (err) {
         if (!cancelled) setEntityStateError(err as Error);
@@ -225,5 +238,6 @@ export function useSaleContract(saleSpecificEntityID: string) {
     currentTotalRaw,
     currentTotalReadableStr,
     entityStateError,
+    usdcBalance,
   };
 }
