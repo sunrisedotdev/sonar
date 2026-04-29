@@ -265,13 +265,20 @@ export class SonarClient {
     // Public API
 
     async readCommitmentData(args: { saleUUID: string }): Promise<ReadCommitmentDataResponse> {
-        return this.postJSON<ReadCommitmentDataResponse>(
+        const resp = await this.postJSON<ReadCommitmentDataResponse>(
             "/sonar/v1/public/read-commitment-data",
             {
                 SaleUUID: args.saleUUID,
             },
             { includeAuth: false },
         );
+        resp.Commitments = resp.Commitments.map((c) => ({
+            ...c,
+            SaleSpecificEntityID: c.SaleSpecificEntityID.startsWith("0x")
+                ? c.SaleSpecificEntityID
+                : (`0x${c.SaleSpecificEntityID}` as Hex),
+        }));
+        return resp;
     }
 }
 
