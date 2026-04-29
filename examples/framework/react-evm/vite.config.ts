@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import { resolve } from "path";
 
 const warnMissingRpcUrl: Plugin = {
   name: "warn-missing-rpc-url",
@@ -20,7 +21,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": "/src",
+      "@": resolve(__dirname, "./src"),
     },
+    dedupe: ["react", "react-dom", "wagmi", "@echoxyz/sonar-core", "@echoxyz/sonar-react"],
   },
 });

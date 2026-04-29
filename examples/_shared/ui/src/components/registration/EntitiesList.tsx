@@ -1,6 +1,5 @@
 import { EntityDetails } from "@echoxyz/sonar-core";
 import { EntityCard } from "../entity/EntityCard";
-import { sonarConfig } from "../../config";
 
 interface EntitiesListProps {
   loading: boolean;
@@ -47,7 +46,7 @@ export function EntitiesList({ loading, error, entities, saleUUID, sonarFrontend
       <p className="text-gray-700 text-sm">
         You can manage and add entities on{" "}
         <a
-          href={`${sonarConfig.frontendURL}/sonar/${saleUUID}`}
+          href={`${sonarFrontendURL}/sonar/${saleUUID}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-600 hover:text-blue-800 underline"

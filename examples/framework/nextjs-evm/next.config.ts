@@ -10,6 +10,10 @@ export default function config(phase: string): NextConfig {
   }
 
   return {
-    /* config options here */
+    transpilePackages: ["@examples/ui"],
+    webpack(config) {
+      config.resolve.symlinks = false;
+      return config;
+    },
   };
 }

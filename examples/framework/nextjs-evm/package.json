@@ -10,6 +10,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@examples/ui": "workspace:*",
     "@echoxyz/sonar-core": "^0.14.1",
     "@echoxyz/sonar-react": "^0.13.1",
     "@tanstack/react-query": "^5.90.12",
