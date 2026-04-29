@@ -46,7 +46,7 @@ export default function Home() {
 
   const isEligible = selectedEntity && selectedEntity.SaleEligibility === SaleEligibility.ELIGIBLE;
 
-  const { commitWithPermit, entityState, entityStateError, awaitingTxReceipt, txReceipt, awaitingTxReceiptError } =
+  const { commitWithPermit, entityState, entityStateError, awaitingTxReceipt, txReceipt, awaitingTxReceiptError, isWrongChain } =
     useSaleContract((selectedEntity?.SaleSpecificEntityID ?? "0x") as `0x${string}`);
 
   const adapter: ChainAdapterResult = {
@@ -57,6 +57,7 @@ export default function Home() {
     confirmed: txReceipt?.status === "success",
     txId: txReceipt?.transactionHash ?? null,
     pendingError: awaitingTxReceiptError ?? null,
+    isWrongChain,
   };
 
   const EntitySection = () => {
