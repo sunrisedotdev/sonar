@@ -4,6 +4,7 @@ import {
     APIError,
     GeneratePurchasePermitResponse,
     ListAvailableEntitiesResponse,
+    ReadCommitmentDataResponse,
     ReadEntityResponse,
     SonarClient,
 } from "../src/client";
@@ -325,6 +326,73 @@ describe("SonarClient", () => {
                 },
             ],
         } satisfies ListAvailableEntitiesResponse);
+    });
+
+    it("readCommitmentData normalizes SaleSpecificEntityID to include 0x prefix", async () => {
+        const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+            const url = input as URL;
+            expect(url.pathname).toBe("/sonar/v1/public/read-commitment-data");
+            return mockResponse({
+                status: 200,
+                json: {
+                    TotalCommitmentAmount: "1000000",
+                    PaymentTokenDecimals: 6,
+                    UniqueCommitmentCount: 1,
+                    Commitments: [
+                        {
+                            CommitmentID: "0xabc",
+                            SaleSpecificEntityID: "43976f8bfaea137cae552012061404e7",
+                            PriceNumerator: "1",
+                            PriceDenominator: "1",
+                            Amounts: [],
+                            CreatedAt: "2024-01-01T00:00:00Z",
+                            ExtraRaw: "0x",
+                            ExtraDataParsed: null,
+                        },
+                    ],
+                },
+            });
+        });
+
+        const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
+        const result = await client.readCommitmentData({ saleUUID: "s" });
+
+        expect(result.Commitments[0].SaleSpecificEntityID).toBe("0x43976f8bfaea137cae552012061404e7");
+    });
+
+    it("readCommitmentData leaves SaleSpecificEntityID unchanged when 0x prefix is already present", async () => {
+        const fetchSpy = vi.fn(async () =>
+            mockResponse({
+                status: 200,
+                json: {
+                    TotalCommitmentAmount: "1000000",
+                    PaymentTokenDecimals: 6,
+                    UniqueCommitmentCount: 1,
+                    Commitments: [
+                        {
+                            CommitmentID: "0xabc",
+                            SaleSpecificEntityID: "0x43976f8bfaea137cae552012061404e7",
+                            PriceNumerator: "1",
+                            PriceDenominator: "1",
+                            Amounts: [],
+                            CreatedAt: "2024-01-01T00:00:00Z",
+                            ExtraRaw: "0x",
+                            ExtraDataParsed: null,
+                        },
+                    ],
+                },
+            }),
+        );
+
+        const client = new SonarClient({ apiURL, opts: { fetch: fetchSpy, auth } });
+        const result = await client.readCommitmentData({ saleUUID: "s" });
+
+        expect(result.Commitments[0].SaleSpecificEntityID).toBe("0x43976f8bfaea137cae552012061404e7");
+        expect(result).toMatchObject({
+            TotalCommitmentAmount: "1000000",
+            PaymentTokenDecimals: 6,
+            UniqueCommitmentCount: 1,
+        } satisfies Partial<ReadCommitmentDataResponse>);
     });
 
     it("client method arguments are compatible with EntityDetails types", async () => {
