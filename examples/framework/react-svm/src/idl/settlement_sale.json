@@ -8,6 +8,983 @@
   },
   "instructions": [
     {
+      "name": "accept_authority",
+      "docs": [
+        "Accepts a pending authority transfer. Must be called by the proposed authority.",
+        "Promotes pending_admin to admin and clears the pending field."
+      ],
+      "discriminator": [
+        107,
+        86,
+        198,
+        91,
+        33,
+        12,
+        107,
+        160
+      ],
+      "accounts": [
+        {
+          "name": "new_admin",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancel_bid",
+      "docs": [
+        "Fully cancels the calling wallet's reducible amount",
+        "(contributed minus any accepted allocation).",
+        "",
+        "On Solana each wallet must call this independently, unlike the EVM",
+        "contract which cancels all entity wallets in one transaction. This is",
+        "because Solana instructions require all accounts to be passed upfront."
+      ],
+      "discriminator": [
+        40,
+        243,
+        190,
+        217,
+        208,
+        253,
+        86,
+        206
+      ],
+      "accounts": [
+        {
+          "name": "bidder",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "entity_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  116,
+                  105,
+                  116,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "wallet_binding.entity_id",
+                "account": "WalletBinding"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet_binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bidder_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payment_token_mint"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_refund",
+      "docs": [
+        "Allows the calling wallet to claim their own refund in the `Done` stage.",
+        "",
+        "Requires `claim_refund_enabled`. Transfers `contributed_amount - accepted_amount`",
+        "back to the wallet's token account. Marks the wallet as refunded."
+      ],
+      "discriminator": [
+        15,
+        16,
+        30,
+        161,
+        255,
+        228,
+        97,
+        60
+      ],
+      "accounts": [
+        {
+          "name": "bidder",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "entity_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  116,
+                  105,
+                  116,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "wallet_binding.entity_id",
+                "account": "WalletBinding"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet_binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bidder_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payment_token_mint"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "finalize_settlement",
+      "docs": [
+        "Moves the sale from `Settlement` to `Done` after all allocations are set.",
+        "",
+        "`expected_total_accepted` is a sanity check — the caller provides the expected",
+        "value and the program rejects the call if it doesn't match `total_accepted`."
+      ],
+      "discriminator": [
+        220,
+        72,
+        152,
+        119,
+        178,
+        196,
+        25,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "docs": [
+            "Optional RoleBinding PDA for non-admin callers.",
+            "Admin callers pass None — the admin bypass in check_role handles it."
+          ],
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "expected_total_accepted",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "grant_role",
+      "docs": [
+        "Grants a role to an operator for a specific sale.",
+        "",
+        "Creates the RoleBinding PDA if it does not yet exist.",
+        "Uses OR semantics: existing roles are preserved."
+      ],
+      "discriminator": [
+        218,
+        234,
+        128,
+        15,
+        82,
+        33,
+        236,
+        253
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "arg",
+                "path": "operator"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "role",
+          "type": {
+            "defined": {
+              "name": "SaleRole"
+            }
+          }
+        },
+        {
+          "name": "operator",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "initialize_sale",
+      "docs": [
+        "Initializes a new SettlementSale.",
+        "",
+        "Creates the SettlementSale PDA and sets up the vault token account.",
+        "The sale starts in the `PreOpen` stage unless `skip_pre_open` is true."
+      ],
+      "discriminator": [
+        208,
+        103,
+        34,
+        154,
+        179,
+        6,
+        125,
+        208
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "sale_uuid"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payment_token_mint"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "sale_uuid",
+          "type": {
+            "array": [
+              "u8",
+              16
+            ]
+          }
+        },
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "InitializeSaleParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "open_cancellation",
+      "docs": [
+        "Moves the sale from `Commitment` to `Cancellation`."
+      ],
+      "discriminator": [
+        180,
+        106,
+        102,
+        246,
+        77,
+        44,
+        210,
+        82
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "docs": [
+            "Optional RoleBinding PDA for non-admin callers.",
+            "Admin callers pass None — the admin bypass in check_role handles it."
+          ],
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "open_commitment",
+      "docs": [
+        "Moves the sale from `PreOpen` to `Commitment`, allowing bids."
+      ],
+      "discriminator": [
+        141,
+        35,
+        125,
+        23,
+        154,
+        125,
+        209,
+        127
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "docs": [
+            "Optional RoleBinding PDA for non-admin callers.",
+            "Admin callers pass None — the admin bypass in check_role handles it."
+          ],
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "open_settlement",
+      "docs": [
+        "Moves the sale to `Settlement` from `Commitment` or `Cancellation`."
+      ],
+      "discriminator": [
+        144,
+        15,
+        89,
+        242,
+        217,
+        186,
+        154,
+        38
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "docs": [
+            "Optional RoleBinding PDA for non-admin callers.",
+            "Admin callers pass None — the admin bypass in check_role handles it."
+          ],
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "place_bid",
       "docs": [
         "Places or updates a bid in the sale.",
@@ -196,6 +1173,1450 @@
           "type": "bool"
         }
       ]
+    },
+    {
+      "name": "process_refund",
+      "docs": [
+        "Authority-initiated refund for a specific wallet in the `Done` stage.",
+        "",
+        "Transfers `contributed_amount - accepted_amount` back to the wallet's token",
+        "account. `skip_already_refunded` controls whether to silently skip wallets",
+        "that were already refunded."
+      ],
+      "discriminator": [
+        207,
+        200,
+        62,
+        144,
+        204,
+        189,
+        222,
+        226
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "entity_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  116,
+                  105,
+                  116,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "wallet_binding.entity_id",
+                "account": "WalletBinding"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet_binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "arg",
+                "path": "wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet_token_account",
+          "docs": [
+            "The token account belonging to `wallet` that will receive the refund."
+          ],
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payment_token_mint"
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "role_binding",
+          "docs": [
+            "Optional RoleBinding PDA for non-admin callers."
+          ],
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "skip_already_refunded",
+          "type": "bool"
+        },
+        {
+          "name": "wallet",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "propose_authority",
+      "docs": [
+        "Proposes a new admin authority. The transfer does not take effect until the proposed",
+        "authority calls `accept_authority`, proving they control the key."
+      ],
+      "discriminator": [
+        20,
+        148,
+        236,
+        198,
+        76,
+        119,
+        99,
+        142
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "docs": [
+            "Optional RoleBinding PDA for non-admin callers.",
+            "Admin callers pass None — the admin bypass in check_role handles it."
+          ],
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_authority",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "reduce_commitment",
+      "docs": [
+        "Partially reduces the caller's committed amount by `amount`.",
+        "",
+        "Unlike `cancel_bid` (which refunds everything), this lets a wallet",
+        "reduce its position by a specific amount while staying in the sale.",
+        "Requires `reduce_commitment_enabled` on the sale."
+      ],
+      "discriminator": [
+        75,
+        12,
+        201,
+        147,
+        10,
+        91,
+        157,
+        193
+      ],
+      "accounts": [
+        {
+          "name": "bidder",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "entity_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  116,
+                  105,
+                  116,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "wallet_binding.entity_id",
+                "account": "WalletBinding"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet_binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bidder_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payment_token_mint"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "revoke_role",
+      "docs": [
+        "Revokes a role from an operator for a specific sale.",
+        "",
+        "Closes the RoleBinding PDA and reclaims rent if all roles are removed."
+      ],
+      "discriminator": [
+        179,
+        232,
+        2,
+        180,
+        48,
+        227,
+        82,
+        7
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "arg",
+                "path": "operator"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "role",
+          "type": {
+            "defined": {
+              "name": "SaleRole"
+            }
+          }
+        },
+        {
+          "name": "operator",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_allocation",
+      "docs": [
+        "Records the offchain-computed allocation for a single wallet.",
+        "",
+        "`accepted_amount` must be <= the wallet's `contributed_amount`.",
+        "If the wallet already has a non-zero allocation, the caller must pass",
+        "`allow_overwrite = true` to confirm the overwrite.",
+        "`wallet` is passed as an instruction arg so the `SetAllocation` accounts",
+        "struct can use it to derive the wallet_binding PDA."
+      ],
+      "discriminator": [
+        119,
+        81,
+        22,
+        4,
+        114,
+        187,
+        23,
+        145
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "entity_state",
+          "docs": [
+            "The entity whose wallet is being allocated."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  110,
+                  116,
+                  105,
+                  116,
+                  121,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "wallet_binding.entity_id",
+                "account": "WalletBinding"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet_binding",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "arg",
+                "path": "wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "docs": [
+            "Optional RoleBinding PDA for non-admin callers."
+          ],
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "accepted_amount",
+          "type": "u64"
+        },
+        {
+          "name": "allow_overwrite",
+          "type": "bool"
+        },
+        {
+          "name": "wallet",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_claim_refund_enabled",
+      "docs": [
+        "Enables or disables self-service refund claims in the `Done` stage."
+      ],
+      "discriminator": [
+        51,
+        61,
+        107,
+        253,
+        161,
+        37,
+        99,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "docs": [
+            "Optional RoleBinding PDA for non-admin callers.",
+            "Admin callers pass None — the admin bypass in check_role handles it."
+          ],
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "enabled",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_max_wallets_per_entity",
+      "docs": [
+        "Updates the maximum number of wallets that can contribute to a single entity.",
+        "",
+        "Cannot be set to zero. Does not retroactively evict wallets that already",
+        "exceed the new limit; it only affects new wallet registrations."
+      ],
+      "discriminator": [
+        250,
+        9,
+        232,
+        109,
+        56,
+        49,
+        196,
+        247
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "docs": [
+            "Optional RoleBinding PDA for non-admin callers.",
+            "Admin callers pass None — the admin bypass in check_role handles it."
+          ],
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "max_wallets_per_entity",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "set_paused",
+      "docs": [
+        "Pauses or unpauses the sale."
+      ],
+      "discriminator": [
+        91,
+        60,
+        125,
+        192,
+        176,
+        225,
+        166,
+        218
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "docs": [
+            "Optional RoleBinding PDA for non-admin callers.",
+            "Admin callers pass None — the admin bypass in check_role handles it."
+          ],
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "is_paused",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_proceeds_receiver",
+      "docs": [
+        "Updates the proceeds receiver address."
+      ],
+      "discriminator": [
+        26,
+        131,
+        192,
+        159,
+        124,
+        242,
+        177,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "docs": [
+            "Optional RoleBinding PDA for non-admin callers.",
+            "Admin callers pass None — the admin bypass in check_role handles it."
+          ],
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_receiver",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_reduce_commitment_enabled",
+      "docs": [
+        "Enables or disables partial commitment reduction in the `Cancellation` stage."
+      ],
+      "discriminator": [
+        169,
+        193,
+        34,
+        91,
+        101,
+        205,
+        81,
+        132
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "role_binding",
+          "docs": [
+            "Optional RoleBinding PDA for non-admin callers.",
+            "Admin callers pass None — the admin bypass in check_role handles it."
+          ],
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  111,
+                  108,
+                  101,
+                  95,
+                  98,
+                  105,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "enabled",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "docs": [
+        "Withdraws all remaining proceeds to the proceeds receiver."
+      ],
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "proceeds_receiver_token_account",
+          "docs": [
+            "Token account owned by `proceeds_receiver` that will receive the withdrawal."
+          ],
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payment_token_mint"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdraw_partial",
+      "docs": [
+        "Withdraws a specific amount of proceeds to the proceeds receiver.",
+        "",
+        "Allows incremental withdrawals. `amount` must not exceed",
+        "`total_accepted - total_withdrawn`."
+      ],
+      "discriminator": [
+        142,
+        181,
+        230,
+        69,
+        132,
+        105,
+        19,
+        229
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sale",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  116,
+                  116,
+                  108,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  115,
+                  97,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale.sale_uuid",
+                "account": "SettlementSale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "proceeds_receiver_token_account",
+          "docs": [
+            "Token account owned by `proceeds_receiver` that will receive the withdrawal."
+          ],
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sale"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payment_token_mint"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -213,6 +2634,19 @@
       ]
     },
     {
+      "name": "RoleBinding",
+      "discriminator": [
+        41,
+        230,
+        160,
+        117,
+        242,
+        120,
+        224,
+        167
+      ]
+    },
+    {
       "name": "SettlementSale",
       "discriminator": [
         38,
@@ -224,9 +2658,712 @@
         15,
         74
       ]
+    },
+    {
+      "name": "WalletBinding",
+      "discriminator": [
+        51,
+        211,
+        204,
+        185,
+        168,
+        68,
+        52,
+        176
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AllocationSet",
+      "discriminator": [
+        32,
+        45,
+        253,
+        55,
+        65,
+        85,
+        102,
+        218
+      ]
+    },
+    {
+      "name": "AuthorityProposed",
+      "discriminator": [
+        244,
+        117,
+        94,
+        112,
+        53,
+        151,
+        35,
+        89
+      ]
+    },
+    {
+      "name": "AuthorityTransferred",
+      "discriminator": [
+        245,
+        109,
+        179,
+        54,
+        135,
+        92,
+        22,
+        64
+      ]
+    },
+    {
+      "name": "BidCancelled",
+      "discriminator": [
+        175,
+        52,
+        76,
+        11,
+        201,
+        1,
+        205,
+        65
+      ]
+    },
+    {
+      "name": "BidPlaced",
+      "discriminator": [
+        135,
+        53,
+        176,
+        83,
+        193,
+        69,
+        108,
+        61
+      ]
+    },
+    {
+      "name": "ClaimRefundEnabledChanged",
+      "discriminator": [
+        68,
+        138,
+        217,
+        137,
+        187,
+        241,
+        137,
+        44
+      ]
+    },
+    {
+      "name": "CommitmentReduced",
+      "discriminator": [
+        229,
+        232,
+        45,
+        76,
+        121,
+        242,
+        224,
+        250
+      ]
+    },
+    {
+      "name": "MaxWalletsPerEntityChanged",
+      "discriminator": [
+        96,
+        54,
+        224,
+        137,
+        132,
+        218,
+        11,
+        157
+      ]
+    },
+    {
+      "name": "ProceedsReceiverChanged",
+      "discriminator": [
+        218,
+        53,
+        242,
+        140,
+        197,
+        135,
+        174,
+        81
+      ]
+    },
+    {
+      "name": "ProceedsWithdrawn",
+      "discriminator": [
+        39,
+        167,
+        165,
+        1,
+        8,
+        206,
+        214,
+        13
+      ]
+    },
+    {
+      "name": "ReduceCommitmentEnabledChanged",
+      "discriminator": [
+        151,
+        28,
+        237,
+        145,
+        70,
+        224,
+        207,
+        70
+      ]
+    },
+    {
+      "name": "RefundClaimed",
+      "discriminator": [
+        136,
+        64,
+        242,
+        99,
+        4,
+        244,
+        208,
+        130
+      ]
+    },
+    {
+      "name": "RefundProcessed",
+      "discriminator": [
+        203,
+        88,
+        236,
+        233,
+        192,
+        178,
+        57,
+        161
+      ]
+    },
+    {
+      "name": "RoleGranted",
+      "discriminator": [
+        220,
+        183,
+        89,
+        228,
+        143,
+        63,
+        246,
+        58
+      ]
+    },
+    {
+      "name": "RoleRevoked",
+      "discriminator": [
+        167,
+        183,
+        52,
+        229,
+        126,
+        206,
+        62,
+        61
+      ]
+    },
+    {
+      "name": "SaleInitialized",
+      "discriminator": [
+        245,
+        150,
+        119,
+        115,
+        149,
+        109,
+        202,
+        139
+      ]
+    },
+    {
+      "name": "SalePausedChanged",
+      "discriminator": [
+        90,
+        85,
+        83,
+        10,
+        105,
+        53,
+        238,
+        184
+      ]
+    },
+    {
+      "name": "StageChanged",
+      "discriminator": [
+        80,
+        170,
+        27,
+        200,
+        87,
+        116,
+        78,
+        98
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "UnauthorizedSigner",
+      "msg": "The permit signer is not authorized"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidWallet",
+      "msg": "Permit wallet doesn't match transaction signer"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidSaleUuid",
+      "msg": "Permit sale_uuid doesn't match sale"
+    },
+    {
+      "code": 6003,
+      "name": "PermitExpired",
+      "msg": "Permit has expired"
+    },
+    {
+      "code": 6004,
+      "name": "BidTooEarly",
+      "msg": "Bid submitted before the commitment window opens"
+    },
+    {
+      "code": 6005,
+      "name": "BidTooLate",
+      "msg": "Bid submitted after the commitment window closes"
+    },
+    {
+      "code": 6006,
+      "name": "BidBelowMinAmount",
+      "msg": "Bid amount is below the permit minimum"
+    },
+    {
+      "code": 6007,
+      "name": "BidExceedsMaxAmount",
+      "msg": "Bid amount exceeds the permit maximum"
+    },
+    {
+      "code": 6008,
+      "name": "PriceBelowMinPrice",
+      "msg": "Bid price is below the permit minimum"
+    },
+    {
+      "code": 6009,
+      "name": "PriceExceedsMaxPrice",
+      "msg": "Bid price exceeds the permit maximum"
+    },
+    {
+      "code": 6010,
+      "name": "ZeroAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6011,
+      "name": "AmountCannotDecrease",
+      "msg": "Bid amount cannot decrease from previous bid"
+    },
+    {
+      "code": 6012,
+      "name": "PriceCannotDecrease",
+      "msg": "Bid price cannot decrease from previous bid"
+    },
+    {
+      "code": 6013,
+      "name": "BidMustHaveLockup",
+      "msg": "This entity must opt into lockup as required by the permit"
+    },
+    {
+      "code": 6014,
+      "name": "BidLockupCannotBeUndone",
+      "msg": "Lockup cannot be removed once set on a bid"
+    },
+    {
+      "code": 6015,
+      "name": "EntityIdMismatch",
+      "msg": "Entity ID in permit doesn't match entity state"
+    },
+    {
+      "code": 6016,
+      "name": "AlreadyRefunded",
+      "msg": "Entity has already been refunded"
+    },
+    {
+      "code": 6017,
+      "name": "WalletAlreadyRefunded",
+      "msg": "This wallet has already been refunded"
+    },
+    {
+      "code": 6018,
+      "name": "WalletBoundToDifferentEntity",
+      "msg": "Wallet is already bound to a different entity"
+    },
+    {
+      "code": 6019,
+      "name": "MaxWalletsPerEntityExceeded",
+      "msg": "Maximum number of wallets per entity exceeded"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidTokenAccountOwner",
+      "msg": "Invalid token account owner"
+    },
+    {
+      "code": 6021,
+      "name": "InvalidTokenMint",
+      "msg": "Invalid token mint"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidStage",
+      "msg": "Operation not permitted in the current sale stage"
+    },
+    {
+      "code": 6023,
+      "name": "SalePaused",
+      "msg": "Sale is paused"
+    },
+    {
+      "code": 6024,
+      "name": "ReduceCommitmentDisabled",
+      "msg": "Reduce commitment is not enabled for this sale"
+    },
+    {
+      "code": 6025,
+      "name": "ReductionExceedsCommitment",
+      "msg": "Reduction amount exceeds committed amount"
+    },
+    {
+      "code": 6026,
+      "name": "ClaimRefundDisabled",
+      "msg": "Claim refund is not enabled for this sale"
+    },
+    {
+      "code": 6027,
+      "name": "AllocationExceedsCommitment",
+      "msg": "Allocation exceeds the wallet's committed amount"
+    },
+    {
+      "code": 6028,
+      "name": "UnexpectedTotalAcceptedAmount",
+      "msg": "Total accepted amount does not match expected value"
+    },
+    {
+      "code": 6029,
+      "name": "WithdrawalExceedsAvailable",
+      "msg": "Withdrawal amount exceeds available proceeds"
+    },
+    {
+      "code": 6030,
+      "name": "UnsupportedTokenProgram",
+      "msg": "Token-2022 mints are not supported"
+    },
+    {
+      "code": 6031,
+      "name": "ZeroProceedsReceiver",
+      "msg": "Proceeds receiver cannot be the zero address"
+    },
+    {
+      "code": 6032,
+      "name": "ZeroPermitSigner",
+      "msg": "Permit signer cannot be the zero address"
+    },
+    {
+      "code": 6033,
+      "name": "MaxWalletsPerEntityZero",
+      "msg": "Max wallets per entity must be greater than zero"
+    },
+    {
+      "code": 6034,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6035,
+      "name": "SerializationError",
+      "msg": "Failed to serialize data"
+    },
+    {
+      "code": 6036,
+      "name": "InvalidPermitStructure",
+      "msg": "Permit has invalid structure (e.g., min > max or opens > closes)"
+    },
+    {
+      "code": 6037,
+      "name": "InvalidClockTimestamp",
+      "msg": "Clock timestamp is invalid"
+    },
+    {
+      "code": 6038,
+      "name": "AccountDataMismatch",
+      "msg": "Account data does not match expected values"
+    },
+    {
+      "code": 6039,
+      "name": "AllocationAlreadySet",
+      "msg": "Allocation already set; pass allow_overwrite to replace"
+    },
+    {
+      "code": 6040,
+      "name": "ZeroAuthority",
+      "msg": "New authority cannot be the zero address"
+    },
+    {
+      "code": 6041,
+      "name": "RoleNotHeld",
+      "msg": "Role is not held by this operator"
+    },
+    {
+      "code": 6042,
+      "name": "RoleAlreadyGranted",
+      "msg": "Role is already granted to this operator"
+    },
+    {
+      "code": 6043,
+      "name": "Ed25519InstructionMissing",
+      "msg": "Ed25519 instruction is missing at the expected preceding position"
+    },
+    {
+      "code": 6044,
+      "name": "Ed25519WrongProgram",
+      "msg": "Instruction at expected Ed25519 position has wrong program ID"
+    },
+    {
+      "code": 6045,
+      "name": "Ed25519InvalidSignatureCount",
+      "msg": "Ed25519 instruction must contain exactly one signature"
+    },
+    {
+      "code": 6046,
+      "name": "Ed25519MalformedData",
+      "msg": "Ed25519 instruction data is malformed or uses external data references"
+    },
+    {
+      "code": 6047,
+      "name": "Ed25519MessageMismatch",
+      "msg": "Signed message does not match expected permit bytes"
+    },
+    {
+      "code": 6048,
+      "name": "Ed25519UnexpectedAccounts",
+      "msg": "Ed25519 instruction must have no accounts attached"
+    },
+    {
+      "code": 6049,
+      "name": "CpiNotAllowed",
+      "msg": "place_bid cannot be invoked via CPI"
+    },
+    {
+      "code": 6050,
+      "name": "NoPendingAuthority",
+      "msg": "No pending authority; call propose_authority first"
+    },
+    {
+      "code": 6051,
+      "name": "ZeroOperator",
+      "msg": "Operator cannot be the zero address"
     }
   ],
   "types": [
+    {
+      "name": "AllocationSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "entity_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "accepted_amount",
+            "type": "u64"
+          },
+          {
+            "name": "prev_accepted",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorityProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "proposed_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AuthorityTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BidCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "entity_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BidPlaced",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "entity_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "lockup",
+            "type": "bool"
+          },
+          {
+            "name": "delta",
+            "type": "u64"
+          },
+          {
+            "name": "is_new_entity",
+            "type": "bool"
+          },
+          {
+            "name": "is_new_binding",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClaimRefundEnabledChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CommitmentReduced",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "entity_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "remaining_contribution",
+            "type": "u64"
+          }
+        ]
+      }
+    },
     {
       "name": "EntityState",
       "docs": [
@@ -340,6 +3477,94 @@
       }
     },
     {
+      "name": "InitializeSaleParams",
+      "docs": [
+        "Parameters for initializing a new SettlementSale, bundled to stay within",
+        "Anchor's 7-argument limit for instruction handlers."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "permit_signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "proceeds_receiver",
+            "type": "pubkey"
+          },
+          {
+            "name": "max_wallets_per_entity",
+            "type": "u8"
+          },
+          {
+            "name": "claim_refund_enabled",
+            "type": "bool"
+          },
+          {
+            "name": "reduce_commitment_enabled",
+            "type": "bool"
+          },
+          {
+            "name": "skip_pre_open",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MaxWalletsPerEntityChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "max_wallets_per_entity",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProceedsReceiverChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_receiver",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProceedsWithdrawn",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "PurchasePermitV3",
       "docs": [
         "PurchasePermitV3 for Solana.",
@@ -436,9 +3661,250 @@
           {
             "name": "payload",
             "docs": [
-              "Opaque payload bytes for off-chain use. Not decoded by the program."
+              "Borsh-encoded [`PurchasePermitPayload`]. May be empty, in which case",
+              "no payload-level constraints (e.g. forced lockup) apply."
             ],
             "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ReduceCommitmentEnabledChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RefundClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RefundProcessed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "skipped",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleBinding",
+      "docs": [
+        "Per-operator role bitmask for a specific sale.",
+        "",
+        "Seeds: [\"role_binding\", sale.key(), operator]"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "docs": [
+              "The sale this binding belongs to."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "operator",
+            "docs": [
+              "The operator address holding these roles."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "roles",
+            "docs": [
+              "Bitmask of granted roles (see RoleMask flags)."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleGranted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": {
+              "defined": {
+                "name": "SaleRole"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleRevoked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": {
+              "defined": {
+                "name": "SaleRole"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SaleInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "sale_uuid",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "stage",
+            "type": {
+              "defined": {
+                "name": "Stage"
+              }
+            }
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "permit_signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "proceeds_receiver",
+            "type": "pubkey"
+          },
+          {
+            "name": "payment_token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "max_wallets_per_entity",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SalePausedChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_paused",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SaleRole",
+      "docs": [
+        "Preset roles exposed in the Anchor IDL."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Manager"
+          },
+          {
+            "name": "SettlementFinalizer"
+          },
+          {
+            "name": "Refunder"
+          },
+          {
+            "name": "Pauser"
+          },
+          {
+            "name": "Settler"
           }
         ]
       }
@@ -468,7 +3934,13 @@
           {
             "name": "permit_signer",
             "docs": [
-              "Public key of the backend permit signer (Ed25519)."
+              "Public key of the backend permit signer (Ed25519).",
+              "",
+              "This field is set once at initialization and cannot be updated without a program upgrade.",
+              "If the signing key is compromised, the sale must be paused immediately (via `set_paused`)",
+              "and a new sale deployed. All previously issued permits become unreachable from the new sale.",
+              "Operators should therefore protect the permit signing key with a hardware key or KMS and",
+              "maintain an emergency pause playbook."
             ],
             "type": "pubkey"
           },
@@ -587,6 +4059,15 @@
               "Total amount withdrawn to the proceeds receiver."
             ],
             "type": "u64"
+          },
+          {
+            "name": "pending_admin",
+            "docs": [
+              "Proposed next admin, set by propose_authority. Must call accept_authority to take effect."
+            ],
+            "type": {
+              "option": "pubkey"
+            }
           }
         ]
       }
@@ -623,253 +4104,127 @@
           }
         ]
       }
-    }
-  ],
-  "errors": [
-    {
-      "code": 6000,
-      "name": "InvalidEd25519Instruction",
-      "msg": "Ed25519 program instruction not found or invalid"
     },
     {
-      "code": 6001,
-      "name": "UnauthorizedSigner",
-      "msg": "The permit signer is not authorized"
+      "name": "StageChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "type": "pubkey"
+          },
+          {
+            "name": "previous_stage",
+            "type": {
+              "defined": {
+                "name": "Stage"
+              }
+            }
+          },
+          {
+            "name": "stage",
+            "type": {
+              "defined": {
+                "name": "Stage"
+              }
+            }
+          }
+        ]
+      }
     },
     {
-      "code": 6002,
-      "name": "InvalidWallet",
-      "msg": "Permit wallet doesn't match transaction signer"
-    },
-    {
-      "code": 6003,
-      "name": "InvalidSaleUuid",
-      "msg": "Permit sale_uuid doesn't match sale"
-    },
-    {
-      "code": 6004,
-      "name": "PermitExpired",
-      "msg": "Permit has expired"
-    },
-    {
-      "code": 6005,
-      "name": "BidTooEarly",
-      "msg": "Bid submitted before the commitment window opens"
-    },
-    {
-      "code": 6006,
-      "name": "BidTooLate",
-      "msg": "Bid submitted after the commitment window closes"
-    },
-    {
-      "code": 6007,
-      "name": "BidBelowMinAmount",
-      "msg": "Bid amount is below the permit minimum"
-    },
-    {
-      "code": 6008,
-      "name": "BidExceedsMaxAmount",
-      "msg": "Bid amount exceeds the permit maximum"
-    },
-    {
-      "code": 6009,
-      "name": "PriceBelowMinPrice",
-      "msg": "Bid price is below the permit minimum"
-    },
-    {
-      "code": 6010,
-      "name": "PriceExceedsMaxPrice",
-      "msg": "Bid price exceeds the permit maximum"
-    },
-    {
-      "code": 6011,
-      "name": "ZeroAmount",
-      "msg": "Amount must be greater than zero"
-    },
-    {
-      "code": 6012,
-      "name": "AmountCannotDecrease",
-      "msg": "Bid amount cannot decrease from previous bid"
-    },
-    {
-      "code": 6013,
-      "name": "PriceCannotDecrease",
-      "msg": "Bid price cannot decrease from previous bid"
-    },
-    {
-      "code": 6014,
-      "name": "BidMustHaveLockup",
-      "msg": "This entity must opt into lockup as required by the permit"
-    },
-    {
-      "code": 6015,
-      "name": "BidLockupCannotBeUndone",
-      "msg": "Lockup cannot be removed once set on a bid"
-    },
-    {
-      "code": 6016,
-      "name": "EntityIdMismatch",
-      "msg": "Entity ID in permit doesn't match entity state"
-    },
-    {
-      "code": 6017,
-      "name": "AlreadyRefunded",
-      "msg": "Entity has already been refunded"
-    },
-    {
-      "code": 6018,
-      "name": "WalletAlreadyRefunded",
-      "msg": "This wallet has already been refunded"
-    },
-    {
-      "code": 6019,
-      "name": "WalletBoundToDifferentEntity",
-      "msg": "Wallet is already bound to a different entity"
-    },
-    {
-      "code": 6020,
-      "name": "MaxWalletsPerEntityExceeded",
-      "msg": "Maximum number of wallets per entity exceeded"
-    },
-    {
-      "code": 6021,
-      "name": "InvalidTokenAccountOwner",
-      "msg": "Invalid token account owner"
-    },
-    {
-      "code": 6022,
-      "name": "InvalidTokenMint",
-      "msg": "Invalid token mint"
-    },
-    {
-      "code": 6023,
-      "name": "InvalidStage",
-      "msg": "Operation not permitted in the current sale stage"
-    },
-    {
-      "code": 6024,
-      "name": "SalePaused",
-      "msg": "Sale is paused"
-    },
-    {
-      "code": 6025,
-      "name": "ReduceCommitmentDisabled",
-      "msg": "Reduce commitment is not enabled for this sale"
-    },
-    {
-      "code": 6026,
-      "name": "ReductionExceedsCommitment",
-      "msg": "Reduction amount exceeds committed amount"
-    },
-    {
-      "code": 6027,
-      "name": "ClaimRefundDisabled",
-      "msg": "Claim refund is not enabled for this sale"
-    },
-    {
-      "code": 6028,
-      "name": "AllocationExceedsCommitment",
-      "msg": "Allocation exceeds the wallet's committed amount"
-    },
-    {
-      "code": 6029,
-      "name": "UnexpectedTotalAcceptedAmount",
-      "msg": "Total accepted amount does not match expected value"
-    },
-    {
-      "code": 6030,
-      "name": "WithdrawalExceedsAvailable",
-      "msg": "Withdrawal amount exceeds available proceeds"
-    },
-    {
-      "code": 6031,
-      "name": "UnsupportedTokenProgram",
-      "msg": "Token-2022 mints are not supported"
-    },
-    {
-      "code": 6032,
-      "name": "ZeroProceedsReceiver",
-      "msg": "Proceeds receiver cannot be the zero address"
-    },
-    {
-      "code": 6033,
-      "name": "ZeroPermitSigner",
-      "msg": "Permit signer cannot be the zero address"
-    },
-    {
-      "code": 6034,
-      "name": "MaxWalletsPerEntityZero",
-      "msg": "Max wallets per entity must be greater than zero"
-    },
-    {
-      "code": 6035,
-      "name": "ArithmeticOverflow",
-      "msg": "Arithmetic overflow"
-    },
-    {
-      "code": 6036,
-      "name": "SerializationError",
-      "msg": "Failed to serialize data"
-    },
-    {
-      "code": 6037,
-      "name": "InvalidPermitStructure",
-      "msg": "Permit has invalid structure (e.g., min > max or opens > closes)"
-    },
-    {
-      "code": 6038,
-      "name": "InvalidClockTimestamp",
-      "msg": "Clock timestamp is invalid"
-    },
-    {
-      "code": 6039,
-      "name": "AccountDataMismatch",
-      "msg": "Account data does not match expected values"
-    },
-    {
-      "code": 6040,
-      "name": "AllocationAlreadySet",
-      "msg": "Allocation already set; pass allow_overwrite to replace"
-    },
-    {
-      "code": 6041,
-      "name": "ZeroAuthority",
-      "msg": "New authority cannot be the zero address"
-    },
-    {
-      "code": 6042,
-      "name": "RoleNotHeld",
-      "msg": "Role is not held by this operator"
-    },
-    {
-      "code": 6043,
-      "name": "RoleAlreadyGranted",
-      "msg": "Role is already granted to this operator"
-    },
-    {
-      "code": 6044,
-      "name": "Ed25519InstructionMissing",
-      "msg": "Ed25519 instruction is missing at the expected preceding position"
-    },
-    {
-      "code": 6045,
-      "name": "Ed25519WrongProgram",
-      "msg": "Instruction at expected Ed25519 position has wrong program ID"
-    },
-    {
-      "code": 6046,
-      "name": "Ed25519MultipleSignatures",
-      "msg": "Ed25519 instruction must contain exactly one signature"
-    },
-    {
-      "code": 6047,
-      "name": "Ed25519MalformedData",
-      "msg": "Ed25519 instruction data is malformed or uses external data references"
-    },
-    {
-      "code": 6048,
-      "name": "Ed25519MessageMismatch",
-      "msg": "Signed message does not match expected permit bytes"
+      "name": "WalletBinding",
+      "docs": [
+        "Tracks a single wallet's contributions to an entity within a sale.",
+        "",
+        "Each wallet can only contribute to ONE entity per sale. The binding is permanent",
+        "once created. Multiple wallets can contribute to the same entity (additive).",
+        "",
+        "Seeds: [\"wallet_binding\", sale.key(), wallet.key()]"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sale",
+            "docs": [
+              "The sale this binding belongs to (stored for RPC filtering)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "entity_id",
+            "docs": [
+              "The entity this wallet is bound to (stored for RPC filtering).",
+              "Once set, the wallet can only bid for this entity."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "wallet",
+            "docs": [
+              "The wallet address (stored for RPC readability, since PDA seeds aren't in account data)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "contributed_amount",
+            "docs": [
+              "Total amount of tokens this wallet has transferred to the vault.",
+              "Decremented on cancellation or partial reduction.",
+              "",
+              "Each bid transfers the delta between the new amount and the entity's current",
+              "amount. The sum of all wallet contributions for an entity always equals that",
+              "entity's current_amount."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "cancelled_amount",
+            "docs": [
+              "Tokens cancelled during the Cancellation stage (audit tracking)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "accepted_amount",
+            "docs": [
+              "Tokens accepted (allocated) from this wallet after settlement.",
+              "The refund amount is `contributed_amount - accepted_amount`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "refunded",
+            "docs": [
+              "Whether this wallet's refund has been processed (prevents double-refund)."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "is_initialized",
+            "docs": [
+              "Whether this account has been initialized. Used as initialization sentinel",
+              "instead of bump so that wallets whose canonical bump is 0 are not treated",
+              "as uninitialized on subsequent calls."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
     }
   ]
 }
