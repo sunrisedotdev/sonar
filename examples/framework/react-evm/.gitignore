@@ -6,6 +6,7 @@ dist
 
 # env files
 .env*
+!.env.example
 
 # editor
 .DS_Store

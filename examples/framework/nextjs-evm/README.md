@@ -14,8 +14,15 @@ However it does increase the complexity, which might not be worth it if you alre
 
 ## Running the App Locally
 
-Set the required env vars listed in `src/app/config.ts` (or update that file).
-You can find the values for your sale on the [Echo founder dashboard](https://app.echo.xyz/founder).
+Copy the env template and fill in the values for your sale:
+
+```sh
+cp .env.example .env
+```
+
+Edit `.env` and set `NEXT_PUBLIC_SALE_UUID`, `NEXT_PUBLIC_OAUTH_CLIENT_UUID`, `NEXT_PUBLIC_SALE_CONTRACT_ADDRESS`, and `NEXT_PUBLIC_PAYMENT_TOKEN_ADDRESS`. You can find these values for your sale on the [Echo founder dashboard](https://app.echo.xyz/founder).
+
+The app will throw at startup if any of the required vars are missing.
 
 ```sh
 pnpm i
