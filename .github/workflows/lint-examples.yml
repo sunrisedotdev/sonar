@@ -27,9 +27,6 @@ jobs:
       - name: Install ${{ matrix.app }}
         run: pnpm --dir examples/framework/${{ matrix.app }} install --frozen-lockfile
 
-      - name: Seed .env from .env.example
-        run: cp examples/framework/${{ matrix.app }}/.env.example examples/framework/${{ matrix.app }}/.env
-
       - name: Lint ${{ matrix.app }}
         run: pnpm --dir examples/framework/${{ matrix.app }} lint
 
