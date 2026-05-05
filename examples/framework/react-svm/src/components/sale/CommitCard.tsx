@@ -68,6 +68,7 @@ function CommitSection({
     currentTotalReadableStr,
     entityStateError,
     awaitingTxReceipt,
+    usdcBalance,
   } = useSaleContract(saleSpecificEntityID);
 
   const [loading, setLoading] = useState(false);
@@ -84,6 +85,7 @@ function CommitSection({
   });
 
   const hasExistingCommitment = isEntityStateLoaded && currentTotalRaw > 0n;
+  const hasInsufficientBalance = usdcBalance !== undefined && isIncrementAmountValid && incrementRaw > usdcBalance;
 
   const [showInput, setShowInput] = useState(true);
 
@@ -142,12 +144,15 @@ function CommitSection({
               )}
             </div>
             <button
-              disabled={loading || awaitingTxReceipt || !isIncrementAmountValid}
+              disabled={loading || awaitingTxReceipt || !isIncrementAmountValid || hasInsufficientBalance}
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={purchase}
             >
               <p className="text-gray-100">{loading || awaitingTxReceipt ? "Loading..." : "Commit"}</p>
             </button>
+            {hasInsufficientBalance && (
+              <p className="text-red-500">Insufficient USDC balance</p>
+            )}
             {awaitingTxReceipt && <p className="text-gray-900">Waiting for confirmation...</p>}
             {error && <p className="text-red-500 wrap-anywhere">{error.message}</p>}
             {entityStateError && <p className="text-red-500 wrap-anywhere">{entityStateError.message}</p>}
