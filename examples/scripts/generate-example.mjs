@@ -12,7 +12,10 @@ async function generate(app) {
     await rm(out, { recursive: true, force: true });
     await mkdir(out, { recursive: true });
 
-    await cp(src, out, { recursive: true });
+    await cp(src, out, {
+        recursive: true,
+        filter: (source) => !source.includes("node_modules") && !source.includes(".next"),
+    });
 
     // Seed .env from .env.example so Next.js prerendering has the required env vars.
     // push-example.sh uses `git add -A` which respects .gitignore, so .env won't be published.
