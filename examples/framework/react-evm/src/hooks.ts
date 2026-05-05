@@ -90,6 +90,9 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
   );
 
   const cancelBid = useCallback(async () => {
+    if (chainId !== baseSepolia.id) {
+      await switchChainAsync({ chainId: baseSepolia.id });
+    }
     const { request } = await simulateContract(config, {
       address: saleContract,
       abi: settlementSaleAbi,
@@ -98,7 +101,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
     });
     const hash = await writeContractAsync(request);
     setTxHash(hash);
-  }, [writeContractAsync, config]);
+  }, [writeContractAsync, config, chainId, switchChainAsync]);
 
   const { data: entityStates, error: entityStateError } = useReadContract({
     address: saleContract,
