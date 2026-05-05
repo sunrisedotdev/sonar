@@ -68,6 +68,7 @@ function CommitSection({
     awaitingTxReceipt,
     txReceipt,
     awaitingTxReceiptError,
+    isWrongChain,
   } = useSaleContract(saleSpecificEntityID);
 
   const [loading, setLoading] = useState(false);
@@ -114,6 +115,13 @@ function CommitSection({
 
   return (
     <div className="flex flex-col gap-4 items-center">
+      {isWrongChain && (
+        <div className="bg-amber-50 border border-amber-300 rounded-md p-3 w-full text-center">
+          <p className="text-amber-700 text-sm font-medium">
+            Wrong network — clicking Commit will prompt your wallet to switch to Base Sepolia.
+          </p>
+        </div>
+      )}
       <div className="flex flex-col gap-2">
         {hasExistingCommitment && (
           <p className="text-sm text-gray-600">
