@@ -285,9 +285,12 @@ export function useSaleContract(saleSpecificEntityID: string) {
     }
 
     setAwaitingTxReceipt(true);
-    await connection.confirmTransaction(sig, "confirmed");
-    setConfirmedTxSignature(sig);
-    setAwaitingTxReceipt(false);
+    try {
+      await connection.confirmTransaction(sig, "confirmed");
+      setConfirmedTxSignature(sig);
+    } finally {
+      setAwaitingTxReceipt(false);
+    }
   }, [wallet, connection, salePDA]);
 
   const isEntityStateLoaded = committedAmount !== undefined;
