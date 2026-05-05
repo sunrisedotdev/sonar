@@ -2,7 +2,7 @@ import { BasicPermitV3, GeneratePurchasePermitResponse, Hex } from "@echoxyz/son
 import { useCallback, useState } from "react";
 import { useAccount, useReadContract, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
-import { saleContract } from "./config";
+import { saleContract, paymentTokenAddress } from "./config";
 import { settlementSaleAbi } from "./abi/SettlementSale";
 import { ERC20Abi } from "./abi/ERC20";
 import { useConfig } from "wagmi";
@@ -11,7 +11,7 @@ import { waitForTransactionReceipt, simulateContract } from "wagmi/actions";
 export const useSaleContract = (saleSpecificEntityID: Hex) => {
   const { writeContractAsync } = useWriteContract();
   const config = useConfig();
-  const { chainId } = useAccount();
+  const { chainId, address } = useAccount();
   const { switchChainAsync } = useSwitchChain();
 
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
@@ -99,6 +99,17 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
     },
   });
 
+  const { data: usdcBalance } = useReadContract({
+    address: paymentTokenAddress,
+    abi: ERC20Abi,
+    functionName: "balanceOf",
+    args: [address!],
+    query: {
+      enabled: !!address && !!paymentTokenAddress,
+      refetchInterval: 3000,
+    },
+  });
+
   const isEntityStateLoaded = entityStates !== undefined;
   const currentTotalRaw: bigint = entityStates?.[0]?.currentBid?.amount ?? 0n;
   const currentTotalReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
@@ -116,5 +127,6 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
     txReceipt,
     awaitingTxReceiptError,
     isWrongChain: chainId !== undefined && chainId !== baseSepolia.id,
+    usdcBalance: usdcBalance as bigint | undefined,
   };
 };
