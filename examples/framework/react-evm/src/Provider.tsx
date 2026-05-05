@@ -29,7 +29,7 @@ export function Provider({ children }: { children: React.ReactNode }) {
     <SonarProvider config={sonarConfig}>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <ConnectKitProvider>{children}</ConnectKitProvider>
+          <ConnectKitProvider options={{ enforceSupportedChains: true }}>{children}</ConnectKitProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </SonarProvider>

@@ -1,6 +1,7 @@
 import { BasicPermitV3, GeneratePurchasePermitResponse, Hex } from "@echoxyz/sonar-core";
 import { useCallback, useState } from "react";
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useReadContract, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { baseSepolia } from "wagmi/chains";
 import { saleContract } from "@/lib/config";
 import { settlementSaleAbi } from "../abi/SettlementSale";
 import { ERC20Abi } from "../abi/ERC20";
@@ -10,6 +11,8 @@ import { waitForTransactionReceipt, simulateContract } from "wagmi/actions";
 export const useSaleContract = (saleSpecificEntityID: Hex) => {
   const { writeContractAsync } = useWriteContract();
   const config = useConfig();
+  const { chainId } = useAccount();
+  const { switchChainAsync } = useSwitchChain();
 
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
 
@@ -33,6 +36,10 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
       newTotalRaw: bigint;
       incrementRaw: bigint;
     }) => {
+      if (chainId !== baseSepolia.id) {
+        await switchChainAsync({ chainId: baseSepolia.id });
+      }
+
       if (!("OpensAt" in purchasePermitResp.PermitJSON)) {
         throw new Error("Invalid purchase permit response");
       }
@@ -79,7 +86,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
 
       setTxHash(bidHash);
     },
-    [writeContractAsync, config],
+    [writeContractAsync, config, chainId, switchChainAsync],
   );
 
   const { data: entityStates, error: entityStateError } = useReadContract({
@@ -108,5 +115,6 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
     awaitingTxReceipt,
     txReceipt,
     awaitingTxReceiptError,
+    isWrongChain: chainId !== undefined && chainId !== baseSepolia.id,
   };
 };
