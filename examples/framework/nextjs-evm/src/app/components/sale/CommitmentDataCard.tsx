@@ -12,7 +12,7 @@ function calculateCommitmentTotal(amounts: WalletTokenAmount[]): bigint {
 }
 
 // The timestamp is a string in ISO 8601 format
-function formatTimestamp(timestamp: string ): string {
+function formatTimestamp(timestamp: string): string {
   const date = new Date(timestamp);
   return date.toLocaleString(undefined, {
     month: "short",
@@ -35,9 +35,7 @@ function CommitmentRow({ commitment, decimals }: CommitmentRowProps) {
   return (
     <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
       <div className="flex flex-col gap-0.5">
-        <span className="text-sm font-medium text-gray-900">
-          {formatAmount(total, decimals)}
-        </span>
+        <span className="text-sm font-medium text-gray-900">{formatAmount(total, decimals)}</span>
         <span className="text-xs text-gray-500">{commitment.SaleSpecificEntityID}</span>
       </div>
       <span className="text-xs text-gray-400">{formatTimestamp(commitment.CreatedAt)}</span>
@@ -81,9 +79,7 @@ export function CommitmentDataCard({ saleUUID }: { saleUUID: string }) {
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-3 rounded-lg">
           <p className="text-sm text-gray-500">Total Committers</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {commitmentData.UniqueCommitmentCount.toLocaleString()}
-          </p>
+          <p className="text-2xl font-bold text-gray-900">{commitmentData.UniqueCommitmentCount.toLocaleString()}</p>
         </div>
         <div className="bg-white p-3 rounded-lg">
           <p className="text-sm text-gray-500">Total Committed</p>

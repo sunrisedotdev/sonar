@@ -127,7 +127,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
   const currentTotalReadableStr = (Number(currentTotalRaw) / 1e6).toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })
+  });
 
   const { data: contractStage } = useReadContract({
     address: saleContract,

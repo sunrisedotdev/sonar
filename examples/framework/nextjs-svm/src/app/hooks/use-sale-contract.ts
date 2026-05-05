@@ -36,7 +36,11 @@ function stageToNumber(stage: unknown): number {
   if (typeof stage === "object" && stage !== null) {
     const key = Object.keys(stage as object)[0];
     const map: Record<string, number> = {
-      preOpen: 0, commitment: 1, cancellation: 2, settlement: 3, done: 4,
+      preOpen: 0,
+      commitment: 1,
+      cancellation: 2,
+      settlement: 3,
+      done: 4,
     };
     return map[key] ?? -1;
   }
@@ -66,12 +70,12 @@ export function useSaleContract(saleSpecificEntityID: string) {
     const saleUuidBytes = parseIdBytes(saleUUID);
     const [salePDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("settlement_sale"), Buffer.from(saleUuidBytes)],
-      programPublicKey
+      programPublicKey,
     );
     const saleEntityIdBytes = parseIdBytes(saleSpecificEntityID);
     const [entityStatePDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("entity_state"), salePDA.toBuffer(), Buffer.from(saleEntityIdBytes)],
-      programPublicKey
+      programPublicKey,
     );
     return { salePDA, entityStatePDA };
   }, [saleSpecificEntityID, programPublicKey]);
@@ -85,13 +89,17 @@ export function useSaleContract(saleSpecificEntityID: string) {
           connection,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           wallet ?? ({ publicKey: PublicKey.default } as any),
-          { commitment: "confirmed" }
+          { commitment: "confirmed" },
         );
         const program = new Program(IDL, provider);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const state = (await (program.account as any).entityState.fetchNullable(entityStatePDA)) as EntityStateAccount | null;
+        const state = (await (program.account as any).entityState.fetchNullable(
+          entityStatePDA,
+        )) as EntityStateAccount | null;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const saleAccount = (await (program.account as any).settlementSale.fetchNullable(salePDA)) as SettlementSaleAccount | null;
+        const saleAccount = (await (program.account as any).settlementSale.fetchNullable(
+          salePDA,
+        )) as SettlementSaleAccount | null;
         if (!cancelled) {
           setCommittedAmount(state ? BigInt(state.currentAmount.toString()) : 0n);
           setEntityStateError(undefined);
@@ -144,7 +152,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
       // since the program validates the account against the permit's entity ID.
       const [permitEntityStatePDA] = PublicKey.findProgramAddressSync(
         [Buffer.from("entity_state"), salePDA.toBuffer(), Buffer.from(saleEntityIdArr)],
-        programPublicKey
+        programPublicKey,
       );
       const walletBytes = Array.from(new PublicKey(permit.Wallet).toBytes());
       const payloadHex = permit.Payload.replace(/^0x/, "");
@@ -185,7 +193,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
 
       const [walletBindingPDA] = PublicKey.findProgramAddressSync(
         [Buffer.from("wallet_binding"), salePDA.toBuffer(), wallet.publicKey.toBuffer()],
-        programPublicKey
+        programPublicKey,
       );
 
       const bidderTokenAccount = getAssociatedTokenAddressSync(new PublicKey(PAYMENT_TOKEN_MINT), wallet.publicKey);
@@ -222,7 +230,7 @@ export function useSaleContract(saleSpecificEntityID: string) {
       setConfirmedTxSignature(sig);
       setAwaitingTxReceipt(false);
     },
-    [wallet, connection, salePDA, entityStatePDA, programPublicKey]
+    [wallet, connection, salePDA, entityStatePDA, programPublicKey],
   );
 
   const cancelBid = useCallback(async () => {
