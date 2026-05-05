@@ -103,7 +103,7 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
     address: paymentTokenAddress,
     abi: ERC20Abi,
     functionName: "balanceOf",
-    args: [address!],
+    args: [address ?? "0x"],
     query: {
       enabled: !!address && !!paymentTokenAddress,
       refetchInterval: 3000,
