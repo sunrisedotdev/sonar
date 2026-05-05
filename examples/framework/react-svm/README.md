@@ -14,7 +14,15 @@ However, since tokens are stored in the browser, this approach is less secure th
 
 ## Running the App Locally
 
-By default this app is configured to use a test Sonar sale and program and should work out of the box. If you want to point it at a different sale or program, you can modify the env vars in `.env.local`. You can find the values for your sale on the [Echo founder dashboard](https://app.echo.xyz/founder).
+Copy the env template and fill in the values for your sale:
+
+```sh
+cp .env.example .env
+```
+
+Edit `.env` and set `VITE_SALE_UUID`, `VITE_OAUTH_CLIENT_UUID`, and `VITE_PAYMENT_TOKEN_MINT`. You can find these values for your sale on the [Echo founder dashboard](https://app.echo.xyz/founder).
+
+The app will throw at startup if any of the required vars are missing.
 
 ```sh
 pnpm i

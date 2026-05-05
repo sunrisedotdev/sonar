@@ -14,6 +14,10 @@ async function generate(app) {
 
     await cp(src, out, { recursive: true });
 
+    // Seed .env from .env.example so Next.js prerendering has the required env vars.
+    // push-example.sh uses `git add -A` which respects .gitignore, so .env won't be published.
+    await cp(resolve(out, ".env.example"), resolve(out, ".env"));
+
     execSync(`pnpm --dir ${out} install`, { stdio: "inherit" });
     execSync(`pnpm --dir ${out} build`, { stdio: "inherit" });
 
