@@ -18,7 +18,11 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["../../shared/*"]
+      "@shared/*": ["../../shared/*"],
+      "@echoxyz/sonar-core": ["./node_modules/@echoxyz/sonar-core"],
+      "@echoxyz/sonar-react": ["./node_modules/@echoxyz/sonar-react"],
+      "react": ["./node_modules/react"],
+      "react/jsx-runtime": ["./node_modules/react/jsx-runtime"]
     }
   },
   "include": ["src"],

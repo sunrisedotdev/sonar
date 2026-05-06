@@ -20,7 +20,9 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["../../shared/*"]
+      "@shared/*": ["../../shared/*"],
+      "@echoxyz/sonar-core": ["./node_modules/@echoxyz/sonar-core"],
+      "@echoxyz/sonar-react": ["./node_modules/@echoxyz/sonar-react"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
