@@ -9,8 +9,8 @@ examples/
   framework/          # Source apps (one per framework/chain combination)
     react-evm/        # React + EVM (published to sonar-example-react)
     nextjs-evm/       # Next.js + EVM (published to sonar-example-nextjs)
-    react-svm/        # React + SVM (future)
-    nextjs-svm/       # Next.js + SVM (future)
+    react-svm/        # React + SVM (published to sonar-example-react-svm)
+    nextjs-svm/       # Next.js + SVM (published to sonar-example-nextjs-svm)
   scripts/
     generate-example.mjs   # Builds a framework app into dist/
     push-example.sh        # Pushes a built app to its output repo as a PR
@@ -21,12 +21,12 @@ Each `framework/<app>/` dir is a verbatim copy of its corresponding output repo.
 
 ## Output repos
 
-| App          | Repo                                                                          |
-| ------------ | ----------------------------------------------------------------------------- |
-| `react-evm`  | [sonar-example-react](https://github.com/sunrisedotdev/sonar-example-react)   |
-| `nextjs-evm` | [sonar-example-nextjs](https://github.com/sunrisedotdev/sonar-example-nextjs) |
-| `react-svm`  | sonar-example-react-svm _(future)_                                            |
-| `nextjs-svm` | sonar-example-nextjs-svm _(future)_                                           |
+| App          | Repo                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------- |
+| `react-evm`  | [sonar-example-react](https://github.com/sunrisedotdev/sonar-example-react)           |
+| `nextjs-evm` | [sonar-example-nextjs](https://github.com/sunrisedotdev/sonar-example-nextjs)         |
+| `react-svm`  | [sonar-example-react-svm](https://github.com/sunrisedotdev/sonar-example-react-svm)   |
+| `nextjs-svm` | [sonar-example-nextjs-svm](https://github.com/sunrisedotdev/sonar-example-nextjs-svm) |
 
 ## Releasing
 
