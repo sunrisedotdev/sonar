@@ -19,7 +19,7 @@ const config = createConfig(
     appName: "Sonar React example app",
     appDescription:
       "React app showing how to integrate with the Sonar API via the sonar-react and sonar-core libraries.",
-  })
+  }),
 );
 
 const queryClient = new QueryClient();

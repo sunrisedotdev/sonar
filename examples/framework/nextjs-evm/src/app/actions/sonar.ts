@@ -18,7 +18,7 @@ export const getEntities = createSonarServerAction<ListAvailableEntitiesInput, L
       throw new Error("Missing saleUUID");
     }
     return client.listAvailableEntities({ saleUUID });
-  }
+  },
 );
 
 type PrePurchaseCheckInput = { saleUUID: string; entityID: string; walletAddress: string };
@@ -32,7 +32,7 @@ export const prePurchaseCheck = createSonarServerAction<PrePurchaseCheckInput, P
       throw new Error("Missing required parameters");
     }
     return client.prePurchaseCheck({ saleUUID, entityID, walletAddress });
-  }
+  },
 );
 
 type GeneratePurchasePermitInput = { saleUUID: string; entityID: string; walletAddress: string };
