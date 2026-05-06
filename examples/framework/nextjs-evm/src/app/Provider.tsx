@@ -5,14 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 import { baseSepolia } from "wagmi/chains";
 import { SessionProvider } from "./hooks/use-session";
-import { sonarConfig, baseRPCURL } from "@/lib/config";
+import { sonarConfig, rpcURL } from "@/lib/config";
 import { SonarProvider } from "@echoxyz/sonar-react";
 
 const config = createConfig(
   getDefaultConfig({
     chains: [baseSepolia],
     transports: {
-      [baseSepolia.id]: http(baseRPCURL),
+      [baseSepolia.id]: http(rpcURL),
     },
 
     // Required API Keys

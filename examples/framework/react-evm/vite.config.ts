@@ -8,10 +8,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const warnMissingRpcUrl: Plugin = {
   name: "warn-missing-rpc-url",
   configResolved(config) {
-    if (config.command === 'serve' && !config.env.VITE_BASE_RPC_URL) {
+    if (config.command === 'serve' && !config.env.VITE_RPC_URL) {
       console.warn(
         '[sonar-example] No RPC URL configured. The app is using the public Base Sepolia ' +
-        'endpoint, which is rate-limited. Set VITE_BASE_RPC_URL in your .env file.'
+        'endpoint, which is rate-limited. Set VITE_RPC_URL in your .env file.'
       );
     }
   },
