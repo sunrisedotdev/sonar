@@ -27,6 +27,8 @@ export default defineConfig({
     alias: {
       "@": "/src",
       "@shared": resolve(__dirname, "../../shared"),
+      "@echoxyz/sonar-core": resolve(__dirname, "node_modules/@echoxyz/sonar-core"),
+      "@echoxyz/sonar-react": resolve(__dirname, "node_modules/@echoxyz/sonar-react"),
     },
   },
 });
