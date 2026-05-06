@@ -75,6 +75,11 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
       ] as const;
 
       // TODO could also show an example of using the replaceBidWithPermit function instead of the replaceBidWithApproval function
+      // If this simulation intermittently reverts with "ERC20: transfer amount exceeds allowance",
+      // the configured RPC is load-balanced across nodes that haven't all synced the approval block
+      // above (the public sepolia.base.org default has this behavior). The on-chain transaction
+      // itself is unaffected. Set NEXT_PUBLIC_BASE_RPC_URL to a dedicated, non-load-balanced
+      // endpoint (see .env.example) to fix.
       const { request: bidRequest } = await simulateContract(config, {
         address: saleContract,
         abi: settlementSaleAbi,
