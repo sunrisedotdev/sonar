@@ -74,15 +74,17 @@ export const useSaleContract = (saleSpecificEntityID: Hex) => {
         purchasePermitResp.Signature,
       ] as const;
 
+      // Skip simulateContract for the bid: it runs an eth_call against block "latest",
+      // and load-balanced RPCs (e.g. sepolia.base.org) may route to a node that hasn't
+      // yet seen the approval block, causing a spurious "transfer amount exceeds allowance"
+      // revert. The on-chain execution sees the confirmed approval and succeeds.
       // TODO could also show an example of using the replaceBidWithPermit function instead of the replaceBidWithApproval function
-      const { request: bidRequest } = await simulateContract(config, {
+      const bidHash = await writeContractAsync({
         address: saleContract,
         abi: settlementSaleAbi,
         functionName: "replaceBidWithApproval",
         args: bidArgs,
       });
-
-      const bidHash = await writeContractAsync(bidRequest);
 
       setTxHash(bidHash);
     },
