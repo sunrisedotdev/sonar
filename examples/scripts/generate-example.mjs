@@ -50,6 +50,10 @@ async function generate(app) {
 
     await writeFile(resolve(out, ".gitignore"), GITIGNORE);
 
+    // Copy the shared component library so the distributed app is self-contained.
+    // The path alias @shared -> ../../shared (relative to the app dir) resolves to this location.
+    await cp(resolve("examples/shared"), resolve(out, "../../shared"), { recursive: true });
+
     // Seed .env from .env.example so Next.js prerendering has the required env vars.
     // push-example.sh uses `git add -A` which respects .gitignore, so .env won't be published.
     await cp(resolve(out, ".env.example"), resolve(out, ".env"));
