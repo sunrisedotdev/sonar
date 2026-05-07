@@ -1,6 +1,37 @@
-import { cp, rm, mkdir } from "node:fs/promises";
+import { cp, rm, mkdir, writeFile } from "node:fs/promises";
 import { execSync } from "node:child_process";
 import { resolve } from "node:path";
+
+const GITIGNORE = `# dependencies
+node_modules
+
+# build output
+dist
+build
+out
+.next
+
+# env files
+.env*
+!.env.example
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# editor
+.DS_Store
+*.pem
+
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# deployment
+.vercel
+`;
 
 const EVM_APPS = ["react-evm", "nextjs-evm"];
 const SVM_APPS = ["react-svm", "nextjs-svm"];
@@ -16,6 +47,8 @@ async function generate(app) {
         recursive: true,
         filter: (source) => !source.includes("node_modules") && !source.includes(".next"),
     });
+
+    await writeFile(resolve(out, ".gitignore"), GITIGNORE);
 
     // Seed .env from .env.example so Next.js prerendering has the required env vars.
     // push-example.sh uses `git add -A` which respects .gitignore, so .env won't be published.
