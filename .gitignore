@@ -1,11 +1,23 @@
 # Dependencies
 node_modules/
+.pnp
 .pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
 # Output
 dist/
+build/
+out/
 coverage/
 *.tsbuildinfo
+
+# Next.js
+.next/
+next-env.d.ts
 
 # Logs
 npm-debug.log*
@@ -14,5 +26,10 @@ yarn-debug.log*
 yarn-error.log*
 
 # Env
-.env
-.env.*
+.env*
+!.env.example
+
+# Misc
+.DS_Store
+*.pem
+.vercel
