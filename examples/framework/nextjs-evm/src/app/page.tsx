@@ -4,16 +4,16 @@ import { useState, useEffect } from "react";
 import { saleUUID, sonarHomeURL, sonarConfig } from "@/lib/config";
 import { useAccount } from "wagmi";
 import { SaleEligibility } from "@echoxyz/sonar-core";
-import { EntityCard } from "./components/entity/EntityCard";
+import { EntityCard } from "@shared/components/entity/EntityCard";
 import { AuthenticationSection } from "./components/auth/AuthenticationSection";
 import { useSonarEntities } from "./hooks/use-sonar-entities";
 import { useSession } from "./hooks/use-session";
 import CommitCard from "./components/sale/CommitCard";
 import CancelCard from "./components/sale/CancelCard";
-import { EntitiesList } from "./components/registration/EntitiesList";
-import { EligibilityResults } from "./components/registration/EligibilityResults";
+import { EntitiesList } from "@shared/components/registration/EntitiesList";
+import { EligibilityResults } from "@shared/components/registration/EligibilityResults";
 import { ConnectKitButton } from "connectkit";
-import { CommitmentDataCard } from "./components/sale/CommitmentDataCard";
+import { CommitmentDataCard } from "@shared/components/sale/CommitmentDataCard";
 
 type SalePhase = "presale" | "live" | "cancellation";
 

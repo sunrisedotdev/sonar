@@ -1,13 +1,17 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const warnMissingRpcUrl: Plugin = {
   name: "warn-missing-rpc-url",
   configResolved(config) {
-    if (config.command === 'serve' && !config.env.VITE_BASE_RPC_URL) {
+    if (config.command === 'serve' && !config.env.VITE_RPC_URL) {
       console.warn(
         '[sonar-example] No RPC URL configured. The app is using the public Base Sepolia ' +
-        'endpoint, which is rate-limited. Set VITE_BASE_RPC_URL in your .env file.'
+        'endpoint, which is rate-limited. Set VITE_RPC_URL in your .env file.'
       );
     }
   },
@@ -21,6 +25,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": "/src",
+      "@shared": resolve(__dirname, "../../shared"),
+      "@echoxyz/sonar-core": resolve(__dirname, "node_modules/@echoxyz/sonar-core"),
+      "@echoxyz/sonar-react": resolve(__dirname, "node_modules/@echoxyz/sonar-react"),
     },
   },
 });

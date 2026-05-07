@@ -7,7 +7,7 @@ import { defineConfig } from "eslint/config";
 export default defineConfig([
     {
         // DOLATER: fix eslint violations in framework dirs and remove this ignore
-        ignores: ["**/node_modules/**", "**/dist/**", "contracts/**", "examples/framework/**"],
+        ignores: ["**/node_modules/**", "**/dist/**", "contracts/**", "examples/framework/**", "examples/shared/**"],
     },
     {
         files: ["**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],

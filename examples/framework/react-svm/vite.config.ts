@@ -1,6 +1,10 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const warnMissingRpcUrl: Plugin = {
   name: "warn-missing-rpc-url",
@@ -22,6 +26,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": "/src",
+      "@shared": resolve(__dirname, "../../shared"),
+      "@echoxyz/sonar-core": resolve(__dirname, "node_modules/@echoxyz/sonar-core"),
+      "@echoxyz/sonar-react": resolve(__dirname, "node_modules/@echoxyz/sonar-react"),
     },
   },
 });

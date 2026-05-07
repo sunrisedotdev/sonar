@@ -17,7 +17,11 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["../../shared/*"],
+      "@echoxyz/sonar-core": ["./node_modules/@echoxyz/sonar-core"],
+      "@echoxyz/sonar-react": ["./node_modules/@echoxyz/sonar-react"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime"]
     }
   },
   "include": ["src"],

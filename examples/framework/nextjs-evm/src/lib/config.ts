@@ -27,4 +27,4 @@ export const paymentTokenAddress = requireEnv(
   process.env.NEXT_PUBLIC_PAYMENT_TOKEN_ADDRESS,
 ) as Hex;
 export const sonarHomeURL = new URL(`/sonar/${saleUUID}/home`, sonarConfig.frontendURL);
-export const baseRPCURL = process.env.NEXT_PUBLIC_BASE_RPC_URL || undefined;
+export const rpcURL = process.env.NEXT_PUBLIC_RPC_URL || undefined;

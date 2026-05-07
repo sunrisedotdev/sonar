@@ -1,6 +1,6 @@
-import { cp, rm, mkdir, writeFile } from "node:fs/promises";
+import { cp, rm, mkdir, readFile, writeFile, readdir } from "node:fs/promises";
 import { execSync } from "node:child_process";
-import { resolve } from "node:path";
+import { resolve, join, extname } from "node:path";
 
 const GITIGNORE = `# dependencies
 node_modules
@@ -36,6 +36,20 @@ pnpm-debug.log*
 const EVM_APPS = ["react-evm", "nextjs-evm"];
 const SVM_APPS = ["react-svm", "nextjs-svm"];
 
+async function walkAndRewrite(dir, extensions, replacements) {
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+            await walkAndRewrite(full, extensions, replacements);
+        } else if (extensions.includes(extname(entry.name))) {
+            let content = await readFile(full, "utf8");
+            for (const [from, to] of replacements) content = content.replaceAll(from, to);
+            await writeFile(full, content);
+        }
+    }
+}
+
 async function generate(app) {
     const src = resolve(`examples/framework/${app}`);
     const out = resolve(`dist/${app}`);
@@ -49,6 +63,30 @@ async function generate(app) {
     });
 
     await writeFile(resolve(out, ".gitignore"), GITIGNORE);
+
+    // Merge each shared subdirectory (components/, lib/, …) directly into src/ so
+    // the standalone repo needs no special path alias — @/ covers everything.
+    for (const name of await readdir(resolve("examples/shared"))) {
+        await cp(resolve("examples/shared", name), resolve(out, "src", name), { recursive: true });
+    }
+
+    // Rewrite @shared/ → @/ in all source files now that the code lives under src/.
+    await walkAndRewrite(resolve(out, "src"), [".ts", ".tsx"], [["@shared/", "@/"]]);
+
+    // Drop the now-unused @shared alias lines from tsconfig.json and vite.config.ts.
+    for (const file of ["tsconfig.json", "vite.config.ts"]) {
+        const filePath = resolve(out, file);
+        try {
+            const content = await readFile(filePath, "utf8");
+            const cleaned = content
+                .split("\n")
+                .filter((line) => !line.includes('"@shared/*"') && !line.includes('"@shared":'))
+                .join("\n");
+            await writeFile(filePath, cleaned);
+        } catch (err) {
+            if (err.code !== "ENOENT") throw err;
+        }
+    }
 
     // Seed .env from .env.example so Next.js prerendering has the required env vars.
     // push-example.sh uses `git add -A` which respects .gitignore, so .env won't be published.

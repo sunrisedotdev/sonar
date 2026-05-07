@@ -7,10 +7,10 @@ import CommitCard from "../components/sale/CommitCard";
 import CancelCard from "../components/sale/CancelCard";
 import { SaleEligibility } from "@echoxyz/sonar-core";
 import { AuthenticationSection } from "../components/auth/AuthenticationSection";
-import { EntityCard } from "../components/entity/EntityCard";
-import { EntitiesList } from "../components/registration/EntitiesList";
-import { EligibilityResults } from "../components/registration/EligibilityResults";
-import { CommitmentDataCard } from "../components/sale/CommitmentDataCard";
+import { EntityCard } from "@shared/components/entity/EntityCard";
+import { EntitiesList } from "@shared/components/registration/EntitiesList";
+import { EligibilityResults } from "@shared/components/registration/EligibilityResults";
+import { CommitmentDataCard } from "@shared/components/sale/CommitmentDataCard";
 
 type SalePhase = "presale" | "live" | "cancellation";
 
