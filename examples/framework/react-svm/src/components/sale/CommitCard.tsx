@@ -1,12 +1,15 @@
 import { PrePurchaseFailureReason, GeneratePurchasePermitResponse, EntityID } from "@echoxyz/sonar-core";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { saleUUID } from "../../config";
+import { messages } from "../../messages";
 import {
   useSonarPurchase,
   UseSonarPurchaseResultNotReadyToPurchase,
   UseSonarPurchaseResultReadyToPurchase,
 } from "@echoxyz/sonar-react";
 import { useSaleContract } from "../../hooks/use-sale-contract";
+import { ErrorToast } from "../ui/Toast";
+import { parseSVMError, parsePermitError } from "../../utils/parseError";
 
 const COMMITMENT_STAGE = 1;
 
@@ -32,26 +35,24 @@ function readinessConfig(
   });
 
   if (sonarPurchaser.readyToPurchase) {
-    return okConfig("You are ready to commit funds");
+    return okConfig(messages.purchaseReadiness.ready);
   }
 
   switch (sonarPurchaser.failureReason) {
     case PrePurchaseFailureReason.REQUIRES_LIVENESS:
-      return okConfig("Complete a liveness check in order to commit funds.");
+      return okConfig(messages.purchaseReadiness.requiresLiveness);
     case PrePurchaseFailureReason.WALLET_RISK:
-      return warningConfig("The connected wallet is not eligible for this sale. Connect a different wallet.");
+      return warningConfig(messages.purchaseReadiness.walletRisk);
     case PrePurchaseFailureReason.MAX_WALLETS_USED:
-      return warningConfig(
-        "Maximum number of wallets reached — This entity can't use the connected wallet. Use a previous wallet.",
-      );
+      return warningConfig(messages.purchaseReadiness.maxWalletsUsed);
     case PrePurchaseFailureReason.WALLET_NOT_LINKED:
-      return warningConfig(
-        "Wallet not linked — The connected wallet is not linked to your entity. Please link it first.",
-      );
+      return warningConfig(messages.purchaseReadiness.walletNotLinked);
     case PrePurchaseFailureReason.SALE_NOT_ACTIVE:
-      return errorConfig("The sale is not currently active.");
+      return errorConfig(messages.purchaseReadiness.saleNotActive);
+    case PrePurchaseFailureReason.OUTSIDE_TIME_WINDOW:
+      return errorConfig(messages.purchaseReadiness.outsideTimeWindow);
     default:
-      return errorConfig("An unknown error occurred — Please try again or contact support.");
+      return errorConfig(messages.purchaseReadiness.unknown);
   }
 }
 
@@ -74,9 +75,11 @@ function CommitSection({
     contractStage,
   } = useSaleContract(saleSpecificEntityID);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | undefined>(undefined);
+  const [loading, setLoading] = useState<"idle" | "permit" | "submitting">("idle");
+  const [toastError, setToastError] = useState<string | undefined>(undefined);
   const [incrementReadableStr, setIncrementReadableStr] = useState<string>("1");
+
+  const dismissToast = useCallback(() => setToastError(undefined), []);
 
   const incrementReadable = parseFloat(incrementReadableStr);
   const isIncrementAmountValid = incrementReadableStr !== "" && !isNaN(incrementReadable) && incrementReadable > 0;
@@ -100,24 +103,39 @@ function CommitSection({
   }, [confirmedTxSignature]);
 
   const purchase = async () => {
-    setLoading(true);
-    setError(undefined);
+    setLoading("permit");
+    setToastError(undefined);
+    let purchasePermitResp: GeneratePurchasePermitResponse;
     try {
-      const purchasePermitResp = await generatePurchasePermit();
+      purchasePermitResp = await generatePurchasePermit();
+    } catch (err) {
+      setToastError(parsePermitError(err));
+      setLoading("idle");
+      return;
+    }
+    setLoading("submitting");
+    try {
       // Note: The current commitment raw could be stale if there is a concurrent commitment from this entity.
       await commitWithPermit({
         purchasePermitResp,
         newTotalRaw,
       });
     } catch (err) {
-      setError(err as Error);
+      setToastError(parseSVMError(err));
     } finally {
-      setLoading(false);
+      setLoading("idle");
     }
   };
 
   return (
     <div className="flex flex-col gap-4 items-center">
+      {toastError && <ErrorToast message={toastError} onDismiss={dismissToast} />}
+      {entityStateError && (
+        <div className="bg-red-50 border border-red-300 rounded-md p-3 w-full">
+          <p className="text-red-800 text-sm font-semibold">{messages.errors.dataLoadFailed}</p>
+          <p className="text-red-700 text-sm mt-1">{messages.errors.contactSupport}</p>
+        </div>
+      )}
       <div className="flex flex-col gap-2">
         {hasExistingCommitment && (
           <p className="text-sm text-gray-600">
@@ -146,7 +164,9 @@ function CommitSection({
           <>
             <div className="flex flex-col gap-1">
               <label htmlFor="commitAmount" className="text-sm text-gray-700">
-                {hasExistingCommitment ? "Additional USDC to commit" : "USDC to commit"}
+                {hasExistingCommitment
+                  ? "Additional USDC to commit"
+                  : "USDC to commit"}
               </label>
               <input
                 id="commitAmount"
@@ -154,36 +174,41 @@ function CommitSection({
                 min="0"
                 value={incrementReadableStr}
                 onChange={(e) => setIncrementReadableStr(e.target.value)}
-                disabled={loading || awaitingTxReceipt}
+                disabled={loading !== "idle" || awaitingTxReceipt}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 placeholder="Enter amount"
               />
               {hasExistingCommitment && isIncrementAmountValid && (
                 <p className="text-sm text-gray-500">
-                  New total: <span className="font-semibold text-gray-700">{newTotalReadableStr} USDC</span>
+                  New total:{" "}
+                  <span className="font-semibold text-gray-700">{newTotalReadableStr} USDC</span>
                 </p>
               )}
             </div>
             <button
-              disabled={loading || awaitingTxReceipt || !isIncrementAmountValid || hasInsufficientBalance || notInCommitmentStage}
+              disabled={loading !== "idle" || awaitingTxReceipt || !isIncrementAmountValid || hasInsufficientBalance || notInCommitmentStage}
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={purchase}
             >
-              <p className="text-gray-100">{loading || awaitingTxReceipt ? "Loading..." : "Commit"}</p>
+              <p className="text-gray-100">
+                {loading === "permit"
+                  ? "Generating permit..."
+                  : loading === "submitting"
+                  ? "Submitting..."
+                  : awaitingTxReceipt
+                  ? "Loading..."
+                  : "Commit"}
+              </p>
             </button>
-            {hasInsufficientBalance && (
-              <p className="text-red-500">Insufficient USDC balance</p>
-            )}
-            {awaitingTxReceipt && <p className="text-gray-900">Waiting for confirmation...</p>}
-            {error && <p className="text-red-500 wrap-anywhere">{error.message}</p>}
-            {entityStateError && <p className="text-red-500 wrap-anywhere">{entityStateError.message}</p>}
+            {hasInsufficientBalance && <p className="text-red-500">{messages.commitSection.insufficientBalance}</p>}
+            {awaitingTxReceipt && <p className="text-gray-900">{messages.commitSection.awaitingConfirmation}</p>}
           </>
         ) : (
           <button
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors w-fit"
             onClick={() => {
               setIncrementReadableStr("1");
-              setError(undefined);
+              setToastError(undefined);
               setShowInput(true);
             }}
           >
@@ -215,7 +240,12 @@ function CommitCard({
   }
 
   if (sonarPurchaser.error) {
-    return <p>Error: {sonarPurchaser.error.message}</p>;
+    return (
+      <div className="bg-red-50 border border-red-300 rounded-lg p-4">
+        <p className="text-red-800 font-semibold">{messages.errors.purchaseInfoFailed}</p>
+        <p className="text-red-700 text-sm mt-1">{messages.errors.contactSupport}</p>
+      </div>
+    );
   }
 
   const readinessCfg = readinessConfig(sonarPurchaser);
