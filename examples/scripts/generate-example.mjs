@@ -83,8 +83,8 @@ async function generate(app) {
                 .filter((line) => !line.includes('"@shared/*"') && !line.includes('"@shared":'))
                 .join("\n");
             await writeFile(filePath, cleaned);
-        } catch {
-            // file may not exist (e.g. Next.js apps have no vite.config.ts)
+        } catch (err) {
+            if (err.code !== "ENOENT") throw err;
         }
     }
 
