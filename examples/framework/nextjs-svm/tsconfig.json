@@ -22,7 +22,9 @@
       "@/*": ["./src/*"],
       "@shared/*": ["../../shared/*"],
       "@echoxyz/sonar-core": ["./node_modules/@echoxyz/sonar-core"],
-      "@echoxyz/sonar-react": ["./node_modules/@echoxyz/sonar-react"]
+      "@echoxyz/sonar-react": ["./node_modules/@echoxyz/sonar-react"],
+      "@coral-xyz/anchor": ["./node_modules/@coral-xyz/anchor"],
+      "@coral-xyz/anchor/*": ["./node_modules/@coral-xyz/anchor/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
