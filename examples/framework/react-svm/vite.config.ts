@@ -29,6 +29,7 @@ export default defineConfig({
       "@shared": resolve(__dirname, "../../shared"),
       "@echoxyz/sonar-core": resolve(__dirname, "node_modules/@echoxyz/sonar-core"),
       "@echoxyz/sonar-react": resolve(__dirname, "node_modules/@echoxyz/sonar-react"),
+      "@coral-xyz/anchor": resolve(__dirname, "node_modules/@coral-xyz/anchor"),
     },
   },
 });

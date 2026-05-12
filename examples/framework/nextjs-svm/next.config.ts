@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
+import { resolve } from "path";
 
 export default function config(phase: string): NextConfig {
   if (phase === PHASE_DEVELOPMENT_SERVER && !process.env.NEXT_PUBLIC_RPC_URL) {
@@ -16,6 +17,10 @@ export default function config(phase: string): NextConfig {
         fs: false,
         os: false,
         path: false,
+      };
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "@coral-xyz/anchor": resolve(__dirname, "node_modules/@coral-xyz/anchor"),
       };
       // Some Solana dependencies pull in optional Node.js-only packages
       config.externals.push("pino-pretty", "encoding");
