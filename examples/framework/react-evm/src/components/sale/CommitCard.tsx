@@ -49,8 +49,6 @@ function readinessConfig(
       return warningConfig(messages.purchaseReadiness.walletNotLinked);
     case PrePurchaseFailureReason.SALE_NOT_ACTIVE:
       return errorConfig(messages.purchaseReadiness.saleNotActive);
-    case PrePurchaseFailureReason.OUTSIDE_TIME_WINDOW:
-      return errorConfig(messages.purchaseReadiness.outsideTimeWindow);
     default:
       return errorConfig(messages.purchaseReadiness.unknown);
   }

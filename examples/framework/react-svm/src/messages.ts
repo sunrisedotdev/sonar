@@ -20,7 +20,6 @@ export const messages = {
     walletNotLinked:
       "Wallet not linked — The connected wallet is not linked to your entity. Please link it first.",
     saleNotActive: "The sale is not currently active.",
-    outsideTimeWindow: "The sale is not currently accepting commitments.",
     unknown: "An unknown error occurred — Please try again or contact support.",
   },
   errors: {

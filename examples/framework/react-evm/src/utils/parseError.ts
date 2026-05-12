@@ -6,7 +6,7 @@ function unwrapCause(err: unknown): unknown[] {
   const chain: unknown[] = [err];
   let current = err;
   while (current instanceof Error && (current as { cause?: unknown }).cause) {
-    current = (current as { cause: unknown }).cause;
+    current = (current as unknown as { cause: unknown }).cause;
     chain.push(current);
   }
   return chain;
