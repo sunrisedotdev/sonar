@@ -5,7 +5,7 @@ import { AnchorProvider, BN, BorshCoder, Program } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import type { GeneratePurchasePermitResponse } from "@echoxyz/sonar-core";
 import { PROGRAM_ID, PAYMENT_TOKEN_MINT, saleUUID } from "@/lib/config";
-import { IDL, IDL_CAMEL } from "@/app/idl/settlement_sale";
+import { IDL, IDL_CAMEL } from "@shared/idl/settlement_sale";
 import { parse as uuidParse } from "uuid";
 
 interface SolanaPermitJSON {

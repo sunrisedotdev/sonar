@@ -1,5 +1,5 @@
 import { SonarProviderConfig } from "@echoxyz/sonar-react";
-import { SETTLEMENT_SALE_PROGRAM_ID } from "./idl/settlement_sale";
+import { SETTLEMENT_SALE_PROGRAM_ID } from "@shared/idl/settlement_sale";
 
 function requireEnv(name: string, value: string | undefined): string {
   if (!value) {

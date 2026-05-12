@@ -3,8 +3,8 @@ import { useCallback, useState } from "react";
 import { useAccount, useReadContract, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
 import { saleContract, paymentTokenAddress } from "./config";
-import { settlementSaleAbi } from "./abi/SettlementSale";
-import { ERC20Abi } from "./abi/ERC20";
+import { settlementSaleAbi } from "@shared/abi/SettlementSale";
+import { ERC20Abi } from "@shared/abi/ERC20";
 import { useConfig } from "wagmi";
 import { waitForTransactionReceipt, simulateContract } from "wagmi/actions";
 
