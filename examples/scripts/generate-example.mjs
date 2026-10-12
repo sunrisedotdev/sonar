@@ -36,6 +36,10 @@ pnpm-debug.log*
 const EVM_APPS = ["react-evm", "nextjs-evm"];
 const SVM_APPS = ["react-svm", "nextjs-svm"];
 
+// Chain-specific shared directories. Each app only receives the one for its chain, because
+// the other chain's code depends on packages the app doesn't install (e.g. the IDL needs @coral-xyz/anchor).
+const CHAIN_SHARED_DIRS = { evm: "abi", svm: "idl" };
+
 async function walkAndRewrite(dir, extensions, replacements) {
     const entries = await readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
@@ -66,7 +70,12 @@ async function generate(app) {
 
     // Merge each shared subdirectory (components/, lib/, …) directly into src/ so
     // the standalone repo needs no special path alias — @/ covers everything.
+    const chain = SVM_APPS.includes(app) ? "svm" : "evm";
+    const otherChainDirs = Object.entries(CHAIN_SHARED_DIRS)
+        .filter(([c]) => c !== chain)
+        .map(([, dir]) => dir);
     for (const name of await readdir(resolve("examples/shared"))) {
+        if (otherChainDirs.includes(name)) continue;
         await cp(resolve("examples/shared", name), resolve(out, "src", name), { recursive: true });
     }
 
