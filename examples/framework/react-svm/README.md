@@ -31,7 +31,7 @@ pnpm dev
 
 The app will be available at `http://localhost:3000`.
 
-By default, the example uses a [SettlementSale](https://github.com/sunrisedotdev/sunrise/tree/main/solana/programs/settlement-sale) program on Solana devnet. To run against mainnet, see [Running on Mainnet](#running-on-mainnet).
+The example uses a [SettlementSale](https://github.com/sunrisedotdev/sunrise/tree/main/solana/programs/settlement-sale) program on Solana devnet.
 
 In order to test committing funds, you will need to have USDC to commit and SOL to pay for the gas.
 
@@ -62,7 +62,7 @@ To point the app at mainnet, set both in your `.env`:
 
 ```sh
 VITE_PROGRAM_ID=<mainnet SettlementSale program address for your sale>
-VITE_RPC_URL=<your mainnet RPC endpoint>
+VITE_RPC_URL=https://api.mainnet-beta.solana.com # Public and rate-limited: override with a private RPC URL for production
 ```
 
 Set both together. A mainnet program ID with a devnet RPC URL (or the reverse) will fail, because the program and its accounts won't exist on the cluster the app is connected to.
