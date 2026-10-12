@@ -49,6 +49,26 @@ For production or any meaningful testing, set the env var `VITE_RPC_URL` to your
 **Be careful!** Exposing an RPC URL on the frontend allows anyone to extract and use your private RPC keys.
 Only use scoped and rate-limited API keys, never expose your master private keys.
 
+### Running on Mainnet
+
+`VITE_PROGRAM_ID` and `VITE_RPC_URL` both default to Solana devnet:
+
+| Variable | Default |
+| --- | --- |
+| `VITE_PROGRAM_ID` | The devnet SettlementSale program (`3XxHCh947y1PAMK5y8oecBtaLU7TtTj9r4yMYwzFbJYs`, from the shared IDL) |
+| `VITE_RPC_URL` | `https://api.devnet.solana.com` |
+
+To point the app at mainnet, set both in your `.env`:
+
+```sh
+VITE_PROGRAM_ID=<mainnet SettlementSale program address for your sale>
+VITE_RPC_URL=https://api.mainnet-beta.solana.com # Public and rate-limited: override with a private RPC URL for production
+```
+
+Set both together. A mainnet program ID with a devnet RPC URL (or the reverse) will fail, because the program and its accounts won't exist on the cluster the app is connected to.
+
+Also set `VITE_PAYMENT_TOKEN_MINT` to the mainnet mint of your payment token (e.g. mainnet USDC), and make sure your wallet is on mainnet with real USDC and SOL. The faucets above are devnet-only.
+
 ## What This Example Demonstrates
 
 - **Provider setup** — configuring `SonarProvider` with the Solana wallet adapter and React Query
